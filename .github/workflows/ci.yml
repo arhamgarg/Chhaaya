@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Whitespace errors
+        if: github.event_name == 'pull_request'
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
