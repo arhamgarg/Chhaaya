@@ -16,7 +16,7 @@ Questions are answered by retrieving passages from MoHFW, ICMR and NHM documents
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the rules every change and coding agent follows.
 
 ## License
 
