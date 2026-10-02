@@ -2,9 +2,9 @@
 
 All work starts from an issue and lands through a pull request. `main` is protected: nobody pushes to it directly, and a PR merges only when the required CI check `check` passes. The rules this workflow relies on (gates, risk classes, the domain checklist) are in [AGENTS.md](AGENTS.md); read it first.
 
-Any request to work on an issue runs the whole workflow below without confirmation prompts: "fix the next issue", "take the next N", "resolve #12", "finish this PR". The request authorizes every step in it for the issues it covers (branching, pushing, opening and editing the PR, spawning the reviewer, merging, and deleting the branch and worktree it created) and nothing else. Issues are done one at a time: the next starts only after the previous PR is merged and cleaned up.
+Any request to work on an issue runs the whole workflow below without confirmation prompts: "fix the next issue", "take the next N", "resolve #12", "finish this PR". The request authorizes every step in it for the issues it covers (branching, pushing, opening and editing the PR, merging, and deleting the branch and worktree it created) and nothing else. Issues are done one at a time: the next starts only after the previous PR is merged and cleaned up.
 
-A task is done when its PR is merged, its issue is closed, the cleanup in step 11 is verified and the step 12 report is written, or when a [stop condition](#stop-conditions) has been reported.
+A task is done when its PR is merged, its issue is closed, the cleanup in step 9 is verified and the step 10 report is written, or when a [stop condition](#stop-conditions) has been reported.
 
 ## 1. Cleanup and state
 
@@ -53,55 +53,23 @@ Push only after the local gates pass. Open a non-draft PR against `main` whose d
 4. `## Key files`: the files to review first;
 5. `## Risks and limitations`;
 6. `## Verification`: exact commands and results;
-7. `## External checks`: the live Sarvam or WhatsApp checks not performed;
-8. `## Independent review`: a placeholder until step 9.
+7. `## External checks`: the live Sarvam or WhatsApp checks not performed.
 
-## 7. Independent review
+## 7. Wait for green
 
-Wait for the required check (`gh pr checks <number> --watch`), handling failures as in step 9. Then spawn one read-only review subagent using the vendor-matched reviewer model from [AGENTS.md](AGENTS.md), with no shared context and high reasoning effort. Its prompt is self-contained and gives:
+Wait for the required check (`gh pr checks <number> --watch`) and handle the outcome:
 
-- the PR URL and number, the repository path, and the base and head commits;
-- the issue and its acceptance criteria;
-- an instruction to read `AGENTS.md` and this file, review the change against them and the issue without editing anything, and return each finding with a severity (BLOCKER, HIGH, MEDIUM or LOW) and `path:line`, then a verdict: `APPROVE`, `COMMENT`, `REQUEST_CHANGES` or `BLOCKED`;
-- the verification already run and any checks still pending.
-
-The reviewer works from the PR's base and head, not your checkout. Don't switch branches or change files while it runs.
-
-## 8. Triage and re-review
-
-Trace every finding yourself before acting:
-
-- a valid BLOCKER or HIGH finding, a failed criterion, or a failure the change caused must be fixed;
-- a valid MEDIUM or LOW finding should be fixed when it is in scope; otherwise record why it was declined;
-- an invalid or duplicate finding is dismissed with code, test or artifact evidence.
-
-Make each fix its own commit, rerun the affected gates, push, wait for the check, and send the same reviewer the new head, what was fixed or declined, and the new results. Repeat until the verdict is `APPROVE` for the current head; any other verdict continues the loop. Never ask for another review without new evidence.
-
-For a Critical change, also request a review from the teammate who owns the affected area, and wait for their approval before merging.
-
-## 9. Record the approval and wait for green
-
-After `APPROVE`, confirm the PR head is still the reviewed commit, then replace the `## Independent review` section with exactly:
-
-```text
-## Independent review
-- Model: `<reviewer model id>`
-- Reasoning effort: `high`
-- Reviewed head: `<full 40-character commit SHA>`
-- Verdict: `APPROVE`
-```
-
-Any later push makes this stale and returns to step 7. Wait for the required check again and handle the outcome:
-
-- a test failure caused by the change: fix it in a commit, push, and return to step 7;
+- a failure caused by the change: fix it in a commit, rerun the local gates, push, and wait again;
 - a failure unrelated to the change: rerun it once; if it fails again, stop;
-- `main` moved and the PR conflicts: rebase, rerun the gates, push with `--force-with-lease`, and return to step 7.
+- `main` moved and the PR conflicts: rebase, rerun the gates, push with `--force-with-lease`, and wait again.
 
-## 10. Merge
+For a Critical change (see [AGENTS.md](AGENTS.md#risk-classes)), request a review from the teammate who owns the affected area and wait for their approval. Fix what they raise as separate commits, and wait for green again after each push.
 
-Merge only when the current head carries the `APPROVE` record and `check` is green: `gh pr merge <number> --merge --delete-branch`. Confirm the PR is `MERGED` and the issue `CLOSED`; if `Closes #N` didn't close it, close it with a comment naming the PR.
+## 8. Merge
 
-## 11. Cleanup
+Merge only when `check` is green on the current head and any owner review a Critical change needs has approved it: `gh pr merge <number> --merge --delete-branch`. Confirm the PR is `MERGED` and the issue `CLOSED`; if `Closes #N` didn't close it, close it with a comment naming the PR.
+
+## 9. Cleanup
 
 1. Fetch with `--prune` and delete any remote branch you created that remains.
 2. Fast-forward `main` to `origin/main`.
@@ -109,9 +77,9 @@ Merge only when the current head carries the `APPROVE` record and `check` is gre
 4. Delete the local task branch, then run `git worktree prune`.
 5. Check that `git branch -a` and `git worktree list` show nothing you created and that none of your workflow PRs is open.
 
-## 12. Report and continue
+## 10. Report and continue
 
-Report the issue and PR, the reviewer model, its verdict and how each finding was handled, the merge commit, the verification results, and that cleanup was verified. If the request covers more issues, go back to step 1.
+Report the issue and PR, the merge commit, the verification results, and that cleanup was verified. If the request covers more issues, go back to step 1.
 
 ## Stop conditions
 
@@ -121,9 +89,8 @@ Stop and report, changing nothing else, only when:
 - no eligible issue remains;
 - the issue admits materially different readings after investigation (ask its author on the issue);
 - someone else's uncommitted change overlaps the edit and can't be preserved;
-- the reviewer returns `BLOCKED` for evidence you can't obtain;
 - a check fails for reasons unrelated to the change after one rerun;
-- the escalated diagnosis in [AGENTS.md](AGENTS.md) can't find a root cause either;
+- a failure's root cause is still unknown after the diagnosis attempts in [AGENTS.md](AGENTS.md);
 - `gh` authentication or the merge fails after one retry.
 
-Everything else, including review findings, test failures, stale approvals, rebases and conflicts, is handled inside the workflow.
+Everything else, including test failures, owner review comments, rebases and conflicts, is handled inside the workflow.

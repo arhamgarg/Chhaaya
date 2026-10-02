@@ -14,11 +14,9 @@ Instructions for every coding agent working on Chhaaya, and for the people drivi
 
 When two instructions at the same level conflict, name the conflict and ask; do not invent a resolution that could change the outcome.
 
-**Vendor-matched reviewer model:** Claude Fable 5.1 `claude-fable-5-1` for an Anthropic implementer, GPT-6 Astra `gpt-6-astra` for an OpenAI implementer. Any other implementer uses its own vendor's most capable model.
-
 ## Working principles
 
-1. **Assumptions.** State assumptions explicitly. If a simpler approach exists, say so. When an approach fails twice, stop and find the root cause before trying a third variant. If two diagnosis attempts still leave it unknown, give the vendor-matched reviewer model, as a read-only subagent with no shared context and high reasoning effort, the symptom, both attempts with their evidence and the relevant code paths, and ask for a root-cause hypothesis plus the check that confirms it. The implementer keeps ownership of the fix. If that also fails, stop and report.
+1. **Assumptions.** State assumptions explicitly. If a simpler approach exists, say so. When an approach fails twice, stop and find the root cause before trying a third variant. If two diagnosis attempts still leave it unknown, stop and report the symptom, both attempts and their evidence.
 2. **Simplicity (YAGNI).** Write the minimum code that solves the issue. No unrequested features, no abstractions for single-use code, no error handling for impossible cases. Every new option has a current caller and a documented default.
 3. **Surgical changes.** Every changed line traces to the issue. Don't refactor, reformat or "improve" adjacent code; match the existing style. Remove only what your change orphaned.
 4. **Fail loudly.** No fallback that hides invalid state: fail explicitly and keep the original error and its context. Catch an exception only to recover, add context, or translate it at a system boundary. Failure never becomes a success signal in an exit status, report or return value.
