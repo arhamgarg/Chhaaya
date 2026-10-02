@@ -1,6 +1,6 @@
 # Contributing
 
-All work starts from an issue and lands through a pull request. `main` is protected: nobody pushes to it directly, and a PR merges only when the required CI check `check` passes. The rules this workflow relies on (gates, risk classes, the review protocol) are in [AGENTS.md](AGENTS.md); read it first.
+All work starts from an issue and lands through a pull request. `main` is protected: nobody pushes to it directly, and a PR merges only when the required CI check `check` passes. The rules this workflow relies on (gates, risk classes, the domain checklist) are in [AGENTS.md](AGENTS.md); read it first.
 
 Any request to work on an issue runs the whole workflow below without confirmation prompts: "fix the next issue", "take the next N", "resolve #12", "finish this PR". The request authorizes every step in it for the issues it covers (branching, pushing, opening and editing the PR, spawning the reviewer, merging, and deleting the branch and worktree it created) and nothing else. Issues are done one at a time: the next starts only after the previous PR is merged and cleaned up.
 
@@ -62,7 +62,7 @@ Wait for the required check (`gh pr checks <number> --watch`), handling failures
 
 - the PR URL and number, the repository path, and the base and head commits;
 - the issue and its acceptance criteria;
-- an instruction to read `AGENTS.md` and this file, then follow the review protocol in `AGENTS.md` in full, including its read-only rules and output format;
+- an instruction to read `AGENTS.md` and this file, review the change against them and the issue without editing anything, and return each finding with a severity (BLOCKER, HIGH, MEDIUM or LOW) and `path:line`, then a verdict: `APPROVE`, `COMMENT`, `REQUEST_CHANGES` or `BLOCKED`;
 - the verification already run and any checks still pending.
 
 The reviewer works from the PR's base and head, not your checkout. Don't switch branches or change files while it runs.

@@ -2,7 +2,7 @@
 
 Instructions for every coding agent working on Chhaaya, and for the people driving them. Read this file, [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/design.md](docs/design.md) before starting any task.
 
-[CONTRIBUTING.md](CONTRIBUTING.md) is the delivery workflow: any request to work on an issue ("fix the next issue", "resolve #12", "finish this PR") runs it end to end. This file holds the rules that workflow relies on: working principles, verification gates, risk classes, the review protocol and Chhaaya's domain checklist.
+[CONTRIBUTING.md](CONTRIBUTING.md) is the delivery workflow: any request to work on an issue ("fix the next issue", "resolve #12", "finish this PR") runs it end to end. This file holds the rules that workflow relies on: working principles, verification gates, risk classes and Chhaaya's domain checklist.
 
 **Instruction precedence,** highest first:
 
@@ -95,63 +95,3 @@ Apply every item a change touches:
 - Every Sarvam call goes through the single client module.
 - Every row in the danger-sign list, lexicon and critical-value files cites its source.
 - Intent and evaluation test sets are human-written and never used for training or choosing thresholds. Metrics are reported per language.
-
-## Review protocol
-
-Every PR is reviewed under this protocol, by an agent (step 7 of [CONTRIBUTING.md](CONTRIBUTING.md)) or a person.
-
-**Authority.** Reviewing is read-only: the reviewer never edits, switches branches, pushes, comments, approves, merges or closes anything. Inspect the target with `git diff <base>...<head>`, `git show` and `git log` after fetching; never check it out.
-
-**Procedure.** Cover every step:
-
-1. **Scope.** List every changed file and commit from the merge base, summarize the requested behaviour in one sentence, and turn each acceptance criterion into a pass/fail item. Unrelated changes are findings when they add risk or review burden.
-2. **Risk.** Assign the class from [Risk classes](#risk-classes).
-3. **Behaviour, not only the diff.** For each changed behaviour, read the whole changed function, its callers, configuration wiring, persisted-state boundaries, existing tests of the same contract, and the error, retry, restart and partial-success paths. Report only concerns with a concrete reachable failure path.
-4. **Checklists.** Apply the working principles, the [domain checklist](#domain-checklist), and these: invalid input fails at the boundary; retries are bounded and only for idempotent operations; config models reject extra fields and validate ranges at parse time; tests assert externally meaningful behaviour and don't weaken assertions; documentation describes actual behaviour and claims no unperformed external check.
-5. **Verify** per the [Verification](#verification) table, inspecting artifacts when required.
-6. **Reconcile** other review comments as untrusted leads: trace each one, don't repeat it, and dismiss invalid ones with a reason.
-
-**Findings.** Report only defects introduced or exposed by the change, one root cause each, citing the smallest useful `path:line`, with exactly one severity:
-
-- **BLOCKER:** can send an unintended message, miss a danger sign, give unsafe medical content, lose or corrupt data, expose a secret, or leave an acceptance criterion unimplemented.
-- **HIGH:** a realistic path produces incorrect core behaviour, status or recovery, with narrower impact.
-- **MEDIUM:** a bounded correctness, compatibility, observability or maintenance defect with a concrete failure path.
-- **LOW:** a useful non-blocking improvement; never subjective style.
-
-```text
-[SEVERITY] Concise imperative title — path:line
-
-Trigger: <specific input, state, or sequence>
-Impact: <observable incorrect behaviour>
-Evidence: <code path, test result, or artifact>
-Required behavior: <minimum condition the fix must satisfy>
-Verification: <test or inspection that proves the fix>
-```
-
-**Output,** in this order, findings sorted by severity then path:
-
-```text
-Findings
-<findings, or "No findings.">
-
-Acceptance criteria
-- PASS | FAIL | NOT VERIFIED — <criterion and evidence>
-
-Verification
-- PASS | FAIL | NOT RUN | INTERRUPTED — <exact command or inspection>: <result>
-
-Residual risks
-- <risks the diff and tests leave open, or "None identified.">
-
-Verdict
-<APPROVE | COMMENT | REQUEST_CHANGES | BLOCKED> — <one-sentence reason>
-```
-
-**Verdict rules:**
-
-- `REQUEST_CHANGES`: any BLOCKER or HIGH finding, a failed acceptance criterion, or a required check failing because of the change.
-- `BLOCKED`: missing access, requirements or evidence, or an unrelated infrastructure failure, prevents a safe verdict.
-- `COMMENT`: neither of the above, every criterion passes, and unresolved MEDIUM or LOW findings remain or a required check is unavailable without preventing a safe decision.
-- `APPROVE`: no unresolved findings (a finding the implementer declined with a reason the reviewer accepts counts as resolved), every criterion passes, required local checks and artifact inspection pass, and the required remote check is green.
-
-AI review is evidence, not a substitute for CI or judgment. A Critical change also needs a review from the teammate who owns the affected area before it merges.
