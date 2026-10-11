@@ -37,9 +37,9 @@ Before editing, turn the issue's **Done when** list into observable acceptance c
 
 Follow the working principles in [AGENTS.md](AGENTS.md): every changed line traces to an acceptance criterion, a test that fills a real gap, required documentation, or cleanup the change made necessary. Reproduce a bug end to end before fixing it. If you find a separate problem, open a new issue for it instead of fixing it here.
 
-Commit after each independently explainable change (a test, the implementation that makes it pass, documentation, a review correction), with no unrelated changes in any commit. Don't squash review history.
+Commit after each independently explainable change (a test, the implementation that makes it pass, documentation, a review correction), with no unrelated changes in any commit. Don't squash the branch yourself: reviewers read its commits, and the merge squashes them.
 
-Commit subjects and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): summary`, with the summary in the imperative and lower case, e.g. `feat(reminders): add reminder worker`. Use `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci` or `chore`; the scope is optional. PRs are merged with a merge commit, so every commit lands on `main` as written. Add a body only when the why isn't obvious.
+Commit subjects and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): summary`, with the summary in the imperative and lower case, e.g. `feat(reminders): add reminder worker`. Use `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci` or `chore`; the scope is optional. PRs are squash-merged, so each PR lands on `main` as one commit whose subject is the PR title. Add a body only when the why isn't obvious.
 
 ## 5. Verify
 
@@ -78,7 +78,7 @@ If independent review was chosen, run it now, as described in [Optional: indepen
 
 ## 8. Merge
 
-Merge only when `check` is green on the current head, any owner review a Critical change needs has approved it, and, if independent review was chosen, the PR carries the `APPROVE` record for the current head: `gh pr merge <number> --merge --delete-branch`. Confirm the PR is `MERGED` and the issue `CLOSED`; if `Closes #N` didn't close it, close it with a comment naming the PR.
+Merge only when `check` is green on the current head, any owner review a Critical change needs has approved it, and, if independent review was chosen, the PR carries the `APPROVE` record for the current head: `gh pr merge <number> --squash --delete-branch`. Confirm the PR is `MERGED` and the issue `CLOSED`; if `Closes #N` didn't close it, close it with a comment naming the PR.
 
 ## 9. Cleanup
 
@@ -90,7 +90,7 @@ Merge only when `check` is green on the current head, any owner review a Critica
 
 ## 10. Report and continue
 
-Report the issue and PR, the implementer and reviewer models (or that review was skipped), the review verdict and how each finding was handled, the merge commit, the verification results, and that cleanup was verified. If the request covers more issues, go back to step 1.
+Report the issue and PR, the implementer and reviewer models (or that review was skipped), the review verdict and how each finding was handled, the squash commit, the verification results, and that cleanup was verified. If the request covers more issues, go back to step 1.
 
 ## Stop conditions
 
