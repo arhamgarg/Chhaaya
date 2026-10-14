@@ -1,0 +1,3 @@
+id,title,publisher,year,url,licence,sha256
+nlem_2022,National List of Essential Medicines 2022,MoHFW,2022,https://qps.nhsrcindia.org/sites/default/files/2022-09/nlem2022.pdf,"Government of India publication; no licence stated, so it is downloaded rather than committed",17dfa27760a73cee226392109a4e96f2594921431cfd6b7a8acfe8eab5e01533
+cdci,Common Drug Codes for India (Flat Files Package),"NRCeS, C-DAC Pune (MoHFW)",2026,https://nrces.in/download/files/zip/CommonDrugCodesForIndia_FlatFilePackage.zip,"CC BY 4.0, redistribution limited to India (License.txt in the package); brand names belong to their owners",aebd30ac95d73accf573c86fd4dae1dc90eff03ae0fbcd312bc761011e88270a

@@ -40,8 +40,12 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # The retrieval check needs the BGE-M3 model and a built corpus: `pytest -m retrieval`.
-addopts = "-m 'not retrieval'"
-markers = ["retrieval: embeds data/chunks.jsonl with the real BGE-M3 model"]
+# The lexicon check downloads NLEM 2022 and CDCI: `pytest -m lexicon`.
+addopts = "-m 'not retrieval and not lexicon'"
+markers = [
+    "retrieval: embeds data/chunks.jsonl with the real BGE-M3 model",
+    "lexicon: builds data/lexicon.csv from the downloaded NLEM 2022 and CDCI",
+]
 
 # CPU-only PyTorch on Linux (CI and the Docker image); PyPI's default Linux wheel
 # pulls in CUDA libraries the embedder never uses.
