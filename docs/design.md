@@ -166,7 +166,7 @@ The classifier earns its place only if it beats the keyword rules and comes clos
 | Data | Source | Used for |
 |---|---|---|
 | Knowledge base | MoHFW and ICMR guidelines, NHM ASHA training modules, the ICMR Standard Treatment Workflows | Retrieval. Documents are downloaded by a script with their URLs recorded, not committed. Each chunk keeps its title, publisher, year and page |
-| Medicine lexicon | National List of Essential Medicines 2022 (generic names), plus a public brand-to-generic list | Prescription extraction |
+| Medicine lexicon | National List of Essential Medicines 2022 (generic names), plus brand-to-generic mappings from the Common Drug Codes for India (NRCeS, MoHFW). Both are downloaded by a script, not committed | Prescription extraction |
 | Danger-sign list | ASHA modules, MCP card, IMNCI | Section 6 |
 | Critical lab values | Cited per row (for example, anaemia cut-offs from Anemia Mukt Bharat) | Section 5.2 |
 | Intent data | Built by the team | Section 7 |

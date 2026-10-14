@@ -64,6 +64,17 @@ uv run pytest tests/test_retrieval.py
 uv run pytest tests/test_retrieval.py -m retrieval -s   # real model and corpus
 ```
 
+## Medicine lexicon and critical lab values
+
+The document agent checks the medicine names it reads off a prescription against a lexicon. It also checks lab values against a short list of critical thresholds. `data/lexicon_sources.csv` names the two lexicon sources with their URL, licence and the SHA-256 of the reviewed file. The first is the National List of Essential Medicines 2022 (MoHFW). The second is the Common Drug Codes for India flat files from NRCeS at C-DAC, which map Indian brand names to generics under CC BY 4.0, with redistribution limited to India. Neither is committed. `python -m chhaaya.lexicon` downloads both to `data/lexicon/` and refuses a file whose checksum has changed. It then writes `data/lexicon.csv`. Each NLEM 2022 medicine gets one row per section that lists it, with its dosage forms and strengths and the section number and page it came from, read from the PDF's tables with PyMuPDF. Each CDCI brand gets one row with the generic it contains (strength and dose form included) and its CDCI id. The 14 brands whose generic is missing from the package are skipped and counted. `Lexicon.load().lookup(text)` drops a leading dosage-form abbreviation ("Tab", "Cap", "Syp", "Inj"). It then scores every name with rapidfuzz's token-set ratio (0 to 100; 100 when every word of the shorter name is in the longer). It returns the best entry and its score; ties go to the name closest overall, so "Tab Telma 40" finds Telma 40 mg rather than a Telma combination. A medicine that is not in the lexicon still returns its nearest entry, with a low score. `data/critical_values.csv` is committed. Each row gives a test, unit, threshold, direction (`below` or `above`), population (`adult`, `pregnant` or `child`), and an age range in years (from inclusive, to exclusive, blank when open). It also cites the page and URL of its source. The first rows are the severe-anaemia haemoglobin cut-offs from the Anaemia Mukt Bharat Abhiyaan guidelines (2026), which follow the WHO 2024 cut-offs. The default tests use a small stand-in lexicon. `-m lexicon` builds the real one, checks that each of the 384 medicines in the NLEM's alphabetical index is in its section tables, and looks up six common brands.
+
+```bash
+uv run python -m chhaaya.lexicon          # download what's missing, then rebuild data/lexicon.csv
+uv run python -c 'from chhaaya.lexicon import Lexicon; print(Lexicon.load().lookup("Tab Dolo 650"))'
+uv run pytest tests/test_lexicon.py tests/test_critical_values.py
+uv run pytest tests/test_lexicon.py -m lexicon -s   # real sources
+```
+
 ## WhatsApp webhook
 
 Messages reach Chhaaya through the WhatsApp Cloud API. `POST /webhook` checks Meta's `X-Hub-Signature-256` signature against the app secret and rejects anything unsigned or forged. It stores each text, voice note and photo as a pending message keyed by its WhatsApp message id, so a retried delivery is ignored, and answers `200` straight away; the worker does the rest. `GET /webhook` answers Meta's verification challenge. `src/chhaaya/whatsapp.py` is the one client for sending text and audio, uploading media and downloading what patients send.
