@@ -27,21 +27,20 @@ SOURCES = DATA / "lexicon_sources.csv"
 DOWNLOADS = DATA / "lexicon"
 LEXICON = DATA / "lexicon.csv"
 
-# Candidates rescored to break ties between equally good token-set matches.
-CANDIDATES = 20
-
 _ITEM = re.compile(r"\d+(\.\d+)+")
 # A dosage line starts a new form ("Tablet 5 mg", "a) Liposomal ...") unless it
 # continues a wrapped one: "(p)", "mg/vial", "+ 200 mg (C)", or follows a line
 # cut after "+", "-", "/" or a joining word ("Contains 52 mg of", "As").
 _NEW_FORM = re.compile(r"[A-Z]|[a-z]\) ")
 _CONTINUED = re.compile(r"([-+–/(]|\b(of|as|and|in|with|for))$", re.IGNORECASE)
-# Prescription shorthand for the dosage form, ahead of the medicine name.
+# Prescription shorthand for the dosage form, ahead of the medicine name. A
+# lone "T" or "C" stays: it starts brand names such as T-Bact and C-Tax.
 _FORM_PREFIX = re.compile(
-    r"^\s*(tabs?|tablets?|t|caps?|capsules?|c|syp|syr|syrup|inj|injection|oint|drops?)"
-    r"\b\.?\s*",
-    re.IGNORECASE,
+    r"^(tabs?|tablets?|caps?|capsules?|syp|syr|syrup|inj|injection|oint|drops?) "
 )
+# A strength written without a space: "650mg", "1gm".
+_GLUED_UNIT = re.compile(r"(\d)([a-z])")
+_GRAM = re.compile(r"\bgm\b")
 
 
 @dataclass(frozen=True)
@@ -61,7 +60,7 @@ class Match:
 class Lexicon:
     def __init__(self, entries: Sequence[Entry]) -> None:
         self.entries = list(entries)
-        self._names = [utils.default_process(e.name) for e in self.entries]
+        self._names = [_normalise(e.name) for e in self.entries]
 
     @classmethod
     def load(cls, path: Path = LEXICON) -> "Lexicon":
@@ -70,22 +69,22 @@ class Lexicon:
 
     def lookup(self, text: str) -> Match:
         """The entry whose name best contains the words of `text`."""
-        query = utils.default_process(_FORM_PREFIX.sub("", text))
-        candidates = process.extract(
-            query,
-            self._names,
-            scorer=fuzz.token_set_ratio,
-            processor=None,
-            limit=CANDIDATES,
+        query = _normalise(text)
+        # Sorted best first; every entry tied with the best is rescored below.
+        scored = process.extract(
+            query, self._names, scorer=fuzz.token_set_ratio, processor=None, limit=None
         )
-        best = max(c[1] for c in candidates)
+        ties = [c for c in scored if c[1] == scored[0][1]]
         # "Telma 40" contains every word of both "Telma 40 mg oral tablet" and
         # "Telma-Beta ER 25 mg + 40 mg ...": prefer the closer whole name.
-        _, score, index = max(
-            (c for c in candidates if c[1] == best),
-            key=lambda c: fuzz.ratio(query, c[0]),
-        )
+        _, score, index = max(ties, key=lambda c: fuzz.ratio(query, c[0]))
         return Match(self.entries[index], score)
+
+
+def _normalise(name: str) -> str:
+    """Lower case, punctuation to spaces, "650mg" to "650 mg", no form word."""
+    name = _GRAM.sub("g", _GLUED_UNIT.sub(r"\1 \2", utils.default_process(name)))
+    return _FORM_PREFIX.sub("", " ".join(name.split()))
 
 
 def read_nlem(pdf: Path) -> list[Entry]:
@@ -123,14 +122,14 @@ def read_nlem(pdf: Path) -> list[Entry]:
                         Entry(
                             name=name,
                             generic=name,
-                            dosage="; ".join(_dosage_forms(dosage)),
+                            dosage="; ".join(dosage_forms(dosage)),
                             source=f"NLEM 2022 {number}, p. {page.number + 1}",
                         )
                     )
     return entries
 
 
-def _dosage_forms(cell: str) -> list[str]:
+def dosage_forms(cell: str) -> list[str]:
     forms: list[str] = []
     for line in (" ".join(line.split()) for line in cell.splitlines()):
         if not line:

@@ -6,12 +6,38 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from chhaaya.lexicon import DOWNLOADS, LEXICON, Entry, Lexicon, build, read_cdci
+from chhaaya.lexicon import (
+    DOWNLOADS,
+    LEXICON,
+    Entry,
+    Lexicon,
+    build,
+    dosage_forms,
+    read_cdci,
+)
 
 INDEX = "Alphabetical List of Medicines in NLEM 2022"
 
 ENTRIES = [
     # Look-alikes come first: a tie must go to the closer name, not the first.
+    Entry(
+        "Bact 200 mg oral tablet", "Ofloxacin 200 mg oral tablet", "", "CDCI brand 9"
+    ),
+    Entry(
+        "T-Bact 20 mg/g cutaneous cream", "Mupirocin 20 mg/g cream", "", "CDCI brand 10"
+    ),
+    Entry(
+        "Monocef O 200 mg oral tablet",
+        "Cefpodoxime 200 mg oral tablet",
+        "",
+        "CDCI brand 11",
+    ),
+    Entry(
+        "Monocef 1 g/vial powder for solution for injection",
+        "Ceftriaxone 1 g powder for solution for injection vial",
+        "",
+        "CDCI brand 12",
+    ),
     Entry(
         "Paracetamol (paracetamol) 500 mg oral tablet Agron Remedies Private Limited",
         "Acetaminophen 500 mg oral tablet",
@@ -80,12 +106,60 @@ ENTRIES = [
         ("TAB. TELMA 40", "Telma 40 mg oral tablet"),
         ("T. Pan 40", "T Pan 40 mg oral tablet"),
         ("Syp Calpol", "Calpol 120 mg/5 mL oral suspension"),
+        ("T-Bact", "T-Bact 20 mg/g cutaneous cream"),
+        ("Tab Dolo 650mg", "Dolo 650 mg oral tablet"),
+        ("Inj Monocef 1gm", "Monocef 1 g/vial powder for solution for injection"),
         ("Paracetamol", "Paracetamol"),
         ("amoxycillin 500", "Amoxicillin"),
     ],
 )
 def test_lookup_reads_through_prescription_shorthand(written: str, name: str):
     assert Lexicon(ENTRIES).lookup(written).entry.name == name
+
+
+def test_a_tie_goes_to_the_closest_name_however_many_entries_tie():
+    decoys = [
+        Entry(f"Pan 40 mg oral tablet batch {n}", "Pantoprazole", "", f"CDCI {n}")
+        for n in range(30)
+    ]
+    exact = Entry("Pan 40", "Pantoprazole 40 mg", "", "CDCI 99")
+    assert Lexicon([*decoys, exact]).lookup("Tab Pan 40").entry == exact
+
+
+@pytest.mark.parametrize(
+    ("cell", "forms"),
+    [
+        (
+            "Capsule/Tablet 50000 IU \n(including Chewable Tablet) \n"
+            "Oral liquid 100000 IU/mL \nInjection 50000 IU/mL ",
+            [
+                "Capsule/Tablet 50000 IU (including Chewable Tablet)",
+                "Oral liquid 100000 IU/mL",
+                "Injection 50000 IU/mL",
+            ],
+        ),
+        (
+            "Tablet 60 mg (A) + 30 mg (B) + \n50 mg (C) (p) \n"
+            "Tablet 300 mg (A) + 150 mg (B) \n+ 200 mg (C) ",
+            [
+                "Tablet 60 mg (A) + 30 mg (B) + 50 mg (C) (p)",
+                "Tablet 300 mg (A) + 150 mg (B) + 200 mg (C)",
+            ],
+        ),
+        (
+            "a) Soluble/ liquid polyvalent - As \nLicensed \n"
+            "b) Lyophilized polyvalent - As \nLicensed ",
+            [
+                "a) Soluble/ liquid polyvalent - As Licensed",
+                "b) Lyophilized polyvalent - As Licensed",
+            ],
+        ),
+        ("Contains 52 mg of \nLevonorgestrel ", ["Contains 52 mg of Levonorgestrel"]),
+        ("Injection \n", ["Injection"]),
+    ],
+)
+def test_wrapped_nlem_dosage_lines_join_into_whole_forms(cell: str, forms: list[str]):
+    assert dosage_forms(cell) == forms
 
 
 def test_a_medicine_missing_from_the_lexicon_scores_low():
@@ -187,6 +261,8 @@ def test_built_lexicon_holds_nlem_2022_and_reads_real_brand_names():
         ("Tab Amlong 5", "amlodipine besylate) 5 mg"),
         ("Ecosprin 75", "Aspirin 75 mg"),
         ("Thyronorm 50", "Levothyroxine sodium 50 microgram"),
+        ("T-Bact", "Mupirocin"),
+        ("Tab Pan 40mg", "Pantoprazole"),
     ]:
         started = time.perf_counter()
         match = lexicon.lookup(written)
