@@ -35,7 +35,7 @@ def test_voice_reply_is_uploaded_then_sent_by_media_id():
         "messaging_product": "whatsapp",
         "to": "911111111111",
         "type": "audio",
-        "audio": {"id": "media-1"},
+        "audio": {"id": "media-1", "voice": True},
     }
     assert wamid == "wamid.out"
     assert {r.headers["Authorization"] for r in requests} == {"Bearer token"}
@@ -51,3 +51,30 @@ def test_text_is_sent_and_inbound_media_is_downloaded_with_the_token():
     # Meta's media URL refuses requests that don't carry the access token.
     assert requests[-1].url.host == "lookaside.example"
     assert requests[-1].headers["Authorization"] == "Bearer token"
+
+
+def test_a_template_is_sent_with_its_language_and_body_parameters():
+    requests: list[httpx2.Request] = []
+    client = WhatsAppClient("token", "123456", fake_meta(requests))
+
+    assert client.send_template("91999", "asha_case_alert", "hi", ["12", "x"]) == (
+        "wamid.out"
+    )
+    assert json.loads(requests[0].read()) == {
+        "messaging_product": "whatsapp",
+        "to": "91999",
+        "type": "template",
+        "template": {
+            "name": "asha_case_alert",
+            "language": {"code": "hi"},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        {"type": "text", "text": "12"},
+                        {"type": "text", "text": "x"},
+                    ],
+                }
+            ],
+        },
+    }
