@@ -90,6 +90,8 @@ class Message(Base):
     claimed_at: Mapped[datetime | None]
     # Set when the worker marks the message failed, and only then.
     error: Mapped[str | None]
+    # The language of a transcribed voice note.
+    language: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     __table_args__ = (

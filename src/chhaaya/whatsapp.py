@@ -17,7 +17,9 @@ class WhatsAppClient:
         return self._send(to, {"type": "text", "text": {"body": body}})
 
     def send_audio(self, to: str, media_id: str) -> str:
-        return self._send(to, {"type": "audio", "audio": {"id": media_id}})
+        return self._send(
+            to, {"type": "audio", "audio": {"id": media_id, "voice": True}}
+        )
 
     def upload_media(self, data: bytes, mime_type: str) -> str:
         response = self.http.post(

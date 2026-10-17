@@ -35,7 +35,7 @@ def test_voice_reply_is_uploaded_then_sent_by_media_id():
         "messaging_product": "whatsapp",
         "to": "911111111111",
         "type": "audio",
-        "audio": {"id": "media-1"},
+        "audio": {"id": "media-1", "voice": True},
     }
     assert wamid == "wamid.out"
     assert {r.headers["Authorization"] for r in requests} == {"Bearer token"}

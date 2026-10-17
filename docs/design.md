@@ -199,7 +199,7 @@ The evaluation harness runs every set below against the running system. It write
 
 ## 10. Privacy
 
-The project uses no real patient data (section 2). Audio and images are deleted once they have been processed. Messages and case records stay in the local database, and the phone numbers in it belong to team members.
+The project uses no real patient data (section 2). Chhaaya never stores audio or images: it holds them in memory while processing a message and never writes them to disk or the database. It does not delete the copies on Meta's servers. Meta keeps an inbound voice note or photo downloadable for 7 days and uploaded reply audio for 30. Messages and case records stay in the local database, and the phone numbers in it belong to team members.
 
 A real deployment would need consent and data handling under the Digital Personal Data Protection Act, 2023. That is outside this project.
 
