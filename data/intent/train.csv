@@ -1,0 +1,901 @@
+text,label,language
+my baby has had loose motions since morning what should i give,question,en
+is it safe to eat papaya during pregnancy,question,en
+what is a normal blood pressure for an old person,question,en
+how many days does typhoid fever last,question,en
+can i take paracetamol on an empty stomach,question,en
+my sugar was 240 after food is that high,question,en
+what foods are good for low haemoglobin,question,en
+when should my baby get the measles vaccine,question,en
+is it normal to feel the baby move less in the ninth month,question,en
+what are the side effects of metformin,question,en
+how do i know if my child is dehydrated,question,en
+can a pregnant woman drink tea,question,en
+my mother has swelling in her feet what could it be,question,en
+which vaccine is given at six weeks,question,en
+is jaggery good for anaemia,question,en
+how long should i breastfeed my baby,question,en
+why do i get dizzy when i stand up quickly,question,en
+does iron tablet cause black motions,question,en
+what should i eat if i have high sugar,question,en
+can i take a bath when i have fever,question,en
+how much water should a pregnant woman drink,question,en
+what is the right time to take calcium tablets,question,en
+is cough syrup safe for a two year old,question,en
+what does a high haemoglobin report mean,question,en
+how can i lower my blood pressure without medicine,question,en
+can i eat rice with diabetes,question,en
+what is the first food to give a six month old baby,question,en
+is it ok to exercise during pregnancy,question,en
+my child has a rash on his chest what is it,question,en
+how often should a newborn feed at night,question,en
+when do i take the iron tablet before food or after,question,en
+what is the difference between viral and typhoid fever,question,en
+is amlodipine taken in the morning or night,question,en
+how long after delivery can i start family planning,question,en
+what is anaemia and how do i fix it,question,en
+why is my urine yellow after taking vitamins,question,en
+can i take two tablets together if i forgot one,question,en
+what to do for a cold in a one month old,question,en
+how much weight should a baby gain in the first year,question,en
+is it normal to bleed a little after delivery,question,en
+what is the normal fasting sugar level,question,en
+can diabetic people eat mango,question,en
+my periods are late by ten days should i worry,question,en
+what is folic acid used for,question,en
+is it safe to take medicine while breastfeeding,question,en
+how do i clean a newborn's umbilical cord,question,en
+my father is on aspirin can he eat garlic,question,en
+how much salt is okay for a person with high bp,question,en
+how soon after delivery should the baby get its first vaccine,question,en
+what are signs of low sugar,question,en
+can children drink ORS every day,question,en
+when should i take my thyroid tablet,question,en
+what is the best sleeping position in pregnancy,question,en
+is a headache normal with high blood pressure,question,en
+how do i store insulin in summer,question,en
+can i give honey to my baby of four months,question,en
+what test shows kidney problem,question,en
+what should a TB patient eat,question,en
+how many weeks does a TB course take,question,en
+how long does the cough last after TB treatment starts,question,en
+can a pregnant woman take the tetanus injection,question,en
+what is the dose time for ORS,question,en
+why do my legs cramp at night,question,en
+how do i know the baby is getting enough milk,question,en
+what is good for acidity in pregnancy,question,en
+are lemon and honey good for a cold,question,en
+when will my child stop wetting the bed,question,en
+what is the iron tablet for,question,en
+can i drink milk after taking antibiotics,question,en
+what is a normal pulse rate,question,en
+what does hba1c mean,question,en
+how can i tell if it is dengue,question,en
+what causes high sugar in pregnancy,question,en
+can i skip breakfast if i take diabetes medicine,question,en
+what does bp 150 over 95 mean,question,en
+please remind me to take my BP tablet every morning at 8,reminder_setup,en
+set a reminder for my sugar medicine at 9 pm daily,reminder_setup,en
+remind me to take iron tablet after lunch for 30 days,reminder_setup,en
+can you remind me about my thyroid tablet at 6 am,reminder_setup,en
+i need a reminder to take metformin twice a day,reminder_setup,en
+remind me for amlodipine every night at 10,reminder_setup,en
+please set an alarm for my calcium tablet at 2 pm,reminder_setup,en
+remind me to give my child the syrup at 7 am and 7 pm,reminder_setup,en
+every day at 8 am remind me to take my tablet,reminder_setup,en
+i want to be reminded for my TB medicine daily at 7,reminder_setup,en
+remind me about folic acid every morning for three months,reminder_setup,en
+set reminder for insulin before dinner,reminder_setup,en
+please remind me about my mother's BP tablet at 9 in the morning,reminder_setup,en
+remind me daily at noon for vitamin tablet,reminder_setup,en
+i keep forgetting my pills can you remind me at 8 pm,reminder_setup,en
+remind me to take antibiotic three times a day for five days,reminder_setup,en
+reminder for iron tablet at bedtime for two months,reminder_setup,en
+can you set a reminder to take my medicine at 6 pm,reminder_setup,en
+add a reminder for paracetamol syrup every 6 hours for 2 days,reminder_setup,en
+remind me for my sugar tablet after breakfast and dinner,reminder_setup,en
+change my reminder from 8 am to 9 am,reminder_setup,en
+stop the reminder for my BP tablet,reminder_setup,en
+cancel my evening reminder,reminder_setup,en
+please delete the iron tablet reminder,reminder_setup,en
+move my night reminder to 10 30 pm,reminder_setup,en
+i finished my course please stop reminders,reminder_setup,en
+make the reminder for 7 am instead,reminder_setup,en
+i want to remind my father to take his heart tablet at 8,reminder_setup,en
+remind me to take the tablet after food at 1 pm,reminder_setup,en
+set a daily alarm for my pregnancy vitamins at 9,reminder_setup,en
+i take two tablets a day can you remind me morning and evening,reminder_setup,en
+remind me for thyroid medicine on empty stomach at 6,reminder_setup,en
+please remind me every 8 hours for the antibiotic,reminder_setup,en
+remind me to take the tablet for the next 15 days at 8 am,reminder_setup,en
+my doctor said take this for a week at night please remind me,reminder_setup,en
+can you remind me to take my calcium after dinner,reminder_setup,en
+set up a medicine reminder for 8 am and 8 pm,reminder_setup,en
+i would like a reminder for my diabetes pills,reminder_setup,en
+please remind me about the tablets from my prescription,reminder_setup,en
+remind me at 7 pm for my daughter's syrup,reminder_setup,en
+need a reminder for my BP medicine every day,reminder_setup,en
+remind me to take the blood thinner at 9 pm,reminder_setup,en
+remind me daily for my asthma inhaler at 7 am,reminder_setup,en
+set an alarm to take the worm tablet on sunday,reminder_setup,en
+i want to add a new reminder for vitamin D weekly,reminder_setup,en
+remind me every morning to take the iron and folic acid tablet,reminder_setup,en
+could you remind me for my medicine at lunch time,reminder_setup,en
+set reminder 8am BP tablet,reminder_setup,en
+remind me for metformin 9am and 9pm,reminder_setup,en
+please make a reminder for my tablets at 5 in the evening,reminder_setup,en
+i forget my evening dose remind me at 7,reminder_setup,en
+remind me two times daily for my cough syrup,reminder_setup,en
+add reminder for my husband's sugar tablet at 8 am,reminder_setup,en
+remind me for ten days to put the eye drops at 9 am,reminder_setup,en
+please remind me to take medicine on time,reminder_setup,en
+update the reminder to three times a day,reminder_setup,en
+can you remind me to take the TB tablets on empty stomach in the morning,reminder_setup,en
+set weekly reminder for iron tablet on mondays,reminder_setup,en
+remind me to take my tablet one hour before dinner,reminder_setup,en
+i want a reminder for my pills how do i do that,reminder_setup,en
+please remind me tomorrow morning to take the first dose,reminder_setup,en
+remind me every day at 10 am for the cholesterol tablet,reminder_setup,en
+reminder please for amlodipine and metformin at 8,reminder_setup,en
+stop reminding me about the night tablet,reminder_setup,en
+change reminder time of my thyroid medicine to 5 30 am,reminder_setup,en
+i need to be reminded of my tablets at breakfast,reminder_setup,en
+remind me for my mother's calcium at 1 pm daily,reminder_setup,en
+remind me in 4 hours to take the next dose,reminder_setup,en
+please snooze my reminder to tomorrow,reminder_setup,en
+set my medicine alarm at 7 30 every day,reminder_setup,en
+remind me for the antibiotic at 8 am 2 pm and 8 pm for a week,reminder_setup,en
+remind me about the iron syrup for my baby at 10 am,reminder_setup,en
+reminder for diabetes tablet 30 minutes before food,reminder_setup,en
+remind me to take my pills every day at 9 pm,reminder_setup,en
+can you remind me about the BP medicine,reminder_setup,en
+taken,reminder_reply,en
+i took it,reminder_reply,en
+i have taken my tablet,reminder_reply,en
+done,reminder_reply,en
+took the medicine,reminder_reply,en
+yes i took it just now,reminder_reply,en
+tablet taken,reminder_reply,en
+i took the tablet at 8,reminder_reply,en
+not yet taken,reminder_reply,en
+i did not take it,reminder_reply,en
+i missed the dose,reminder_reply,en
+i forgot to take it,reminder_reply,en
+will take it later,reminder_reply,en
+i will take it after lunch,reminder_reply,en
+taken thanks,reminder_reply,en
+took it,reminder_reply,en
+i have already taken it,reminder_reply,en
+i skipped the dose today,reminder_reply,en
+took both tablets,reminder_reply,en
+not taken,reminder_reply,en
+taken at 9,reminder_reply,en
+medicine done,reminder_reply,en
+i had my medicine,reminder_reply,en
+took it after breakfast,reminder_reply,en
+i will take it in an hour,reminder_reply,en
+forgot today,reminder_reply,en
+did not take the tablet,reminder_reply,en
+dose taken,reminder_reply,en
+i just took the tablet,reminder_reply,en
+i took my evening tablet,reminder_reply,en
+taken morning dose,reminder_reply,en
+i couldn't take it,reminder_reply,en
+took the syrup,reminder_reply,en
+taken already,reminder_reply,en
+i took it before the reminder,reminder_reply,en
+i had the tablet with milk,reminder_reply,en
+not taken yet will take soon,reminder_reply,en
+my evening dose is done,reminder_reply,en
+took the tablet at 7,reminder_reply,en
+i have not taken it yet,reminder_reply,en
+missed it,reminder_reply,en
+no i did not take,reminder_reply,en
+yes taken,reminder_reply,en
+i took my medicine on time,reminder_reply,en
+took iron tablet,reminder_reply,en
+not today,reminder_reply,en
+medicine taken thank you,reminder_reply,en
+the tablet is finished for today,reminder_reply,en
+i took the first dose,reminder_reply,en
+second dose taken,reminder_reply,en
+i took it late,reminder_reply,en
+taking it now,reminder_reply,en
+took it just now,reminder_reply,en
+i will take it at night,reminder_reply,en
+i already had it,reminder_reply,en
+i took both the morning tablets,reminder_reply,en
+yes done,reminder_reply,en
+i took my BP tablet,reminder_reply,en
+sugar tablet taken,reminder_reply,en
+i did not have it yet,reminder_reply,en
+medicine over for today,reminder_reply,en
+haven't taken it,reminder_reply,en
+took it a while ago,reminder_reply,en
+i took half the dose,reminder_reply,en
+my son took the syrup,reminder_reply,en
+my mother has taken her tablet,reminder_reply,en
+father took his medicine,reminder_reply,en
+the dose is taken,reminder_reply,en
+forgot to take it in the morning,reminder_reply,en
+will take after dinner,reminder_reply,en
+took the medicine at noon,reminder_reply,en
+taken just now,reminder_reply,en
+i am going to take it now,reminder_reply,en
+i did not get time to take it,reminder_reply,en
+the tablet was taken at 6,reminder_reply,en
+hello,smalltalk,en
+hi,smalltalk,en
+good morning,smalltalk,en
+good evening,smalltalk,en
+good night,smalltalk,en
+hello how are you,smalltalk,en
+namaste,smalltalk,en
+thank you,smalltalk,en
+thanks a lot,smalltalk,en
+thank you so much,smalltalk,en
+thanks for your help,smalltalk,en
+you are very helpful,smalltalk,en
+bye,smalltalk,en
+ok bye,smalltalk,en
+see you tomorrow,smalltalk,en
+who are you,smalltalk,en
+what is your name,smalltalk,en
+are you a robot,smalltalk,en
+who made you,smalltalk,en
+what can you do,smalltalk,en
+how are you today,smalltalk,en
+have a nice day,smalltalk,en
+happy diwali,smalltalk,en
+happy new year to you,smalltalk,en
+eid mubarak,smalltalk,en
+i am fine thank you,smalltalk,en
+nice to meet you,smalltalk,en
+hello there,smalltalk,en
+hey,smalltalk,en
+hi good afternoon,smalltalk,en
+god bless you,smalltalk,en
+what is the time now,smalltalk,en
+what is the weather today,smalltalk,en
+tell me a joke,smalltalk,en
+who won the cricket match,smalltalk,en
+what is the capital of india,smalltalk,en
+can you sing a song,smalltalk,en
+do you speak hindi,smalltalk,en
+i like talking to you,smalltalk,en
+you are good,smalltalk,en
+great job,smalltalk,en
+thanks that was useful,smalltalk,en
+thank you doctor,smalltalk,en
+thank you didi,smalltalk,en
+thanks for reminding me,smalltalk,en
+i am bored,smalltalk,en
+what is your favourite colour,smalltalk,en
+what is the price of petrol today,smalltalk,en
+which film should i watch,smalltalk,en
+tell me a story,smalltalk,en
+my phone is slow,smalltalk,en
+is it raining there,smalltalk,en
+good morning how was your night,smalltalk,en
+have you eaten,smalltalk,en
+what are you doing,smalltalk,en
+hello are you there,smalltalk,en
+hi can i talk to you,smalltalk,en
+sorry wrong number,smalltalk,en
+please ignore my last message,smalltalk,en
+i will talk to you later,smalltalk,en
+let me call you back,smalltalk,en
+it is very hot today,smalltalk,en
+how is your day going,smalltalk,en
+thank you for the information,smalltalk,en
+appreciate it,smalltalk,en
+love you,smalltalk,en
+i am so happy today,smalltalk,en
+you are a nice bot,smalltalk,en
+thanks bye,smalltalk,en
+hello friend,smalltalk,en
+who is the prime minister,smalltalk,en
+thank you for everything,smalltalk,en
+ok thanks bye,smalltalk,en
+happy birthday to me,smalltalk,en
+today is my birthday,smalltalk,en
+मेरे बच्चे को सुबह से दस्त हो रहे हैं क्या देना चाहिए,question,hi
+गर्भावस्था में पपीता खाना सुरक्षित है क्या,question,hi
+बुजुर्ग का सामान्य ब्लड प्रेशर कितना होना चाहिए,question,hi
+टाइफाइड बुखार कितने दिन रहता है,question,hi
+क्या खाली पेट पैरासिटामोल ले सकते हैं,question,hi
+खाने के बाद मेरा शुगर 240 आया क्या यह ज्यादा है,question,hi
+खून की कमी में क्या खाना चाहिए,question,hi
+बच्चे को खसरे का टीका कब लगता है,question,hi
+नौवें महीने में बच्चा कम हिलता है क्या यह सामान्य है,question,hi
+मेटफॉर्मिन के क्या साइड इफेक्ट होते हैं,question,hi
+बच्चे में पानी की कमी कैसे पहचानें,question,hi
+क्या गर्भवती महिला चाय पी सकती है,question,hi
+मेरी माँ के पैरों में सूजन है यह क्या हो सकता है,question,hi
+छह हफ्ते पर कौन सा टीका लगता है,question,hi
+क्या गुड़ खाने से खून बढ़ता है,question,hi
+बच्चे को कितने समय तक दूध पिलाना चाहिए,question,hi
+अचानक खड़े होने पर चक्कर क्यों आते हैं,question,hi
+क्या आयरन की गोली से काला मल आता है,question,hi
+शुगर के मरीज को क्या खाना चाहिए,question,hi
+बुखार में नहा सकते हैं क्या,question,hi
+गर्भवती महिला को दिन में कितना पानी पीना चाहिए,question,hi
+कैल्शियम की गोली किस समय लेनी चाहिए,question,hi
+क्या दो साल के बच्चे को खांसी की दवा दे सकते हैं,question,hi
+हीमोग्लोबिन ज्यादा आने का क्या मतलब है,question,hi
+बिना दवा के ब्लड प्रेशर कैसे कम करें,question,hi
+क्या शुगर में चावल खा सकते हैं,question,hi
+छह महीने के बच्चे को पहला खाना क्या देना चाहिए,question,hi
+क्या गर्भावस्था में कसरत करना ठीक है,question,hi
+बच्चे की छाती पर दाने हैं यह क्या है,question,hi
+नवजात को रात में कितनी बार दूध पिलाना चाहिए,question,hi
+आयरन की गोली खाने से पहले लें या बाद में,question,hi
+वायरल और टाइफाइड बुखार में क्या फर्क है,question,hi
+अम्लोडिपिन सुबह लेते हैं या रात को,question,hi
+डिलीवरी के कितने दिन बाद परिवार नियोजन शुरू कर सकते हैं,question,hi
+एनीमिया क्या होता है और कैसे ठीक करें,question,hi
+विटामिन लेने के बाद पेशाब पीला क्यों आता है,question,hi
+एक गोली भूल गई तो क्या दो साथ ले सकते हैं,question,hi
+एक महीने के बच्चे को सर्दी हो तो क्या करें,question,hi
+पहले साल में बच्चे का वजन कितना बढ़ना चाहिए,question,hi
+क्या डिलीवरी के बाद थोड़ा खून आना सामान्य है,question,hi
+खाली पेट शुगर कितना होना चाहिए,question,hi
+क्या शुगर वाले आम खा सकते हैं,question,hi
+मेरे पीरियड दस दिन लेट हैं क्या चिंता करनी चाहिए,question,hi
+फोलिक एसिड किस काम आता है,question,hi
+दूध पिलाते समय दवा लेना सुरक्षित है क्या,question,hi
+नवजात की नाभि कैसे साफ करें,question,hi
+पिताजी एस्पिरिन ले रहे हैं क्या वे लहसुन खा सकते हैं,question,hi
+हाई बीपी में कितना नमक ठीक है,question,hi
+डिलीवरी के कितनी देर बाद बच्चे को पहला टीका लगता है,question,hi
+शुगर कम होने के लक्षण क्या हैं,question,hi
+क्या बच्चे रोज ओआरएस पी सकते हैं,question,hi
+थायराइड की गोली कब लेनी चाहिए,question,hi
+गर्भावस्था में किस करवट सोना सही है,question,hi
+हाई बीपी में सिरदर्द होना सामान्य है क्या,question,hi
+गर्मी में इंसुलिन कैसे रखें,question,hi
+क्या चार महीने के बच्चे को शहद दे सकते हैं,question,hi
+किडनी की समस्या कौन सी जांच से पता चलती है,question,hi
+टीबी के मरीज को क्या खाना चाहिए,question,hi
+टीबी का कोर्स कितने हफ्ते का होता है,question,hi
+टीबी का इलाज शुरू होने के बाद खांसी कब तक रहती है,question,hi
+क्या गर्भवती महिला टिटनेस का इंजेक्शन लगवा सकती है,question,hi
+रात में पैरों में ऐंठन क्यों होती है,question,hi
+कैसे पता चले कि बच्चे को पर्याप्त दूध मिल रहा है,question,hi
+गर्भावस्था में एसिडिटी के लिए क्या अच्छा है,question,hi
+क्या सर्दी में नींबू और शहद फायदेमंद है,question,hi
+बच्चा बिस्तर पर पेशाब करना कब बंद करेगा,question,hi
+आयरन की गोली किसलिए दी जाती है,question,hi
+एंटीबायोटिक के बाद दूध पी सकते हैं क्या,question,hi
+सामान्य नब्ज कितनी होनी चाहिए,question,hi
+एचबीए1सी का क्या मतलब होता है,question,hi
+डेंगू है या नहीं कैसे पता चलेगा,question,hi
+गर्भावस्था में शुगर क्यों बढ़ता है,question,hi
+क्या शुगर की दवा लेने पर नाश्ता छोड़ सकते हैं,question,hi
+बीपी 150 बटा 95 का क्या मतलब है,question,hi
+घर पर मलेरिया से कैसे बचें,question,hi
+कृपया मुझे रोज सुबह 8 बजे बीपी की गोली याद दिलाना,reminder_setup,hi
+रात 9 बजे शुगर की दवा का रिमाइंडर लगा दो,reminder_setup,hi
+दोपहर के खाने के बाद 30 दिन तक आयरन की गोली याद दिलाओ,reminder_setup,hi
+सुबह 6 बजे थायराइड की गोली के लिए रिमाइंडर चाहिए,reminder_setup,hi
+दिन में दो बार मेटफॉर्मिन याद दिलाना,reminder_setup,hi
+हर रात 10 बजे अम्लोडिपिन का रिमाइंडर लगाओ,reminder_setup,hi
+दोपहर 2 बजे कैल्शियम की गोली के लिए अलार्म लगा दो,reminder_setup,hi
+बच्चे की सिरप सुबह 7 और शाम 7 बजे याद दिलाओ,reminder_setup,hi
+रोज सुबह 8 बजे मेरी दवा याद दिलाना,reminder_setup,hi
+टीबी की दवा रोज सुबह 7 बजे याद दिलाओ,reminder_setup,hi
+तीन महीने तक रोज सुबह फोलिक एसिड याद दिलाना,reminder_setup,hi
+रात के खाने से पहले इंसुलिन का रिमाइंडर लगाओ,reminder_setup,hi
+मेरी माँ की बीपी की गोली सुबह 9 बजे याद दिलाओ,reminder_setup,hi
+रोज दोपहर को विटामिन की गोली का रिमाइंडर चाहिए,reminder_setup,hi
+मैं गोली भूल जाती हूँ रात 8 बजे याद दिला देना,reminder_setup,hi
+पांच दिन तक दिन में तीन बार एंटीबायोटिक याद दिलाओ,reminder_setup,hi
+दो महीने तक सोते समय आयरन की गोली याद दिलाना,reminder_setup,hi
+शाम 6 बजे दवा का रिमाइंडर लगा दीजिए,reminder_setup,hi
+दो दिन तक हर 6 घंटे में पैरासिटामोल सिरप याद दिलाओ,reminder_setup,hi
+नाश्ते और रात के खाने के बाद शुगर की गोली याद दिलाना,reminder_setup,hi
+मेरा रिमाइंडर 8 बजे से बदलकर 9 बजे कर दो,reminder_setup,hi
+बीपी की गोली का रिमाइंडर बंद कर दो,reminder_setup,hi
+मेरा शाम का रिमाइंडर रद्द कर दो,reminder_setup,hi
+आयरन की गोली वाला रिमाइंडर हटा दो,reminder_setup,hi
+रात का रिमाइंडर साढ़े दस बजे कर दो,reminder_setup,hi
+मेरा कोर्स पूरा हो गया अब रिमाइंडर मत भेजना,reminder_setup,hi
+रिमाइंडर सुबह 7 बजे का कर दो,reminder_setup,hi
+मेरे पिताजी की दिल की गोली सुबह 8 बजे याद दिलाओ,reminder_setup,hi
+खाने के बाद दोपहर 1 बजे गोली याद दिलाना,reminder_setup,hi
+हर दिन सुबह 9 बजे प्रेगनेंसी की विटामिन का अलार्म लगा दो,reminder_setup,hi
+मुझे दिन में दो गोली लेनी है सुबह और शाम याद दिलाना,reminder_setup,hi
+खाली पेट थायराइड की दवा के लिए सुबह 6 बजे याद दिलाओ,reminder_setup,hi
+एंटीबायोटिक हर 8 घंटे में याद दिलाते रहना,reminder_setup,hi
+अगले 15 दिन तक सुबह 8 बजे गोली याद दिलाओ,reminder_setup,hi
+डॉक्टर ने एक हफ्ता रात को यह दवा लेने को कहा है रोज याद दिलाना,reminder_setup,hi
+रात के खाने के बाद कैल्शियम याद दिलाना,reminder_setup,hi
+सुबह 8 और रात 8 बजे दवा का रिमाइंडर सेट कर दो,reminder_setup,hi
+मुझे शुगर की गोली का रिमाइंडर चाहिए,reminder_setup,hi
+पर्चे वाली सारी दवाइयों का रिमाइंडर लगा दो,reminder_setup,hi
+मेरी बेटी की सिरप शाम 7 बजे याद दिलाना,reminder_setup,hi
+रोज बीपी की दवा का रिमाइंडर चाहिए,reminder_setup,hi
+रात 9 बजे खून पतला करने वाली गोली याद दिलाना,reminder_setup,hi
+रोज सुबह 7 बजे इन्हेलर का रिमाइंडर लगाओ,reminder_setup,hi
+रविवार को पेट के कीड़े की गोली का अलार्म लगा दो,reminder_setup,hi
+हर हफ्ते विटामिन डी का नया रिमाइंडर जोड़ दो,reminder_setup,hi
+रोज सुबह आयरन और फोलिक एसिड की गोली याद दिलाना,reminder_setup,hi
+दोपहर के खाने के समय दवा याद दिला देना,reminder_setup,hi
+रिमाइंडर लगाओ सुबह 8 बजे बीपी की गोली,reminder_setup,hi
+मेटफॉर्मिन के लिए सुबह 9 और रात 9 बजे याद दिलाओ,reminder_setup,hi
+शाम 5 बजे की गोलियों का रिमाइंडर बना दो,reminder_setup,hi
+शाम की खुराक भूल जाती हूँ 7 बजे याद दिलाओ,reminder_setup,hi
+खांसी की सिरप दिन में दो बार याद दिलाना,reminder_setup,hi
+मेरे पति की शुगर की गोली सुबह 8 बजे याद दिलाओ,reminder_setup,hi
+दस दिन तक सुबह 9 बजे आँख की दवा डालने की याद दिलाओ,reminder_setup,hi
+समय पर दवा लेने के लिए मुझे याद दिलाते रहना,reminder_setup,hi
+रिमाइंडर बदलकर दिन में तीन बार कर दो,reminder_setup,hi
+टीबी की गोलियां सुबह खाली पेट याद दिलाना,reminder_setup,hi
+हर सोमवार आयरन की गोली का साप्ताहिक रिमाइंडर लगा दो,reminder_setup,hi
+रात के खाने से एक घंटा पहले गोली याद दिलाना,reminder_setup,hi
+मेरी गोलियों का रिमाइंडर कैसे लगाते हैं बताओ और लगा दो,reminder_setup,hi
+कल सुबह पहली खुराक के लिए याद दिलाना,reminder_setup,hi
+रोज सुबह 10 बजे कोलेस्ट्रॉल की गोली याद दिलाओ,reminder_setup,hi
+अम्लोडिपिन और मेटफॉर्मिन का रिमाइंडर 8 बजे लगा दो,reminder_setup,hi
+रात की गोली के रिमाइंडर भेजना बंद करो,reminder_setup,hi
+थायराइड की दवा का रिमाइंडर साढ़े पांच बजे कर दो,reminder_setup,hi
+नाश्ते के समय गोली याद दिलाना,reminder_setup,hi
+रोज दोपहर 1 बजे माँ का कैल्शियम याद दिलाओ,reminder_setup,hi
+4 घंटे बाद अगली खुराक के लिए याद दिलाना,reminder_setup,hi
+मेरा रिमाइंडर कल सुबह तक टाल दो,reminder_setup,hi
+रोज साढ़े सात बजे दवा का अलार्म लगा दो,reminder_setup,hi
+हफ्ते भर सुबह 8 दोपहर 2 और रात 8 बजे एंटीबायोटिक याद दिलाओ,reminder_setup,hi
+बच्चे की आयरन सिरप सुबह 10 बजे याद दिलाना,reminder_setup,hi
+खाने से 30 मिनट पहले शुगर की गोली का रिमाइंडर लगाओ,reminder_setup,hi
+रोज रात 9 बजे मुझे दवा याद दिलाना,reminder_setup,hi
+मुझे बीपी की दवा के लिए रिमाइंडर चाहिए,reminder_setup,hi
+ले ली,reminder_reply,hi
+मैंने दवा ले ली,reminder_reply,hi
+गोली खा ली,reminder_reply,hi
+हो गया,reminder_reply,hi
+दवा ले ली है,reminder_reply,hi
+हाँ अभी अभी ले ली,reminder_reply,hi
+आज की गोली खा ली,reminder_reply,hi
+मैंने 8 बजे गोली खा ली,reminder_reply,hi
+अभी नहीं ली,reminder_reply,hi
+मैंने नहीं ली,reminder_reply,hi
+आज की खुराक छूट गई,reminder_reply,hi
+गोली लेना भूल गई,reminder_reply,hi
+बाद में ले लूँगी,reminder_reply,hi
+खाने के बाद ले लूँगा,reminder_reply,hi
+ले ली धन्यवाद,reminder_reply,hi
+खा ली,reminder_reply,hi
+मैंने पहले ही ले ली है,reminder_reply,hi
+आज की खुराक छोड़ दी,reminder_reply,hi
+दोनों गोलियां ले ली,reminder_reply,hi
+नहीं खाई,reminder_reply,hi
+9 बजे ले ली,reminder_reply,hi
+दवा हो गई,reminder_reply,hi
+आज की दवा खा ली,reminder_reply,hi
+नाश्ते के बाद ले ली,reminder_reply,hi
+एक घंटे में ले लूँगी,reminder_reply,hi
+आज भूल गई,reminder_reply,hi
+गोली नहीं ली,reminder_reply,hi
+खुराक ले ली,reminder_reply,hi
+अभी अभी गोली खाई,reminder_reply,hi
+शाम की गोली ले ली,reminder_reply,hi
+सुबह की खुराक ले ली,reminder_reply,hi
+नहीं ले पाई,reminder_reply,hi
+सिरप पिला दी,reminder_reply,hi
+पहले ही ले चुकी हूँ,reminder_reply,hi
+रिमाइंडर से पहले ही ले ली थी,reminder_reply,hi
+दूध के साथ गोली ले ली,reminder_reply,hi
+अभी नहीं ली जल्दी ले लूँगी,reminder_reply,hi
+शाम की खुराक हो गई,reminder_reply,hi
+7 बजे गोली ले ली,reminder_reply,hi
+अभी तक नहीं ली,reminder_reply,hi
+छूट गई,reminder_reply,hi
+नहीं ली मैंने,reminder_reply,hi
+हाँ ले ली,reminder_reply,hi
+मैंने समय पर दवा ले ली,reminder_reply,hi
+आयरन की गोली ले ली,reminder_reply,hi
+आज नहीं,reminder_reply,hi
+दवा ले ली शुक्रिया,reminder_reply,hi
+आज की गोली पूरी हो गई,reminder_reply,hi
+पहली खुराक ले ली,reminder_reply,hi
+दूसरी खुराक ले ली,reminder_reply,hi
+देर से ली,reminder_reply,hi
+अभी ले रही हूँ,reminder_reply,hi
+अभी ले ली,reminder_reply,hi
+रात को ले लूँगी,reminder_reply,hi
+मैं पहले ही खा चुकी हूँ,reminder_reply,hi
+सुबह की दोनों गोलियां ले ली,reminder_reply,hi
+बीपी की गोली ले ली,reminder_reply,hi
+शुगर की गोली खा ली,reminder_reply,hi
+अभी तक नहीं खाई,reminder_reply,hi
+आज की दवा खत्म,reminder_reply,hi
+नहीं खाई अभी,reminder_reply,hi
+थोड़ी देर पहले ले ली,reminder_reply,hi
+आधी खुराक ली,reminder_reply,hi
+मेरे बेटे ने सिरप पी ली,reminder_reply,hi
+माँ ने गोली खा ली,reminder_reply,hi
+पिताजी ने दवा ले ली,reminder_reply,hi
+खुराक ले ली गई,reminder_reply,hi
+सुबह लेना भूल गया,reminder_reply,hi
+रात के खाने के बाद ले लूँगी,reminder_reply,hi
+दोपहर में दवा ले ली,reminder_reply,hi
+अभी अभी ली,reminder_reply,hi
+अभी लेने जा रही हूँ,reminder_reply,hi
+लेने का समय नहीं मिला,reminder_reply,hi
+6 बजे गोली ले ली थी,reminder_reply,hi
+गोली खा ली है,reminder_reply,hi
+नमस्ते,smalltalk,hi
+नमस्कार,smalltalk,hi
+हेलो,smalltalk,hi
+हाय,smalltalk,hi
+सुप्रभात,smalltalk,hi
+शुभ संध्या,smalltalk,hi
+शुभ रात्रि,smalltalk,hi
+आप कैसे हैं,smalltalk,hi
+धन्यवाद,smalltalk,hi
+बहुत धन्यवाद,smalltalk,hi
+आपका बहुत शुक्रिया,smalltalk,hi
+आपकी मदद के लिए धन्यवाद,smalltalk,hi
+आप बहुत अच्छे हैं,smalltalk,hi
+अलविदा,smalltalk,hi
+ठीक है अलविदा,smalltalk,hi
+कल मिलते हैं,smalltalk,hi
+आप कौन हैं,smalltalk,hi
+आपका नाम क्या है,smalltalk,hi
+क्या आप रोबोट हैं,smalltalk,hi
+आपको किसने बनाया,smalltalk,hi
+आप क्या क्या कर सकते हैं,smalltalk,hi
+आज आप कैसे हैं,smalltalk,hi
+आपका दिन शुभ हो,smalltalk,hi
+दिवाली की शुभकामनाएं,smalltalk,hi
+नए साल की शुभकामनाएं,smalltalk,hi
+ईद मुबारक,smalltalk,hi
+मैं ठीक हूँ धन्यवाद,smalltalk,hi
+आपसे मिलकर अच्छा लगा,smalltalk,hi
+हेलो जी,smalltalk,hi
+राम राम,smalltalk,hi
+नमस्ते जी कैसे हैं,smalltalk,hi
+भगवान आपका भला करे,smalltalk,hi
+अभी क्या समय हुआ है,smalltalk,hi
+आज मौसम कैसा है,smalltalk,hi
+कोई चुटकुला सुनाओ,smalltalk,hi
+क्रिकेट मैच कौन जीता,smalltalk,hi
+भारत की राजधानी क्या है,smalltalk,hi
+कोई गाना सुनाओ,smalltalk,hi
+क्या आप हिंदी बोलते हैं,smalltalk,hi
+मुझे आपसे बात करना अच्छा लगता है,smalltalk,hi
+आप अच्छे हो,smalltalk,hi
+बहुत बढ़िया,smalltalk,hi
+धन्यवाद यह काम आया,smalltalk,hi
+आपका शुक्रिया दीदी,smalltalk,hi
+याद दिलाने के लिए धन्यवाद,smalltalk,hi
+मैं बोर हो रही हूँ,smalltalk,hi
+आपका पसंदीदा रंग कौन सा है,smalltalk,hi
+आज पेट्रोल का भाव क्या है,smalltalk,hi
+कौन सी फिल्म देखूं,smalltalk,hi
+कोई कहानी सुनाओ,smalltalk,hi
+मेरा फोन बहुत धीमा चल रहा है,smalltalk,hi
+क्या वहाँ बारिश हो रही है,smalltalk,hi
+सुप्रभात रात कैसी रही,smalltalk,hi
+आपने खाना खाया,smalltalk,hi
+आप क्या कर रहे हैं,smalltalk,hi
+हेलो क्या आप वहाँ हैं,smalltalk,hi
+नमस्ते क्या मैं आपसे बात कर सकती हूँ,smalltalk,hi
+माफ कीजिए गलत नंबर लग गया,smalltalk,hi
+मेरा पिछला संदेश अनदेखा कर दीजिए,smalltalk,hi
+मैं बाद में बात करती हूँ,smalltalk,hi
+मैं आपको वापस फोन करता हूँ,smalltalk,hi
+आज बहुत गर्मी है,smalltalk,hi
+आपका दिन कैसा चल रहा है,smalltalk,hi
+जानकारी के लिए धन्यवाद,smalltalk,hi
+आपकी बहुत कृपा,smalltalk,hi
+मैं आज बहुत खुश हूँ,smalltalk,hi
+आप बहुत अच्छे बॉट हैं,smalltalk,hi
+धन्यवाद फिर मिलेंगे,smalltalk,hi
+हेलो दोस्त,smalltalk,hi
+प्रधानमंत्री कौन हैं,smalltalk,hi
+सब कुछ के लिए धन्यवाद,smalltalk,hi
+ठीक है शुक्रिया चलता हूँ,smalltalk,hi
+आज मेरा जन्मदिन है,smalltalk,hi
+क्रिसमस की शुभकामनाएं,smalltalk,hi
+अभी के लिए बस इतना ही धन्यवाद,smalltalk,hi
+mere bache ko subah se loose motion ho rahe hain kya dena chahiye,question,hinglish
+pregnancy mein papita khana safe hai kya,question,hinglish
+buzurg ka normal BP kitna hona chahiye,question,hinglish
+typhoid bukhar kitne din rehta hai,question,hinglish
+kya khali pet paracetamol le sakte hain,question,hinglish
+khane ke baad sugar 240 aaya kya ye zyada hai,question,hinglish
+khoon ki kami mein kya khana chahiye,question,hinglish
+bache ko measles ka teeka kab lagta hai,question,hinglish
+nauve mahine mein baccha kam hilta hai kya ye normal hai,question,hinglish
+metformin ke kya side effects hote hain,question,hinglish
+bache mein paani ki kami kaise pehchanein,question,hinglish
+kya pregnant aurat chai pi sakti hai,question,hinglish
+meri maa ke pairon mein sujan hai ye kya ho sakta hai,question,hinglish
+chhe hafte par kaun sa teeka lagta hai,question,hinglish
+kya gud khane se khoon badhta hai,question,hinglish
+bache ko kitne time tak doodh pilana chahiye,question,hinglish
+achanak uthne par chakkar kyun aate hain,question,hinglish
+kya iron ki goli se kala potty aata hai,question,hinglish
+sugar ke mareez ko kya khana chahiye,question,hinglish
+bukhar mein nahana chahiye ya nahi,question,hinglish
+pregnant mahila ko din mein kitna paani peena chahiye,question,hinglish
+calcium ki goli kis time leni chahiye,question,hinglish
+do saal ke bache ko khansi ki dawai de sakte hain kya,question,hinglish
+hemoglobin zyada aane ka kya matlab hai,question,hinglish
+bina dawai ke BP kaise kam karein,question,hinglish
+kya sugar mein chawal kha sakte hain,question,hinglish
+chhe mahine ke bache ko pehla khana kya dena chahiye,question,hinglish
+pregnancy mein exercise karna theek hai kya,question,hinglish
+bache ki chhati par daane hain ye kya hai,question,hinglish
+newborn ko raat mein kitni baar doodh pilana chahiye,question,hinglish
+iron ki goli khane se pehle leni hai ya baad mein,question,hinglish
+viral aur typhoid bukhar mein kya fark hai,question,hinglish
+amlodipine subah leni hai ya raat ko,question,hinglish
+delivery ke kitne din baad family planning shuru kar sakte hain,question,hinglish
+anemia kya hota hai aur kaise theek karein,question,hinglish
+vitamin lene ke baad peshab peela kyun aata hai,question,hinglish
+ek goli bhool gayi to kya do saath le sakte hain,question,hinglish
+ek mahine ke bache ko sardi ho to kya karein,question,hinglish
+pehle saal mein bache ka weight kitna badhna chahiye,question,hinglish
+delivery ke baad thoda khoon aana normal hai kya,question,hinglish
+khali pet sugar kitna hona chahiye,question,hinglish
+kya sugar wale aam kha sakte hain,question,hinglish
+mere periods das din late hain kya tension leni chahiye,question,hinglish
+folic acid kis kaam aata hai,question,hinglish
+doodh pilate time dawai lena safe hai kya,question,hinglish
+newborn ki naabhi kaise saaf karein,question,hinglish
+papa aspirin le rahe hain kya wo lehsun kha sakte hain,question,hinglish
+high BP mein kitna namak theek hai,question,hinglish
+delivery ke kitni der baad bache ko pehla teeka lagta hai,question,hinglish
+sugar kam hone ke lakshan kya hain,question,hinglish
+kya bache roz ORS pi sakte hain,question,hinglish
+thyroid ki goli kab leni chahiye,question,hinglish
+pregnancy mein kis karwat sona sahi hai,question,hinglish
+high BP mein sar dard hona normal hai kya,question,hinglish
+garmi mein insulin kaise rakhein,question,hinglish
+kya chaar mahine ke bache ko shahad de sakte hain,question,hinglish
+kidney ki problem kaun si jaanch se pata chalti hai,question,hinglish
+TB ke mareez ko kya khana chahiye,question,hinglish
+TB ka course kitne hafte ka hota hai,question,hinglish
+TB ka ilaaj shuru hone ke baad khansi kab tak rehti hai,question,hinglish
+kya pregnant mahila tetanus ka injection lagwa sakti hai,question,hinglish
+raat mein pairon mein kheench kyun hoti hai,question,hinglish
+kaise pata chale ki bache ko kaafi doodh mil raha hai,question,hinglish
+pregnancy mein acidity ke liye kya achha hai,question,hinglish
+kya sardi mein nimbu aur shahad faydemand hai,question,hinglish
+baccha bistar mein peshab karna kab band karega,question,hinglish
+iron ki goli kis liye di jaati hai,question,hinglish
+antibiotic ke baad doodh pi sakte hain kya,question,hinglish
+normal pulse kitni honi chahiye,question,hinglish
+HbA1c ka kya matlab hota hai,question,hinglish
+dengue hai ya nahi kaise pata chalega,question,hinglish
+pregnancy mein sugar kyun badhta hai,question,hinglish
+kya sugar ki dawai lene par nashta chhod sakte hain,question,hinglish
+BP 150 by 95 ka kya matlab hai,question,hinglish
+ghar par malaria se kaise bachein,question,hinglish
+please mujhe roz subah 8 baje BP ki goli yaad dilana,reminder_setup,hinglish
+raat 9 baje sugar ki dawai ka reminder laga do,reminder_setup,hinglish
+lunch ke baad 30 din tak iron ki goli yaad dilao,reminder_setup,hinglish
+subah 6 baje thyroid ki goli ke liye reminder chahiye,reminder_setup,hinglish
+din mein do baar metformin yaad dilana,reminder_setup,hinglish
+har raat 10 baje amlodipine ka reminder lagao,reminder_setup,hinglish
+dopahar 2 baje calcium ki goli ke liye alarm laga do,reminder_setup,hinglish
+bache ki syrup subah 7 aur shaam 7 baje yaad dilao,reminder_setup,hinglish
+roz subah 8 baje meri dawai yaad dilana,reminder_setup,hinglish
+TB ki dawai roz subah 7 baje yaad dilao,reminder_setup,hinglish
+teen mahine tak roz subah folic acid yaad dilana,reminder_setup,hinglish
+dinner se pehle insulin ka reminder lagao,reminder_setup,hinglish
+meri maa ki BP ki goli subah 9 baje yaad dilao,reminder_setup,hinglish
+roz dopahar ko vitamin ki goli ka reminder chahiye,reminder_setup,hinglish
+main goli bhool jaati hoon raat 8 baje yaad dila dena,reminder_setup,hinglish
+paanch din tak din mein teen baar antibiotic yaad dilao,reminder_setup,hinglish
+do mahine tak sote time iron ki goli yaad dilana,reminder_setup,hinglish
+shaam 6 baje dawai ka reminder laga dijiye,reminder_setup,hinglish
+do din tak har 6 ghante mein paracetamol syrup yaad dilao,reminder_setup,hinglish
+nashte aur dinner ke baad sugar ki goli yaad dilana,reminder_setup,hinglish
+mera reminder 8 baje se badal kar 9 baje kar do,reminder_setup,hinglish
+BP ki goli ka reminder band kar do,reminder_setup,hinglish
+mera shaam ka reminder cancel kar do,reminder_setup,hinglish
+iron ki goli wala reminder hata do,reminder_setup,hinglish
+raat ka reminder saade das baje kar do,reminder_setup,hinglish
+mera course poora ho gaya ab reminder mat bhejna,reminder_setup,hinglish
+reminder subah 7 baje ka kar do,reminder_setup,hinglish
+mere papa ki heart ki goli subah 8 baje yaad dilao,reminder_setup,hinglish
+khane ke baad dopahar 1 baje goli yaad dilana,reminder_setup,hinglish
+har din subah 9 baje pregnancy vitamin ka alarm laga do,reminder_setup,hinglish
+mujhe din mein do goli leni hain subah aur shaam yaad dilana,reminder_setup,hinglish
+khali pet thyroid ki dawai ke liye subah 6 baje yaad dilao,reminder_setup,hinglish
+antibiotic har 8 ghante mein yaad dilate rehna,reminder_setup,hinglish
+agle 15 din tak subah 8 baje goli yaad dilao,reminder_setup,hinglish
+doctor ne ek hafta raat ko ye dawai lene ko kaha hai roz yaad dilana,reminder_setup,hinglish
+dinner ke baad calcium yaad dilana,reminder_setup,hinglish
+subah 8 aur raat 8 baje dawai ka reminder set kar do,reminder_setup,hinglish
+mujhe sugar ki goli ka reminder chahiye,reminder_setup,hinglish
+prescription wali saari dawaiyon ka reminder laga do,reminder_setup,hinglish
+meri beti ki syrup shaam 7 baje yaad dilana,reminder_setup,hinglish
+roz BP ki dawai ka reminder chahiye,reminder_setup,hinglish
+raat 9 baje blood thinner ki goli yaad dilana,reminder_setup,hinglish
+roz subah 7 baje inhaler ka reminder lagao,reminder_setup,hinglish
+sunday ko pet ke keede ki goli ka alarm laga do,reminder_setup,hinglish
+har hafte vitamin D ka naya reminder jod do,reminder_setup,hinglish
+roz subah iron aur folic acid ki goli yaad dilana,reminder_setup,hinglish
+lunch time par dawai yaad dila dena,reminder_setup,hinglish
+reminder lagao subah 8 baje BP ki goli,reminder_setup,hinglish
+metformin ke liye subah 9 aur raat 9 baje yaad dilao,reminder_setup,hinglish
+shaam 5 baje ki goliyon ka reminder bana do,reminder_setup,hinglish
+shaam ki dose bhool jaati hoon 7 baje yaad dilao,reminder_setup,hinglish
+khansi ki syrup din mein do baar yaad dilana,reminder_setup,hinglish
+mere husband ki sugar ki goli subah 8 baje yaad dilao,reminder_setup,hinglish
+das din tak subah 9 baje aankh ki dawai daalne ki yaad dilao,reminder_setup,hinglish
+time par dawai lene ke liye mujhe yaad dilate rehna,reminder_setup,hinglish
+reminder badal kar din mein teen baar kar do,reminder_setup,hinglish
+TB ki goliyan subah khali pet yaad dilana,reminder_setup,hinglish
+har monday iron ki goli ka weekly reminder laga do,reminder_setup,hinglish
+dinner se ek ghanta pehle goli yaad dilana,reminder_setup,hinglish
+meri goliyon ka reminder kaise lagate hain batao aur laga do,reminder_setup,hinglish
+kal subah pehli dose ke liye yaad dilana,reminder_setup,hinglish
+roz subah 10 baje cholesterol ki goli yaad dilao,reminder_setup,hinglish
+amlodipine aur metformin ka reminder 8 baje laga do,reminder_setup,hinglish
+raat ki goli ke reminder bhejna band karo,reminder_setup,hinglish
+thyroid ki dawai ka reminder saade paanch baje kar do,reminder_setup,hinglish
+nashte ke time goli yaad dilana,reminder_setup,hinglish
+roz dopahar 1 baje maa ka calcium yaad dilao,reminder_setup,hinglish
+4 ghante baad agli dose ke liye yaad dilana,reminder_setup,hinglish
+mera reminder kal subah tak taal do,reminder_setup,hinglish
+roz saade saat baje dawai ka alarm laga do,reminder_setup,hinglish
+hafte bhar subah 8 dopahar 2 aur raat 8 baje antibiotic yaad dilao,reminder_setup,hinglish
+bache ki iron syrup subah 10 baje yaad dilana,reminder_setup,hinglish
+khane se 30 minute pehle sugar ki goli ka reminder lagao,reminder_setup,hinglish
+roz raat 9 baje mujhe dawai yaad dilana,reminder_setup,hinglish
+mujhe BP ki dawai ke liye reminder chahiye,reminder_setup,hinglish
+le li,reminder_reply,hinglish
+maine dawai le li,reminder_reply,hinglish
+goli kha li,reminder_reply,hinglish
+ho gaya,reminder_reply,hinglish
+dawai le li hai,reminder_reply,hinglish
+haan abhi abhi le li,reminder_reply,hinglish
+aaj ki goli kha li,reminder_reply,hinglish
+maine 8 baje goli kha li,reminder_reply,hinglish
+abhi nahi li,reminder_reply,hinglish
+maine nahi li,reminder_reply,hinglish
+aaj ki dose chhoot gayi,reminder_reply,hinglish
+goli lena bhool gayi,reminder_reply,hinglish
+baad mein le lungi,reminder_reply,hinglish
+khane ke baad le lunga,reminder_reply,hinglish
+le li thanks,reminder_reply,hinglish
+kha li,reminder_reply,hinglish
+maine pehle hi le li hai,reminder_reply,hinglish
+aaj ki dose chhod di,reminder_reply,hinglish
+dono goliyan le li,reminder_reply,hinglish
+nahi khayi,reminder_reply,hinglish
+9 baje le li,reminder_reply,hinglish
+dawai ho gayi,reminder_reply,hinglish
+aaj ki dawai kha li,reminder_reply,hinglish
+nashte ke baad le li,reminder_reply,hinglish
+ek ghante mein le lungi,reminder_reply,hinglish
+aaj bhool gayi,reminder_reply,hinglish
+goli nahi li,reminder_reply,hinglish
+dose le li,reminder_reply,hinglish
+abhi abhi goli khayi,reminder_reply,hinglish
+shaam ki goli le li,reminder_reply,hinglish
+subah ki dose le li,reminder_reply,hinglish
+nahi le paayi,reminder_reply,hinglish
+syrup pila di,reminder_reply,hinglish
+pehle hi le chuki hoon,reminder_reply,hinglish
+reminder se pehle hi le li thi,reminder_reply,hinglish
+doodh ke saath goli le li,reminder_reply,hinglish
+abhi nahi li jaldi le lungi,reminder_reply,hinglish
+shaam ki dose ho gayi,reminder_reply,hinglish
+7 baje goli le li,reminder_reply,hinglish
+abhi tak nahi li,reminder_reply,hinglish
+chhoot gayi,reminder_reply,hinglish
+nahi li maine,reminder_reply,hinglish
+haan le li,reminder_reply,hinglish
+maine time par dawai le li,reminder_reply,hinglish
+iron ki goli le li,reminder_reply,hinglish
+aaj nahi,reminder_reply,hinglish
+dawai le li shukriya,reminder_reply,hinglish
+aaj ki goli poori ho gayi,reminder_reply,hinglish
+pehli dose le li,reminder_reply,hinglish
+doosri dose le li,reminder_reply,hinglish
+der se li,reminder_reply,hinglish
+abhi le rahi hoon,reminder_reply,hinglish
+abhi le li,reminder_reply,hinglish
+raat ko le lungi,reminder_reply,hinglish
+main pehle hi kha chuki hoon,reminder_reply,hinglish
+subah ki dono goliyan le li,reminder_reply,hinglish
+BP ki goli le li,reminder_reply,hinglish
+sugar ki goli kha li,reminder_reply,hinglish
+abhi tak nahi khayi,reminder_reply,hinglish
+aaj ki dawai khatam,reminder_reply,hinglish
+nahi khayi abhi,reminder_reply,hinglish
+thodi der pehle le li,reminder_reply,hinglish
+aadhi dose li,reminder_reply,hinglish
+mere bete ne syrup pi li,reminder_reply,hinglish
+maa ne goli kha li,reminder_reply,hinglish
+papa ne dawai le li,reminder_reply,hinglish
+dose le li gayi,reminder_reply,hinglish
+subah lena bhool gaya,reminder_reply,hinglish
+raat ke khane ke baad le lungi,reminder_reply,hinglish
+dopahar mein dawai le li,reminder_reply,hinglish
+abhi abhi li,reminder_reply,hinglish
+abhi lene ja rahi hoon,reminder_reply,hinglish
+lene ka time nahi mila,reminder_reply,hinglish
+6 baje goli le li thi,reminder_reply,hinglish
+goli kha li hai,reminder_reply,hinglish
+namaskar,smalltalk,hinglish
+aap kaise hain,smalltalk,hinglish
+dhanyawad,smalltalk,hinglish
+bahut dhanyawad,smalltalk,hinglish
+aapka bahut shukriya,smalltalk,hinglish
+aapki madad ke liye thanks,smalltalk,hinglish
+aap bahut achhe hain,smalltalk,hinglish
+alvida,smalltalk,hinglish
+theek hai bye,smalltalk,hinglish
+kal milte hain,smalltalk,hinglish
+aap kaun hain,smalltalk,hinglish
+aapka naam kya hai,smalltalk,hinglish
+kya aap robot hain,smalltalk,hinglish
+aapko kisne banaya,smalltalk,hinglish
+aap kya kya kar sakte hain,smalltalk,hinglish
+aaj aap kaise hain,smalltalk,hinglish
+aapka din shubh ho,smalltalk,hinglish
+diwali ki shubhkamnayein,smalltalk,hinglish
+naye saal ki shubhkamnayein,smalltalk,hinglish
+main theek hoon thank you,smalltalk,hinglish
+aapse milkar achha laga,smalltalk,hinglish
+hello ji,smalltalk,hinglish
+ram ram,smalltalk,hinglish
+namaste ji kaise hain,smalltalk,hinglish
+bhagwan aapka bhala kare,smalltalk,hinglish
+abhi kya time hua hai,smalltalk,hinglish
+aaj mausam kaisa hai,smalltalk,hinglish
+koi joke sunao,smalltalk,hinglish
+cricket match kaun jeeta,smalltalk,hinglish
+india ki capital kya hai,smalltalk,hinglish
+koi gaana sunao,smalltalk,hinglish
+kya aap hindi bolte hain,smalltalk,hinglish
+mujhe aapse baat karna achha lagta hai,smalltalk,hinglish
+aap achhe ho,smalltalk,hinglish
+bahut badhiya,smalltalk,hinglish
+thanks ye kaam aaya,smalltalk,hinglish
+aapka shukriya didi,smalltalk,hinglish
+yaad dilane ke liye thanks,smalltalk,hinglish
+main bore ho rahi hoon,smalltalk,hinglish
+aapka favourite colour kaun sa hai,smalltalk,hinglish
+aaj petrol ka rate kya hai,smalltalk,hinglish
+kaun si movie dekhun,smalltalk,hinglish
+koi kahani sunao,smalltalk,hinglish
+mera phone bahut slow chal raha hai,smalltalk,hinglish
+kya wahan baarish ho rahi hai,smalltalk,hinglish
+good morning raat kaisi rahi,smalltalk,hinglish
+aapne khana khaya,smalltalk,hinglish
+aap kya kar rahe hain,smalltalk,hinglish
+hello kya aap wahan hain,smalltalk,hinglish
+namaste kya main aapse baat kar sakti hoon,smalltalk,hinglish
+sorry wrong number lag gaya,smalltalk,hinglish
+mera pichla message ignore kar dijiye,smalltalk,hinglish
+main baad mein baat karti hoon,smalltalk,hinglish
+main aapko wapas call karta hoon,smalltalk,hinglish
+aaj bahut garmi hai,smalltalk,hinglish
+aapka din kaisa chal raha hai,smalltalk,hinglish
+jaankari ke liye thank you,smalltalk,hinglish
+aapki bahut kripa,smalltalk,hinglish
+main aaj bahut khush hoon,smalltalk,hinglish
+aap bahut achhe bot hain,smalltalk,hinglish
+thanks phir milenge,smalltalk,hinglish
+hello dost,smalltalk,hinglish
+pradhan mantri kaun hain,smalltalk,hinglish
+sab kuch ke liye shukriya,smalltalk,hinglish
+theek hai thanks chalta hoon,smalltalk,hinglish
+aaj mera birthday hai,smalltalk,hinglish
+christmas ki shubhkamnayein,smalltalk,hinglish
+abhi ke liye bas itna hi thanks,smalltalk,hinglish
+ye bahut achha app hai,smalltalk,hinglish
+aap kaun si language bolte hain,smalltalk,hinglish
+phir se namaste,smalltalk,hinglish
+aapke time ke liye bahut shukriya,smalltalk,hinglish
+dhanyawad aapka din achha ho,smalltalk,hinglish
+aaj kya tithi hai,smalltalk,hinglish
+mujhe cricket pasand hai aapko kaun sa khel pasand hai,smalltalk,hinglish

@@ -1,0 +1,121 @@
+text,label,language
+when shud i take my bp tablet morning or night,question,en
+my wife is 7 months pregnant and her legs are swollen since 2 days,question,en
+sugar fasting 160 today is it danger,question,en
+baby 3 months not passing stool for 3 days what to do,question,en
+took iron tablet and now vomiting what to do,question,en
+can i stop metformin if sugar is normal now,question,en
+how many times in a day should i give ORS to my son,question,en
+took my tablet but feeling dizzy since then,question,en
+is it ok to take eno in pregnancy,question,en
+my mother has cough for 3 weeks with fever at night,question,en
+pls remind me bp tablet 8 am daily,reminder_setup,en
+remind me iron tab at nite after dinner,reminder_setup,en
+i keep forgetting my sugar tablet how do i remember everyday,reminder_setup,en
+set reminder for my son deworming tablet next sunday,reminder_setup,en
+not taken yet remind me again in 1 hour,reminder_setup,en
+stop my thyroid reminder doctor stopped the medicine,reminder_setup,en
+change my evening reminder to 9 pm,reminder_setup,en
+remind me calcium tab 2 times a day for 1 month,reminder_setup,en
+alarm for insulin before lunch and dinner pls,reminder_setup,en
+my mom needs her bp tab reminder at 7 in morning,reminder_setup,en
+ya took it,reminder_reply,en
+had it after dinner,reminder_reply,en
+no forgot again,reminder_reply,en
+will have it once i reach home,reminder_reply,en
+taken at 7.30,reminder_reply,en
+skipped it today,reminder_reply,en
+gave the syrup to baby,reminder_reply,en
+not yet i'm outside,reminder_reply,en
+took only morning one evening one left,reminder_reply,en
+had my tablet thx,reminder_reply,en
+hii,smalltalk,en
+gud morning madam,smalltalk,en
+thx a lot for the help,smalltalk,en
+ok will talk later bye,smalltalk,en
+are u a real person,smalltalk,en
+who is winning ipl this year,smalltalk,en
+my grandson is coming home today,smalltalk,en
+happy holi,smalltalk,en
+what is today's date,smalltalk,en
+you are very nice thank u,smalltalk,en
+बीपी की गोली कब लेनी है सुबह या रात,question,hi
+8 महीने चल रहा है पेट में बहुत खुजली हो रही है,question,hi
+शुगर 180 आई है खाली पेट क्या करें,question,hi
+बच्चे को दांत निकल रहे हैं दस्त भी है,question,hi
+गोली ले ली पर उल्टी जैसा लग रहा है,question,hi
+क्या सुगर की दवाई जिंदगी भर खानी पड़ेगी,question,hi
+आयरन की गोली से कब्ज होता है क्या,question,hi
+बच्चे को टीका लगने के बाद बुखार आ गया,question,hi
+थायराइड वाले गोभी खा सकते है क्या,question,hi
+दूध कम आ रहा है बच्चे का पेट नहीं भरता,question,hi
+रोज़ शाम 7 बजे शुगर की गोली याद दिला देना,reminder_setup,hi
+मेरी आयरन की गोली छूट जाती है रोज याद कैसे रखूं,reminder_setup,hi
+अभी नहीं ली आधे घंटे बाद फिर याद दिलाना,reminder_setup,hi
+पापा की बीपी की दवा का अलार्म सुबह 6 बजे,reminder_setup,hi
+कैल्शियम का रिमाइंडर अब बंद करो डॉक्टर ने मना किया,reminder_setup,hi
+रिमाइंडर 9 की जगह 10 बजे भेजो,reminder_setup,hi
+बेटे की खांसी की दवाई हर 8 घंटे पे याद दिलाओ,reminder_setup,hi
+इंसुलिन का रिमांडर लगा दो सुबह नाश्ते से पहले,reminder_setup,hi
+हर रविवार विटामिन डी की गोली याद दिलाना,reminder_setup,hi
+टीबी की दवा 6 महीने तक रोज सुबह याद दिलाना,reminder_setup,hi
+ले लिया,reminder_reply,hi
+हां खा ली अभी,reminder_reply,hi
+भूल गई थी अब ले रही हूं,reminder_reply,hi
+नहीं ली बाहर हूं,reminder_reply,hi
+खाना खाके लूंगी,reminder_reply,hi
+बच्चे को सिरप दे दिया,reminder_reply,hi
+सुबह वाली ली शाम वाली बाकी है,reminder_reply,hi
+आज दवा नहीं ली,reminder_reply,hi
+ले ली थी 7 बजे,reminder_reply,hi
+मम्मी ने गोली ले ली,reminder_reply,hi
+जय श्री कृष्ण,smalltalk,hi
+शुक्रिया बहन जी,smalltalk,hi
+आप लोग कहां से हो,smalltalk,hi
+आज होली है सबको बधाई,smalltalk,hi
+ठीक है बाद में बात करते है,smalltalk,hi
+मेरी पोती आज पास हो गई,smalltalk,hi
+ये नंबर किसका है,smalltalk,hi
+आप सच में इंसान हो या मशीन,smalltalk,hi
+कल बारिश होगी क्या,smalltalk,hi
+बहुत अच्छा लगा बात करके,smalltalk,hi
+bp ki goli kab leni h khane se pehle ya baad,question,hinglish
+6 mahine ki pregnancy h pet me halka halka dard ho rha h,question,hinglish
+sugar 300 aa gyi h kya karu,question,hinglish
+bacche ko 2 din se bukhar h dudh bhi kam pi rha,question,hinglish
+goli li thi uske baad se chakkar aa rhe h,question,hinglish
+metformin band kr skte h kya sugar normal h ab,question,hinglish
+iron ki goli se ulti hoti h kya karein,question,hinglish
+1 saal ke bacche ko gaay ka doodh de skte h,question,hinglish
+thyroid ki dawai chai ke sath le skte h,question,hinglish
+periods me bahut khoon aa rha h 5 din se,question,hinglish
+roz raat 9 baje sugar ki goli yaad dila dena plz,reminder_setup,hinglish
+mummy ki bp ki dawai ka reminder laga do subah 8,reminder_setup,hinglish
+nahi li abhi 1 ghante baad yaad dilana,reminder_setup,hinglish
+iron ki goli roz bhool jati hu koi tarika batao yaad rakhne ka,reminder_setup,hinglish
+calcium wala reminder band kr do ab,reminder_setup,hinglish
+reminder 7 ki jagah 8 baje ka kr do,reminder_setup,hinglish
+bacche ki syrup har 6 ghante pe 3 din tak alarm laga do,reminder_setup,hinglish
+har sunday vitamin d ki goli yaad dilana,reminder_setup,hinglish
+insulin ka reminder lunch se pehle set kr do,reminder_setup,hinglish
+tb ki dawai 6 mahine tak roz subah yaad dilate rehna,reminder_setup,hinglish
+le liya ji,reminder_reply,hinglish
+kha li h,reminder_reply,hinglish
+bhul gyi thi abhi leti hu,reminder_reply,hinglish
+aaj nahi li bahar gayi thi,reminder_reply,hinglish
+thodi der me lungi,reminder_reply,hinglish
+beti ko syrup pila diya,reminder_reply,hinglish
+raat wali reh gyi,reminder_reply,hinglish
+ha dawai ho gyi,reminder_reply,hinglish
+8 baje hi le li thi,reminder_reply,hinglish
+papa ne goli kha li h,reminder_reply,hinglish
+hlo ji,smalltalk,hinglish
+thanku didi,smalltalk,hinglish
+good nite,smalltalk,hinglish
+aap kahan se baat kar rahe ho,smalltalk,hinglish
+aaj karwa chauth h,smalltalk,hinglish
+ok baad me baat krte h,smalltalk,hinglish
+kal match kaun jeeta,smalltalk,hinglish
+aap insaan ho ya computer,smalltalk,hinglish
+mera beta aaj naukri pe laga,smalltalk,hinglish
+bahut acha laga aapse baat krke,smalltalk,hinglish
