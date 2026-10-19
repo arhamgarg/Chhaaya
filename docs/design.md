@@ -98,13 +98,13 @@ The system prompt forbids naming a condition the patient has, changing or starti
 
 ### 5.2 Document agent
 
-A photo goes to Sarvam Vision, and the LLM turns the OCR output into a fixed JSON shape. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration).
+A photo goes to Sarvam Vision, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
 
-- **Lab reports** are explained automatically. For each test, the agent says whether the value is inside the reference range printed on the report, plus what the test measures if the knowledge base covers it. A value past a critical threshold (for example, haemoglobin below 7 g/dL) escalates at once. Critical thresholds live in a data file, and every row cites its source.
+- **Lab reports** are explained automatically. For each test, code says whether the value is inside, below or above the reference range printed on the report, or that no range is printed. A value past a critical threshold (for example, haemoglobin below 7 g/dL) escalates at once. Critical thresholds live in a data file, and every row cites its source. The patient's age on the report picks the population; without one, the strictest threshold applies. A critical test in a unit the thresholds do not use escalates too, since it cannot be checked.
 - **Prescriptions** are never explained until a human has checked them. OCR cannot tell handwriting from print reliably, and a misread drug name can match a different real drug, which a lexicon check will not catch. The agent therefore:
   1. matches each medicine name against the medicine lexicon;
-  2. sends the ASHA the photo and the extracted list;
-  3. waits for the ASHA to reply "ok" or send corrections.
+  2. sends the ASHA the photo and the extracted list. Outside the 24-hour window only the template alert can go, so her first reply gets the photo and the list, and only her next reply counts;
+  3. waits for the ASHA to reply "ok" or send the full corrected list.
 
   Only then does the patient get the explanation (medicine, how much, when, for how long, as written by the doctor) and an offer to set reminders.
 
@@ -199,7 +199,7 @@ The evaluation harness runs every set below against the running system. It write
 
 ## 10. Privacy
 
-The project uses no real patient data (section 2). Chhaaya never stores audio or images: it holds them in memory while processing a message and never writes them to disk or the database. It does not delete the copies on Meta's servers. Meta keeps an inbound voice note or photo downloadable for 7 days and uploaded reply audio for 30. Messages and case records stay in the local database, and the phone numbers in it belong to team members.
+The project uses no real patient data (section 2). Chhaaya never stores audio or images: it holds them in memory while processing a message and never writes them to disk or the database. It does not delete the copies on Meta's servers. Meta keeps an inbound voice note or photo downloadable for 7 days, and uploaded reply audio and the prescription photos sent on to the ASHA for 30. Messages and case records stay in the local database, and the phone numbers in it belong to team members.
 
 A real deployment would need consent and data handling under the Digital Personal Data Protection Act, 2023. That is outside this project.
 
