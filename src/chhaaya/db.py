@@ -168,10 +168,16 @@ class Reminder(Base):
     ends_on: Mapped[date | None] = mapped_column(Date)
     # NULL once the course has ended; the worker polls this for due reminders.
     next_due_at: Mapped[datetime | None]
+    # NULL while the reminder waits for the patient's yes to the read-back.
+    confirmed_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     __table_args__ = (
         CheckConstraint("cardinality(times) > 0", name="has_times"),
+        CheckConstraint(
+            "confirmed_at IS NOT NULL OR next_due_at IS NULL",
+            name="only_confirmed_reminders_are_due",
+        ),
         CheckConstraint("ends_on >= starts_on", name="ends_after_start"),
         Index(
             "ix_reminders_next_due_at",
