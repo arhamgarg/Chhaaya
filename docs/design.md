@@ -110,9 +110,11 @@ A photo goes to Sarvam Vision, and the LLM turns the OCR output into a fixed JSO
 
 ### 5.3 Reminder agent
 
-Reminders are set in one of two ways: from a confirmed prescription, or by the patient saying something like "subah 8 baje aur raat 8 baje metformin yaad dilana" ("remind me to take metformin at 8 am and 8 pm"). In the second case, the LLM extracts the medicine, times and duration, and the agent reads them back for a yes before saving.
+Reminders are set by the patient saying something like "subah 8 baje aur raat 8 baje metformin yaad dilana" ("remind me to take metformin at 8 am and 8 pm"), either unprompted or in answer to the offer that follows a confirmed prescription. The LLM extracts the medicine, times and duration, taking medicine names from the patient's last confirmed prescription when the patient refers to it, and the agent reads them back for a yes before saving.
 
-At each due time, the worker sends the reminder. The patient replies (for example "le li" or "taken") to mark the dose as taken. After three missed doses in a row, the ASHA is told.
+At each due time, the worker sends the reminder. The patient replies (for example "le li" or "taken") to mark the dose as taken. A dose not marked taken by the time the next one is due counts as missed. After three missed doses in a row, the ASHA is told, once per run of misses. Reminder times are India times of day; due times are stored in UTC.
+
+Until the intent classifier is trained (section 7), keyword rules route reminder messages: a message naming a reminder ("yaad", "remind", "याद"), a yes or no while a read-back waits, or a message saying only that a dose was taken while one is pending. Everything else is a question.
 
 WhatsApp only allows free-form messages within 24 hours of the patient's last message. Outside that window, reminders must go out as a pre-approved message template (`medicine_reminder`). The ASHA's case alerts (`asha_case_alert`) and relayed replies (`case_update`) work the same way.
 
