@@ -13,6 +13,8 @@ from sqlalchemy import Engine, create_engine, text
 from chhaaya import danger_signs
 from chhaaya.cases import Cases
 from chhaaya.db import sqlalchemy_url
+from chhaaya.document import DocumentAgent
+from chhaaya.lexicon import Lexicon
 from chhaaya.qa import QaAgent
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.sarvam import SarvamClient
@@ -201,8 +203,9 @@ def main() -> None:
     # held up by the 2 GB model download.
     load = functools.cache(bge_m3)
     cases = Cases(engine, whatsapp, sarvam, lambda texts: load()(texts))
-    # The document agent registers here when it lands.
     worker = Worker(engine, whatsapp, sarvam, cases, {"escalation": cases.answer})
+    lexicon = functools.cache(Lexicon.load)
+    worker.agents["document"] = DocumentAgent(sarvam, whatsapp, cases, lexicon).read
     kb = KnowledgeBase(engine, lambda texts: load()(texts))
     worker.agents["qa"] = QaAgent(kb, sarvam, whatsapp, cases, worker.escalate).answer
     stop = threading.Event()

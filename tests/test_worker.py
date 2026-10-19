@@ -1,7 +1,9 @@
 import base64
+import io
 import json
 import threading
 import time
+import zipfile
 from collections.abc import Callable
 
 import httpx2
@@ -30,6 +32,9 @@ class World:
         # Sarvam-105B answers each chat request with the next of these, in order.
         self.chat_replies: list[str] = []
         self.chat_requests: list[dict] = []
+        # The Markdown Sarvam Vision reads off a photo; None means the job fails.
+        self.ocr: str | None = None
+        self.images: list[tuple[str, str]] = []  # (to, caption)
         self.whatsapp_up = True
         self.agent_calls: list[tuple[str, int]] = []
         http = httpx2.Client(transport=httpx2.MockTransport(self.handle))
@@ -56,7 +61,11 @@ class World:
             self.sarvam_calls.append(path.strip("/"))
             if path.endswith("chat/completions"):
                 return self.chat(json.loads(request.read()))
+            if path.startswith("/doc-ai/"):
+                return self.vision(path)
             return self.sarvam(path)
+        if request.url.host == "files.sarvam.example":
+            return httpx2.Response(200, content=self.vision_output())
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
                 return httpx2.Response(200, json={"url": "https://lookaside.example/m"})
@@ -72,6 +81,8 @@ class World:
             return httpx2.Response(400, json={"error": error})
         if body["type"] == "audio":
             self.voice_notes.append(body["to"])
+        elif body["type"] == "image":
+            self.images.append((body["to"], body["image"]["caption"]))
         elif body["type"] == "template":
             template = body["template"]
             params = [p["text"] for p in template["components"][0]["parameters"]]
@@ -97,6 +108,23 @@ class World:
         message = {"role": "assistant", "content": self.chat_replies.pop(0)}
         choice = {"index": 0, "message": message, "finish_reason": "stop"}
         return httpx2.Response(200, json={"choices": [choice]})
+
+    def vision(self, path: str) -> httpx2.Response:
+        if path.endswith("/digitise"):
+            return httpx2.Response(202, json={"job_id": "job-1", "status": "pending"})
+        if path.endswith("/status"):
+            status = "failed" if self.ocr is None else "completed"
+            return httpx2.Response(200, json={"job_id": "job-1", "status": status})
+        url = "https://files.sarvam.example/job-1.zip"
+        return httpx2.Response(200, json={"method": "GET", "url": url})
+
+    def vision_output(self) -> bytes:
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("document.md", self.ocr or "")
+            zf.writestr("manifest.json", "{}")
+            zf.writestr("metadata/page_001.json", "{}")
+        return archive.getvalue()
 
     def sarvam(self, path: str) -> httpx2.Response:
         if path.endswith("text-to-speech"):
