@@ -321,3 +321,19 @@ def test_a_course_ends_after_its_last_day_in_india_time():
     assert next_due(*course, at(2, 20, 30)) is None
     due = next_due(*course, at(2, 1))
     assert due is not None and due.tzinfo == UTC  # stored in UTC
+
+
+def test_a_reply_without_words_neither_saves_nor_discards(world: ReminderWorld):
+    _, patient = setup(world)
+    say(
+        world,
+        patient,
+        "metformin yaad dilana",
+        extracted(("Metformin", ["08:00"], None)),
+    )
+
+    say(world, patient, "👍")
+
+    [draft] = reminders(world)
+    assert draft.confirmed_at is None
+    assert [agent for agent, _ in world.agent_calls] == ["qa"]

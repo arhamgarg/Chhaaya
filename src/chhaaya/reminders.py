@@ -116,13 +116,18 @@ def taken(message: str) -> bool:
     return bool(said & TOOK) and said <= TAKEN_WORDS
 
 
+def declines(message: str) -> bool:
+    said = words(message)
+    return bool(said) and said <= DECLINES
+
+
 def wants(engine: Engine, message: "Inbound") -> bool:
     """Whether a patient's text is for this agent rather than a question."""
     body = message.body or ""
     if ASKS.search(body):
         return True
     with engine.connect() as conn:
-        if confirms(body) or words(body) <= DECLINES:
+        if confirms(body) or declines(body):
             return has_drafts(conn, message.user_id)
         return taken(body) and has_pending_doses(conn, message.user_id)
 
@@ -180,7 +185,7 @@ class Reminders:
             drafts = has_drafts(conn, message.user_id)
         if drafts and confirms(body):
             return self.confirm(message)
-        if drafts and words(body) <= DECLINES:
+        if drafts and declines(body):
             with self.engine.begin() as conn:
                 discard_drafts(conn, message.user_id)
             return self.reply(message, NOT_SAVED)
