@@ -1,8 +1,11 @@
 """The Sarvam client: the only code that talks to api.sarvam.ai."""
 
 import base64
+import io
 import logging
 import re
+import time
+import zipfile
 
 import httpx2
 
@@ -18,6 +21,11 @@ TTS_MAX_CHARACTERS = 2500
 DEVANAGARI = re.compile("[ऀ-ॿ]")
 SPEECH_TIMEOUT = 30  # seconds; speech calls are slower than text calls
 CHAT_TIMEOUT = 60  # seconds; Sarvam-105B reasons before it answers
+# Sarvam Vision reads a photo in a job that is polled. Hindi also reads the
+# English that most Indian lab reports and prescriptions are printed in.
+VISION_LANGUAGE = "hi-IN"
+VISION_POLL = 2  # seconds between status checks
+VISION_TIMEOUT = 120  # seconds before a job still running is given up
 
 
 def supported(language_code: str | None, script_code: str | None) -> str:
@@ -91,9 +99,41 @@ class SarvamClient:
             raise ValueError(f"sarvam chat stopped early: {choice['finish_reason']}")
         return choice["message"]["content"]
 
+    def read_document(self, image: bytes) -> str:
+        """The Markdown Sarvam Vision reads off a JPEG photo of a document."""
+        job = self._post(
+            "doc-ai/v1/job/digitise",
+            data={"language": VISION_LANGUAGE, "output_format": "md"},
+            files={"file": ("photo.jpg", image, "image/jpeg")},
+        ).json()["job_id"]
+        deadline = time.monotonic() + VISION_TIMEOUT
+        while (status := self._get(f"doc-ai/v1/job/{job}/status")["status"]) in (
+            "pending",
+            "running",
+        ):
+            if time.monotonic() > deadline:
+                raise TimeoutError(f"sarvam vision job {job} still {status}")
+            time.sleep(VISION_POLL)
+        # One photo is one page, so partially_completed means nothing was read.
+        if status != "completed":
+            raise ValueError(f"sarvam vision job {job} {status}")
+        url = self._get(f"doc-ai/v1/job/{job}/download-url")["url"]
+        # A signed URL on Sarvam's storage: the API key is not sent there.
+        download = self.http.get(url)
+        download.raise_for_status()
+        with zipfile.ZipFile(io.BytesIO(download.content)) as zf:
+            [markdown] = (n for n in zf.namelist() if n.endswith(".md"))
+            return zf.read(markdown).decode("utf-8")
+
+    def _get(self, endpoint: str) -> dict:
+        return self._request("GET", endpoint).json()
+
     def _post(self, endpoint: str, **request) -> httpx2.Response:
-        response = self.http.post(
-            f"{API_URL}/{endpoint}", headers=self.headers, **request
+        return self._request("POST", endpoint, **request)
+
+    def _request(self, method: str, endpoint: str, **request) -> httpx2.Response:
+        response = self.http.request(
+            method, f"{API_URL}/{endpoint}", headers=self.headers, **request
         )
         if response.is_error:
             try:

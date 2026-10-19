@@ -1,5 +1,7 @@
 import base64
+import io
 import logging
+import zipfile
 
 import httpx2
 import pytest
@@ -84,3 +86,47 @@ def test_a_chat_reply_cut_off_while_reasoning_is_an_error_not_an_empty_answer():
 
     with pytest.raises(ValueError, match="length"):
         client(handler).chat("system", "user")
+
+
+def test_a_photo_is_read_by_a_vision_job_that_is_polled_until_it_completes(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr("chhaaya.sarvam.time.sleep", lambda _: None)
+    statuses = iter(["pending", "running", "completed"])
+    seen: list[httpx2.Request] = []
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("manifest.json", "{}")
+        zf.writestr("metadata/page_001.json", "{}")
+        zf.writestr("photo.md", "| Haemoglobin | 6.8 | g/dL |")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request)
+        path = request.url.path
+        if path.endswith("/digitise"):
+            return httpx2.Response(202, json={"job_id": "j1", "status": "pending"})
+        if path.endswith("/status"):
+            return httpx2.Response(200, json={"status": next(statuses)})
+        if path.endswith("/download-url"):
+            url = "https://blob.example/j1.zip?sig=abc"
+            return httpx2.Response(200, json={"method": "GET", "url": url})
+        return httpx2.Response(200, content=archive.getvalue())
+
+    assert client(handler).read_document(b"\xff\xd8jpeg") == (
+        "| Haemoglobin | 6.8 | g/dL |"
+    )
+    assert b"\xff\xd8jpeg" in seen[0].read()
+    assert [r.url.path for r in seen].count("/doc-ai/v1/job/j1/status") == 3
+    # The signed download URL is someone else's server: it never sees the key.
+    assert "api-subscription-key" not in seen[-1].headers
+
+
+@pytest.mark.parametrize("status", ["failed", "rejected", "partially_completed"])
+def test_a_vision_job_that_does_not_complete_is_an_error(status: str):
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/digitise"):
+            return httpx2.Response(202, json={"job_id": "j1", "status": "pending"})
+        return httpx2.Response(200, json={"status": status})
+
+    with pytest.raises(ValueError, match=status):
+        client(handler).read_document(b"jpeg")
