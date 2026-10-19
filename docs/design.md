@@ -91,7 +91,7 @@ An "agent" here is a module with one job and a fixed set of tools. None of them 
 2. That query retrieves the top 5 chunks from the knowledge base by cosine similarity.
 3. **Weak evidence.** If the best score is below the threshold τ, the agent does not answer. It tells the patient their ASHA will reply and opens an escalation. τ is tuned on the evaluation set (section 9), not guessed.
 4. **Generation.** Otherwise the LLM answers using only the retrieved chunks, citing chunk ids.
-5. **Citation check.** Code verifies that every cited id is one of the chunks that were retrieved. If the answer cites nothing, or cites something that was not retrieved, it is discarded and the case escalates.
+5. **Citation check.** Code verifies that every cited id is one of the chunks that were retrieved. If the answer cites nothing, or cites something that was not retrieved, it is discarded and the case escalates. An answer in a script other than the patient's (Devanagari for Hindi, Latin for English and Hinglish) is discarded and escalates the same way.
 6. **Delivery.** The ids are replaced by readable source names ("Source: ASHA Module 7, NHM"), and the answer is sent.
 
 The system prompt forbids naming a condition the patient has, changing or starting a medicine, and giving doses. The adversarial evaluation set checks that these rules hold.
@@ -121,7 +121,7 @@ WhatsApp only allows free-form messages within 24 hours of the patient's last me
 The escalation agent opens a numbered case, sends the ASHA a summary, and tells the patient someone will get back to them. It handles:
 
 - danger signs;
-- weak retrieval evidence and failed citation checks;
+- weak retrieval evidence, failed citation checks and answers in the wrong script;
 - critical lab values;
 - prescription confirmations;
 - repeatedly missed doses.
