@@ -42,6 +42,26 @@ NOTICE = {
     "hi-Latn": "Humne aapka sawal aapki ASHA didi ko bhej diya hai. Woh yahin "
     "jawab dengi.",
 }
+# An ASHA confirms a prescription with one of these; anything else corrects it.
+CONFIRMATIONS = {"ok", "okay", "theek hai", "thik hai", "ठीक है", "sahi hai", "सही है"}
+CHECKED = {
+    "en": "Your ASHA has checked your prescription. Your doctor wrote:",
+    "hi": "आपकी आशा दीदी ने आपका पर्चा जाँच लिया है। डॉक्टर ने लिखा है:",
+    "hi-Latn": "Aapki ASHA didi ne aapka parcha jaanch liya hai. Doctor ne likha hai:",
+}
+CORRECTED = {
+    "en": "Your ASHA has checked your prescription and wrote:",
+    "hi": "आपकी आशा दीदी ने आपका पर्चा जाँचकर लिखा है:",
+    "hi-Latn": "Aapki ASHA didi ne aapka parcha jaanchkar likha hai:",
+}
+REMINDER_OFFER = {
+    "en": "Would you like reminders to take these medicines? Reply with the "
+    "medicine and the times, for example: remind me at 8 am and 8 pm.",
+    "hi": "क्या आप इन दवाइयों के लिए रिमाइंडर चाहते हैं? दवा और समय लिखकर भेजें, "
+    "जैसे: सुबह 8 बजे और रात 8 बजे याद दिलाना।",
+    "hi-Latn": "Kya aap in dawaiyon ke liye reminder chahte hain? Dawa aur samay "
+    "likhkar bhejein, jaise: subah 8 baje aur raat 8 baje yaad dilana.",
+}
 REPLY_PREFIX = {
     "en": "Your ASHA replied:",
     "hi": "आपकी आशा दीदी का जवाब:",
@@ -92,14 +112,26 @@ class Cases:
     sarvam: SarvamClient
     embed: "Embed"
 
-    def open(self, cause: str, patient_id: int, details: str) -> int:
+    def open(
+        self,
+        cause: str,
+        patient_id: int,
+        details: str,
+        prescription: str | None = None,
+        photo: bytes | None = None,
+    ) -> int:
         """Open a numbered case, alert the patient's ASHA and tell the patient.
 
         A danger-sign patient has already had the urgent reply, so is not told
         again, and neither is a patient outside the 24-hour window. The case is
         saved before any message, so a failed alert still leaves it open for the
-        ASHA.
+        ASHA. A prescription case carries the medicines the patient gets once the
+        ASHA confirms them, and the photo she checks them against.
         """
+        # Uploaded first: a prescription case must never exist without its photo.
+        media_id = None
+        if photo is not None:
+            media_id = self.whatsapp.upload_media(photo, "image/jpeg")
         with self.engine.begin() as conn:
             people = conn.execute(
                 text(
@@ -114,14 +146,17 @@ class Cases:
                 raise LookupError("patient has no ASHA to alert")
             number = conn.execute(
                 text(
-                    "INSERT INTO cases (cause, patient_id, asha_id, details) "
-                    "VALUES (:cause, :patient, :asha, :details) RETURNING number"
+                    "INSERT INTO cases (cause, patient_id, asha_id, details, "
+                    "prescription, photo_media_id) VALUES (:cause, :patient, :asha, "
+                    ":details, :prescription, :media_id) RETURNING number"
                 ),
                 {
                     "cause": cause,
                     "patient": patient_id,
                     "asha": people.asha_id,
                     "details": details,
+                    "prescription": prescription,
+                    "media_id": media_id,
                 },
             ).scalar_one()
             asha_in_window = in_window(conn, people.asha_id)
@@ -129,11 +164,24 @@ class Cases:
         label = LABELS[cause]
         shared = SHARED_WARNING if cause in QUESTION_CAUSES else ""
         if asha_in_window:
+            # The ASHA confirms exactly the list the patient will get, so a
+            # prescription is never cut to the summary.
+            shown = details if prescription else summary(details)
+            if media_id:
+                self.show_photo(people.asha_wa_id, number, media_id)
             self.whatsapp.send_text(
                 people.asha_wa_id,
-                f"Case {number}: {label} from {people.wa_id}.\n{summary(details)}\n\n"
+                f"Case {number}: {label} from {people.wa_id}.\n{shown}\n\n"
                 f"Reply with: {number} <your answer>{shared}",
             )
+            if media_id:
+                with self.engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "UPDATE cases SET photo_media_id = NULL WHERE number = :n"
+                        ),
+                        {"n": number},
+                    )
         else:
             self.whatsapp.send_template(
                 people.asha_wa_id,
@@ -162,7 +210,8 @@ class Cases:
         with self.engine.begin() as conn:
             case = conn.execute(
                 text(
-                    "SELECT c.cause, c.details, p.id AS patient_id, p.wa_id, "
+                    "SELECT c.cause, c.details, c.prescription, c.photo_media_id, "
+                    "p.id AS patient_id, p.wa_id, "
                     "p.language, p.script FROM cases c "
                     "JOIN users p ON p.id = c.patient_id "
                     "WHERE c.number = :n AND c.asha_id = :asha AND c.status = 'open' "
@@ -184,10 +233,27 @@ class Cases:
                         embedding=self.embed([f"{case.details}\n{reply}"])[0],
                     )
                 )
-            # A prescription is explained to the patient by the document agent
-            # once confirmed; the ASHA's raw reply is not sent on.
+            if case.photo_media_id is not None:
+                # Alerted by template, she has not seen the photo: her first
+                # reply gets it, and only the next one counts.
+                self.show_photo(message.wa_id, number, case.photo_media_id)
+                self.whatsapp.send_text(
+                    message.wa_id,
+                    f"Case {number}: prescription to confirm.\n{case.details}\n\n"
+                    f"Reply with: {number} <your answer>",
+                )
+                conn.execute(
+                    text("UPDATE cases SET photo_media_id = NULL WHERE number = :n"),
+                    {"n": number},
+                )
+                return
             if case.cause != "prescription_confirmation":
-                self.relay(conn, case, reply)
+                prefix = in_language(REPLY_PREFIX, case.language, case.script)
+                self.relay(conn, case, f"{prefix} {reply}", reply)
+            elif reply.casefold().strip(" .!") in CONFIRMATIONS:
+                self.relay_prescription(conn, case, CHECKED, case.prescription)
+            else:
+                self.relay_prescription(conn, case, CORRECTED, reply)
             conn.execute(
                 text(
                     "UPDATE cases SET status = 'answered', asha_reply = :reply, "
@@ -196,20 +262,31 @@ class Cases:
                 {"reply": reply, "n": number},
             )
 
-    def relay(self, conn: Connection, case, reply: str) -> None:
+    def show_photo(self, asha_wa_id: str, number: int, media_id: str) -> None:
+        self.whatsapp.send_image(
+            asha_wa_id, media_id, f"Case {number}: the prescription photo"
+        )
+
+    def relay_prescription(
+        self, conn: Connection, case, heading: dict[str, str], medicines: str
+    ) -> None:
+        """The medicines as confirmed, and an offer to remind the patient."""
+        texts = {
+            key: f"{heading[key]}\n{medicines}\n\n{REMINDER_OFFER[key]}"
+            for key in heading
+        }
+        self.relay(
+            conn, case, in_language(texts, case.language, case.script), medicines
+        )
+
+    def relay(self, conn: Connection, case, message: str, update: str) -> None:
+        """Send the message, or outside the window `update` in case_update."""
         if in_window(conn, case.patient_id):
-            prefix = in_language(REPLY_PREFIX, case.language, case.script)
-            send_reply(
-                self.whatsapp,
-                self.sarvam,
-                case.wa_id,
-                f"{prefix} {reply}",
-                case.language,
-            )
+            send_reply(self.whatsapp, self.sarvam, case.wa_id, message, case.language)
         else:
             self.whatsapp.send_template(
                 case.wa_id,
                 "case_update",
                 TEMPLATE_LANGUAGES.get(case.language, "hi"),
-                [one_line(reply)],
+                [one_line(update)],
             )

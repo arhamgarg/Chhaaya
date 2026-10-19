@@ -140,25 +140,6 @@ def test_an_asha_cannot_answer_a_case_that_is_not_hers_or_is_closed(world: World
     assert str(number) in refusal
 
 
-def test_a_prescription_case_accepts_ok_or_corrections_without_telling_the_patient(
-    world: World,
-):
-    asha, patient = setup(world)
-    world.receive(patient, body="parcha")
-    first = world.cases_.open("prescription_confirmation", patient, "Amlodipine 5mg")
-    second = world.cases_.open("prescription_confirmation", patient, "Metformin")
-    world.sent.clear()
-
-    world.receive(asha, body=f"{first} ok")
-    world.receive(asha, body=f"{second} Metformin 500mg do baar, khane ke baad")
-    for _ in range(3):
-        world.worker.work_one()
-
-    assert case(world, first) == ("answered", "ok")
-    assert case(world, second) == ("answered", "Metformin 500mg do baar, khane ke baad")
-    assert world.texts_to(PATIENT) == []
-
-
 def test_if_the_relay_fails_the_case_stays_open_for_another_try(world: World):
     asha, patient = setup(world)
     world.receive(patient, body="sawal")

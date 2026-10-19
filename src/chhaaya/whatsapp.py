@@ -21,6 +21,11 @@ class WhatsAppClient:
             to, {"type": "audio", "audio": {"id": media_id, "voice": True}}
         )
 
+    def send_image(self, to: str, media_id: str, caption: str) -> str:
+        return self._send(
+            to, {"type": "image", "image": {"id": media_id, "caption": caption}}
+        )
+
     def send_template(
         self, to: str, name: str, language: str, params: list[str]
     ) -> str:
