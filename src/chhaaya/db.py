@@ -122,6 +122,10 @@ class Case(Base):
     asha_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     # What the ASHA is asked about: the patient's question or the finding.
     details: Mapped[str | None]
+    # Prescription cases: the medicines as the patient gets them once confirmed.
+    prescription: Mapped[str | None]
+    # The photo uploaded to Meta for an ASHA who has not been shown it yet.
+    photo_media_id: Mapped[str | None]
     status: Mapped[str] = mapped_column(server_default="open")
     asha_reply: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
@@ -135,6 +139,14 @@ class Case(Base):
             name="cause",
         ),
         CheckConstraint("status IN ('open', 'answered')", name="status"),
+        CheckConstraint(
+            "(cause = 'prescription_confirmation') = (prescription IS NOT NULL)",
+            name="prescription_has_medicines",
+        ),
+        CheckConstraint(
+            "photo_media_id IS NULL OR prescription IS NOT NULL",
+            name="only_prescriptions_have_a_photo",
+        ),
         CheckConstraint(
             "(status = 'answered') = "
             "(asha_reply IS NOT NULL AND answered_at IS NOT NULL)",
