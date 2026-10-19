@@ -10,12 +10,13 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy import Engine, create_engine, text
 
-from chhaaya import danger_signs
+from chhaaya import danger_signs, reminders
 from chhaaya.cases import Cases
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
 from chhaaya.qa import QaAgent
+from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
@@ -79,7 +80,7 @@ class Worker:
     whatsapp: WhatsAppClient
     sarvam: SarvamClient
     cases: Cases
-    # "qa", "document" and "escalation" each take the message and reply.
+    # "qa", "document", "reminder" and "escalation" each take the message and reply.
     agents: dict[str, Callable[[Inbound], None]]
 
     def work_one(self) -> bool:
@@ -121,9 +122,12 @@ class Worker:
         if not understood:
             self.whatsapp.send_text(message.wa_id, VOICE_UNREADABLE)
             raise ValueError("voice note is silent or in an unsupported language")
+        if message.kind == "image":
+            return self.route("document", message)
         if message.kind == "text":
             message = self.store_language(message)
-        self.route("document" if message.kind == "image" else "qa", message)
+        wants = reminders.wants(self.engine, message)
+        self.route("reminder" if wants else "qa", message)
 
     def route(self, agent: str, message: Inbound) -> None:
         if agent not in self.agents:
@@ -208,12 +212,19 @@ def main() -> None:
     worker.agents["document"] = DocumentAgent(sarvam, whatsapp, cases, lexicon).read
     kb = KnowledgeBase(engine, lambda texts: load()(texts))
     worker.agents["qa"] = QaAgent(kb, sarvam, whatsapp, cases, worker.escalate).answer
+    due = Reminders(engine, whatsapp, sarvam, cases)
+    worker.agents["reminder"] = due.handle
     stop = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.set())
     log.info("worker started")
     while not stop.is_set():
-        if not worker.work_one():
+        try:
+            reminded = due.send_due()
+        except Exception:  # broad: a failed missed-dose alert must not stop the loop
+            log.exception("sending due reminders failed")
+            reminded = True
+        if not worker.work_one() and not reminded:
             stop.wait(1)
     log.info("worker stopped")
 
