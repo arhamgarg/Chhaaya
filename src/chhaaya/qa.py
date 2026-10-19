@@ -105,7 +105,7 @@ class QaAgent:
             return
         answer = " ".join(CITATION.sub("", reply).split())
         answer = re.sub(r"\s+([.,;:!?।])", r"\1", answer)
-        if not in_script(answer, message.script):
+        if not in_script(answer, key):
             log.warning("message %s: answer is not in %s", message.id, key)
             self.cases.open("wrong_script", message.user_id, question)
             return
@@ -144,10 +144,10 @@ def citations(reply: str) -> list[int] | None:
     return cited
 
 
-def in_script(answer: str, script: str | None) -> bool:
+def in_script(answer: str, key: str) -> bool:
     """Hindi is mostly Devanagari (English terms like ORS may stay); Latin has none."""
     devanagari = len(DEVANAGARI.findall(answer))
-    if script == "Deva":
+    if key == "hi":
         return devanagari >= len(LATIN.findall(answer))
     return devanagari == 0
 
