@@ -337,3 +337,33 @@ def test_a_reply_without_words_neither_saves_nor_discards(world: ReminderWorld):
     [draft] = reminders(world)
     assert draft.confirmed_at is None
     assert [agent for agent, _ in world.agent_calls] == ["qa"]
+
+
+def test_a_course_asked_for_after_todays_last_time_starts_tomorrow(
+    world: ReminderWorld,
+):
+    _, patient = setup(world)
+    say(world, patient, "raat 12 baje yaad dilana", extracted(("ORS", ["00:01"], 1)))
+
+    say(world, patient, "haan")
+
+    [saved] = reminders(world)
+    assert saved.next_due_at is not None  # one reminder, the day after asking
+    assert saved.starts_on == saved.ends_on == saved.next_due_at.astimezone(IST).date()
+
+
+def test_a_worker_back_after_days_sends_one_late_reminder_not_a_burst(
+    world: ReminderWorld,
+):
+    _, patient = setup(world)
+    reminder = saved_reminder(world, patient, times=("08:00", "20:00"))
+    with world.engine.begin() as conn:  # a course running for a week
+        conn.execute(text("UPDATE reminders SET starts_on = current_date - 7"))
+    make_due(world, reminder, ago=timedelta(days=3))
+
+    assert world.reminders.send_due()
+    assert not world.reminders.send_due()
+
+    assert len(doses(world)) == 1
+    [row] = reminders(world)
+    assert row.next_due_at > datetime.now(UTC)

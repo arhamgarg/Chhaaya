@@ -258,15 +258,25 @@ class Reminders:
                 {"p": message.user_id, "lifetime": DRAFT_LIFETIME},
             ).all()
             for draft in drafts:
+                # The course starts on the first day with a time still ahead, so
+                # its days are all reminded days: "5 days" asked at 9 pm for 8 am
+                # starts tomorrow.
+                first = next_due(draft.times, draft.starts_on, None, now)
+                assert first is not None  # a course without an end always has one
+                starts_on = first.astimezone(IST).date()
+                ends_on = draft.ends_on and starts_on + (
+                    draft.ends_on - draft.starts_on
+                )
                 conn.execute(
                     text(
                         "UPDATE reminders SET confirmed_at = now(), "
-                        "next_due_at = :due WHERE id = :id"
+                        "next_due_at = :due, starts_on = :starts_on, "
+                        "ends_on = :ends_on WHERE id = :id"
                     ),
                     {
-                        "due": next_due(
-                            draft.times, draft.starts_on, draft.ends_on, now
-                        ),
+                        "due": first,
+                        "starts_on": starts_on,
+                        "ends_on": ends_on,
                         "id": draft.id,
                     },
                 )
