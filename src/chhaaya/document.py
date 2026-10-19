@@ -25,11 +25,15 @@ BETWEEN = re.compile(r"(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)", re.IGN
 UP_TO = re.compile(r"(?:<|<=|≤|up\s*to)\s*(\d+(?:\.\d+)?)", re.IGNORECASE)
 FROM = re.compile(r"(?:>|>=|≥)\s*(\d+(?:\.\d+)?)")
 FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
-# How reports name the tests in data/critical_values.csv. A name matches when its
-# words, less the filler, are all one test's, so "Hb%" and "Haemoglobin (Hb),
-# blood" match but HbA1c and "Mean corpuscular haemoglobin", other tests, do not.
+# How reports name the tests in data/critical_values.csv. Any name with one of a
+# test's words is that test ("Hb%", "Hb (Sahli)", "Haemoglobin estimation"), so
+# a critical value is never missed for an unexpected word, unless a word names a
+# different test: mean corpuscular haemoglobin (MCH, MCHC) or glycated
+# haemoglobin (HbA1c, whose "hba1c" is not "hb").
 TEST_WORDS = {"haemoglobin": {"haemoglobin", "hemoglobin", "hb", "hgb"}}
-FILLER = {"blood", "whole", "total"}
+OTHER_TESTS = {"mean", "corpuscular", "glycated", "glycosylated", "urine"}
+# Meta refuses a text body longer than 4096 characters.
+TEXT_LIMIT = 4096
 
 STRUCTURE = """\
 Turn the OCR text of one photo into JSON. Reply with the JSON alone, in this shape:
@@ -255,11 +259,22 @@ class DocumentAgent:
 
     def reply(self, message: "Inbound", texts: dict[str, str]) -> None:
         reply = in_language(texts, message.language, message.script)
-        self.whatsapp.send_text(message.wa_id, reply)
+        for part in parts(reply):
+            self.whatsapp.send_text(message.wa_id, part)
         if len(reply.split()) <= VOICE_WORD_LIMIT:
             send_voice(
                 self.whatsapp, self.sarvam, message.wa_id, reply, message.language
             )
+
+
+def parts(reply: str) -> list[str]:
+    """The reply cut at line breaks into texts WhatsApp accepts."""
+    chunks = [""]
+    for line in reply.split("\n"):
+        if chunks[-1] and len(chunks[-1]) + 1 + len(line) > TEXT_LIMIT:
+            chunks.append("")
+        chunks[-1] = f"{chunks[-1]}\n{line}" if chunks[-1] else line
+    return chunks
 
 
 def structure(sarvam: SarvamClient, ocr: str) -> Document:
@@ -331,8 +346,10 @@ def critical_finding(
     test: LabTest, age: float | None, critical: list[Critical]
 ) -> str | None:
     """Why the test needs the ASHA now, or None if it does not."""
-    words = set(re.sub(r"[^a-z0-9]+", " ", test.name.casefold()).split()) - FILLER
-    names = [name for name, known in TEST_WORDS.items() if words and words <= known]
+    words = set(re.sub(r"[^a-z0-9]+", " ", test.name.casefold()).split())
+    if words & OTHER_TESTS:
+        return None
+    names = [name for name, known in TEST_WORDS.items() if words & known]
     rows = [r for r in critical if r.test in names and r.applies(age)]
     if not rows:
         return None

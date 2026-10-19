@@ -87,6 +87,8 @@ class World:
             template = body["template"]
             params = [p["text"] for p in template["components"][0]["parameters"]]
             self.templates.append((body["to"], template["name"], params))
+        elif len(body["text"]["body"]) > 4096:  # Meta's limit for a text body
+            return httpx2.Response(400, json={"error": {"code": 100}})
         else:
             self.sent.append((body["to"], body["text"]["body"]))
         return httpx2.Response(200, json={"messages": [{"id": "wamid.out"}]})

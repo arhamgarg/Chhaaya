@@ -302,3 +302,48 @@ def test_a_long_prescription_reaches_the_asha_whole(world: World):
 
     [alert] = world.texts_to(ASHA)
     assert "Medicine11 500: 1-0-1, 5 days" in alert  # the ASHA confirms all of it
+
+
+@pytest.mark.parametrize(
+    ("name", "unit", "critical"),
+    [
+        ("Hb (Sahli)", "g/dL", True),
+        ("Hb level", "g/dL", True),
+        ("Haemoglobin estimation", "gm/dl", True),
+        ("HbA1c", "%", False),
+        ("Glycated haemoglobin", "%", False),
+        ("Mean corpuscular haemoglobin concentration (MCHC)", "g/dL", False),
+    ],
+)
+def test_every_haemoglobin_name_is_checked_and_other_tests_are_not(
+    world: World, name: str, unit: str, critical: bool
+):
+    _, patient = setup(world)
+    tests = [{"name": name, "value": "5.5", "unit": unit, "range": None}]
+
+    send_photo(world, patient, f"{name} 5.5 {unit}", extracted("lab_report", tests))
+
+    assert [c.cause for c in world.cases()] == (
+        ["critical_lab_value"] if critical else []
+    )
+
+
+def test_a_long_report_for_a_patient_of_unknown_language_still_arrives(world: World):
+    _, patient = setup(world, language=(None, None))
+    tests = [
+        {
+            "name": f"Test number {n}",
+            "value": f"{n}.5",
+            "unit": "mg/dL",
+            "range": f"{n} - {n + 1}",
+        }
+        for n in range(40)
+    ]
+    ocr = "\n".join(f"{t['name']} {t['value']} {t['unit']} {t['range']}" for t in tests)
+
+    message = send_photo(world, patient, ocr, extracted("lab_report", tests))
+
+    texts = world.texts_to(PATIENT)
+    assert all(len(body) <= 4096 for body in texts)
+    assert "Test number 39 39.5 mg/dL" in "".join(texts)
+    assert world.message(message).status == "done"
