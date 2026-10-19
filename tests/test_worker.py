@@ -27,6 +27,9 @@ class World:
         self.transcript: str | None = None  # None means speech-to-text is down
         self.transcript_language: str | None = "hi-IN"
         self.sarvam_calls: list[str] = []
+        # Sarvam-105B answers each chat request with the next of these, in order.
+        self.chat_replies: list[str] = []
+        self.chat_requests: list[dict] = []
         self.whatsapp_up = True
         self.agent_calls: list[tuple[str, int]] = []
         http = httpx2.Client(transport=httpx2.MockTransport(self.handle))
@@ -51,6 +54,8 @@ class World:
         path = request.url.path
         if request.url.host == "api.sarvam.ai":
             self.sarvam_calls.append(path.strip("/"))
+            if path.endswith("chat/completions"):
+                return self.chat(json.loads(request.read()))
             return self.sarvam(path)
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
@@ -86,6 +91,12 @@ class World:
                 ),
                 {"wa_id": wa_id},
             ).scalar_one()
+
+    def chat(self, body: dict) -> httpx2.Response:
+        self.chat_requests.append(body)
+        message = {"role": "assistant", "content": self.chat_replies.pop(0)}
+        choice = {"index": 0, "message": message, "finish_reason": "stop"}
+        return httpx2.Response(200, json={"choices": [choice]})
 
     def sarvam(self, path: str) -> httpx2.Response:
         if path.endswith("text-to-speech"):
