@@ -42,8 +42,38 @@ NOTICE = {
     "hi-Latn": "Humne aapka sawal aapki ASHA didi ko bhej diya hai. Woh yahin "
     "jawab dengi.",
 }
-# An ASHA confirms a prescription with one of these; anything else corrects it.
-CONFIRMATIONS = {"ok", "okay", "theek hai", "thik hai", "ठीक है", "sahi hai", "सही है"}
+# A reply made only of these words (punctuation and emoji aside) confirms a
+# prescription. Any other reply with a digit in it is the corrected list; one
+# without a digit ("dekh liya") is neither, and the case stays open.
+CONFIRMATIONS = {
+    "ok",
+    "okay",
+    "yes",
+    "correct",
+    "right",
+    "haan",
+    "han",
+    "ha",
+    "ji",
+    "theek",
+    "thik",
+    "sahi",
+    "hai",
+    "ठीक",
+    "सही",
+    "है",
+    "हाँ",
+    "हां",
+    "जी",
+}
+DIGIT = re.compile(r"\d")
+# Punctuation, emoji and the danda: anything but letters, digits and Devanagari
+# vowel signs, which \w alone would split words at.
+NOT_A_WORD = re.compile(r"[^\w\s\u0900-\u0963\u0966-\u097f]")
+NEITHER = (
+    "Case {number}: reply {number} ok if the list matches the photo, or {number} "
+    "followed by the full corrected list. The patient is still waiting."
+)
 CHECKED = {
     "en": "Your ASHA has checked your prescription. Your doctor wrote:",
     "hi": "आपकी आशा दीदी ने आपका पर्चा जाँच लिया है। डॉक्टर ने लिखा है:",
@@ -80,6 +110,11 @@ def in_language(texts: dict[str, str], language: str | None, script: str | None)
     if language == "hi":
         return texts["hi" if script == "Deva" else "hi-Latn"]
     return f"{texts['en']}\n\n{texts['hi-Latn']}"
+
+
+def confirms(reply: str) -> bool:
+    words = set(NOT_A_WORD.sub(" ", reply.casefold()).split())
+    return bool(words) and words <= CONFIRMATIONS
 
 
 def one_line(value: str) -> str:
@@ -250,10 +285,13 @@ class Cases:
             if case.cause != "prescription_confirmation":
                 prefix = in_language(REPLY_PREFIX, case.language, case.script)
                 self.relay(conn, case, f"{prefix} {reply}", reply)
-            elif reply.casefold().strip(" .!") in CONFIRMATIONS:
+            elif confirms(reply):
                 self.relay_prescription(conn, case, CHECKED, case.prescription)
-            else:
+            elif DIGIT.search(reply):
                 self.relay_prescription(conn, case, CORRECTED, reply)
+            else:
+                self.whatsapp.send_text(message.wa_id, NEITHER.format(number=number))
+                return
             conn.execute(
                 text(
                     "UPDATE cases SET status = 'answered', asha_reply = :reply, "

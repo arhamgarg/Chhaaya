@@ -328,6 +328,40 @@ def test_every_haemoglobin_name_is_checked_and_other_tests_are_not(
     )
 
 
+@pytest.mark.parametrize(
+    "answer", ["ok 👍", "ok?", "yes", "haan ji", "Ok sahi hai", "ठीक है।", "हाँ जी"]
+)
+def test_any_way_an_asha_says_yes_confirms_the_prescription(world: World, answer: str):
+    asha, patient = setup(world)
+    send_photo(world, patient, RX, extracted("prescription", medicines=RX_MEDICINES))
+    [(number, _, _)] = case_details(world)
+    world.sent.clear()
+
+    world.receive(asha, body=f"{number} {answer}")
+    world.worker.work_one()
+
+    [confirmed] = world.texts_to(PATIENT)
+    assert "Dolo 650: 1-0-1, 5 days" in confirmed
+    assert case_details(world)[0].status == "answered"
+
+
+def test_a_reply_that_neither_confirms_nor_lists_medicines_keeps_the_case_open(
+    world: World,
+):
+    asha, patient = setup(world)
+    send_photo(world, patient, RX, extracted("prescription", medicines=RX_MEDICINES))
+    [(number, _, _)] = case_details(world)
+    world.sent.clear()
+
+    world.receive(asha, body=f"{number} dekh liya, baad mein batati hoon")
+    world.worker.work_one()
+
+    assert world.texts_to(PATIENT) == []
+    [hint] = world.texts_to(ASHA)
+    assert f"{number} ok" in hint
+    assert case_details(world)[0].status == "open"
+
+
 def test_a_long_report_for_a_patient_of_unknown_language_still_arrives(world: World):
     _, patient = setup(world, language=(None, None))
     tests = [
