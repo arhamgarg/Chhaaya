@@ -70,8 +70,8 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Service | Python 3.12, FastAPI | All the ML is in Python; one language for the whole backend |
 | Tooling | uv, ruff, ty, pytest | |
 | Database | PostgreSQL 16 + pgvector | Records, the work queue and the vector index in one database |
-| Speech to text | Sarvam Saaras v3 | Handles Hindi, English and code-mixed speech |
-| Text to speech | Sarvam Bulbul v3 | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
+| Speech to text | Sarvam Saaras v4 | Handles Hindi, English and code-mixed speech |
+| Text to speech | Sarvam Bulbul v4 Flash | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
 | LLM | Sarvam-105B | Strong on Indic languages and hosted in India. Unlike free-tier APIs, it does not keep our data for training |
 | OCR | Sarvam Vision | Async job API; returns Markdown and page-level JSON |
 | Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline. Sarvam has no embedding API |
@@ -235,7 +235,7 @@ References:
 |---|---|---|
 | WhatsApp and IVR | WhatsApp only | IVR needs a paid, KYC'd telephony account |
 | "All 22 languages" via IndicBERT, IndicTrans2, IndicWhisper, MuRIL | Hindi, English, Hinglish | The claim was also wrong: IndicWhisper covers 12 languages and MuRIL 17. Every language needs its own checked evaluation set |
-| IndicWhisper for voice output | Saaras v3 in, Bulbul v3 out | Whisper models only transcribe; they cannot speak |
+| IndicWhisper for voice output | Saaras v4 in, Bulbul v4 Flash out | Whisper models only transcribe; they cannot speak |
 | Self-hosted AI4Bharat models | Sarvam APIs | No GPU needed; one vendor for speech, OCR and the LLM |
 | Symptom-disease datasets | Rule-based danger signs | Chhaaya does not diagnose |
 | Trained handwriting recognition | ASHA confirms every prescription | A misread drug name can match another real drug |
