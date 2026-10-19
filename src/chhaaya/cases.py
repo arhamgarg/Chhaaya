@@ -16,11 +16,12 @@ if TYPE_CHECKING:
     from chhaaya.worker import Inbound
 
 # Answers to these become knowledge-base chunks; the rest are about one patient.
-QUESTION_CAUSES = {"weak_evidence", "citation_failed"}
+QUESTION_CAUSES = {"weak_evidence", "citation_failed", "wrong_script"}
 LABELS = {
     "danger_sign": "danger sign",
     "weak_evidence": "question",
     "citation_failed": "question",
+    "wrong_script": "question",
     "critical_lab_value": "critical lab value",
     "prescription_confirmation": "prescription to confirm",
     "missed_doses": "missed doses",

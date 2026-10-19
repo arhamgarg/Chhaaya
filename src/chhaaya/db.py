@@ -130,7 +130,8 @@ class Case(Base):
     __table_args__ = (
         CheckConstraint(
             "cause IN ('danger_sign', 'weak_evidence', 'citation_failed', "
-            "'critical_lab_value', 'prescription_confirmation', 'missed_doses')",
+            "'wrong_script', 'critical_lab_value', 'prescription_confirmation', "
+            "'missed_doses')",
             name="cause",
         ),
         CheckConstraint("status IN ('open', 'answered')", name="status"),
