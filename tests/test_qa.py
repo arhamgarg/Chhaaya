@@ -193,3 +193,23 @@ def test_a_hindi_answer_may_keep_english_terms_and_a_long_one_is_not_spoken(
     assert "ORS का घोल" in reply and "स्रोत" in reply
     assert world.voice_notes == []  # about 100 words is too long for a voice note
     assert world.cases() == []
+
+
+def test_an_english_answer_reaches_an_english_patient_whatever_script_lid_saw(
+    world: World,
+):
+    world.language = ("en-IN", "Deva")  # an English question naming a Hindi word
+    patient = setup(world)
+    ors = add_chunk(world, "Give ORS after every loose stool")
+
+    ask(
+        world,
+        patient,
+        "Child has दस्त, what to give?",
+        "ORS for diarrhoea",
+        f"Give ORS after every loose stool [{ors}].",
+    )
+
+    [reply] = world.texts_to(PATIENT)
+    assert reply.startswith("Give ORS after every loose stool.\n\n")
+    assert world.cases() == []
