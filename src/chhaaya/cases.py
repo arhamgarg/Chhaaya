@@ -112,9 +112,14 @@ def in_language(texts: dict[str, str], language: str | None, script: str | None)
     return f"{texts['en']}\n\n{texts['hi-Latn']}"
 
 
+def words(message: str) -> set[str]:
+    """The message's words in lower case, without punctuation or emoji."""
+    return set(NOT_A_WORD.sub(" ", message.casefold()).split())
+
+
 def confirms(reply: str) -> bool:
-    words = set(NOT_A_WORD.sub(" ", reply.casefold()).split())
-    return bool(words) and words <= CONFIRMATIONS
+    said = words(reply)
+    return bool(said) and said <= CONFIRMATIONS
 
 
 def one_line(value: str) -> str:
@@ -226,7 +231,8 @@ class Cases:
             )
         # No approved template carries the notice, so outside the window the
         # patient hears from the case only when the ASHA's case_update arrives.
-        if cause != "danger_sign" and patient_in_window:
+        # Missed doses are the ASHA's to follow up; the patient asked nothing.
+        if cause not in ("danger_sign", "missed_doses") and patient_in_window:
             notice = in_language(NOTICE, people.language, people.script)
             send_reply(
                 self.whatsapp, self.sarvam, people.wa_id, notice, people.language
