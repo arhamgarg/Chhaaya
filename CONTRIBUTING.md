@@ -80,6 +80,8 @@ If independent review was chosen, run it now ([Optional: independent review](#op
 
 Merge only when `check` is green on the current head, any owner review a Critical change needs has approved, and, if independent review was chosen, the PR carries the `APPROVE` record for the current head: `gh pr merge <number> --squash --delete-branch`. Confirm the PR is `MERGED` and the issue `CLOSED`; if `Closes #N` didn't close it, close it with a comment naming the PR.
 
+An issue labelled `co-author: <login>` was handed over by that person, who is credited on the squash commit. For `co-author: SheethalRaj6`, merge with `gh pr merge <number> --squash --delete-branch --body "Co-authored-by: SheethalRaj6 <189760917+SheethalRaj6@users.noreply.github.com>"`, then check that `git log -1 origin/main` shows the trailer.
+
 ## 9. Cleanup
 
 1. Fetch with `--prune` and delete any remote branch you created that remains.
