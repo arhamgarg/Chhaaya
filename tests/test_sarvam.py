@@ -25,7 +25,8 @@ def test_a_voice_note_is_sent_as_audio_and_comes_back_as_text_with_its_language(
     assert (text, language, script) == ("मुझे बुखार है", "hi", "Deva")
     body = seen[0].read()
     assert b"OggS-voice" in body
-    assert b"saaras:v3" in body
+    assert b"saaras:v4" in body
+    assert b'name="mode"' not in body  # mode applies only to saaras:v3
     assert seen[0].headers["api-subscription-key"] == "key"
 
 
@@ -43,7 +44,7 @@ def test_a_reply_is_synthesised_in_the_patients_language_and_decoded():
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         assert b'"hi-IN"' in request.read()
-        assert b"bulbul:v3" in request.read()
+        assert b"bulbul:v4-flash" in request.read()
         return httpx2.Response(200, json={"audios": [base64.b64encode(wav).decode()]})
 
     assert client(handler).synthesize("आपको आराम करना चाहिए", "hi") == wav
