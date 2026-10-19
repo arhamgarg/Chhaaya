@@ -13,9 +13,11 @@ LANGUAGES = {"hi-IN": "hi", "en-IN": "en"}
 SPEECH_CODES = {language: code for code, language in LANGUAGES.items()}
 STT_MODEL = "saaras:v4"
 TTS_MODEL = "bulbul:v4-flash"
+CHAT_MODEL = "sarvam-105b"
 TTS_MAX_CHARACTERS = 2500
 DEVANAGARI = re.compile("[ऀ-ॿ]")
 SPEECH_TIMEOUT = 30  # seconds; speech calls are slower than text calls
+CHAT_TIMEOUT = 60  # seconds; Sarvam-105B reasons before it answers
 
 
 def supported(language_code: str | None, script_code: str | None) -> str:
@@ -69,6 +71,25 @@ class SarvamClient:
             timeout=SPEECH_TIMEOUT,
         ).json()
         return base64.b64decode("".join(found["audios"]))
+
+    def chat(self, system: str, user: str) -> str:
+        """Sarvam-105B's reply to one user message under a system prompt."""
+        found = self._post(
+            "v1/chat/completions",
+            json={
+                "model": CHAT_MODEL,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            },
+            timeout=CHAT_TIMEOUT,
+        ).json()
+        choice = found["choices"][0]
+        # Reasoning counts against max_tokens, so a long one can leave no answer.
+        if choice["finish_reason"] != "stop" or not choice["message"]["content"]:
+            raise ValueError(f"sarvam chat stopped early: {choice['finish_reason']}")
+        return choice["message"]["content"]
 
     def _post(self, endpoint: str, **request) -> httpx2.Response:
         response = self.http.post(

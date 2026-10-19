@@ -74,3 +74,13 @@ def test_speech_in_an_unsupported_language_keeps_its_transcript(language_code):
     text, language, _ = client(handler).transcribe(b"x", "audio/ogg")
 
     assert (text, language) == ("vanakkam", None)
+
+
+def test_a_chat_reply_cut_off_while_reasoning_is_an_error_not_an_empty_answer():
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        message = {"role": "assistant", "content": None, "reasoning_content": "..."}
+        choice = {"index": 0, "message": message, "finish_reason": "length"}
+        return httpx2.Response(200, json={"choices": [choice]})
+
+    with pytest.raises(ValueError, match="length"):
+        client(handler).chat("system", "user")
