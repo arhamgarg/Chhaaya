@@ -11,8 +11,8 @@ log = logging.getLogger("chhaaya.sarvam")
 API_URL = "https://api.sarvam.ai"
 LANGUAGES = {"hi-IN": "hi", "en-IN": "en"}
 SPEECH_CODES = {language: code for code, language in LANGUAGES.items()}
-STT_MODEL = "saaras:v3"
-TTS_MODEL = "bulbul:v3"
+STT_MODEL = "saaras:v4"
+TTS_MODEL = "bulbul:v4-flash"
 TTS_MAX_CHARACTERS = 2500
 DEVANAGARI = re.compile("[ऀ-ॿ]")
 SPEECH_TIMEOUT = 30  # seconds; speech calls are slower than text calls
@@ -47,7 +47,7 @@ class SarvamClient:
         """
         found = self._post(
             "speech-to-text",
-            data={"model": STT_MODEL, "mode": "transcribe", "language_code": "unknown"},
+            data={"model": STT_MODEL, "language_code": "unknown"},
             files={"file": ("voice", audio, mime_type)},
             timeout=SPEECH_TIMEOUT,
         ).json()
