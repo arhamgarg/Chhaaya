@@ -183,6 +183,17 @@ The sets that the evaluation harness runs against the system live in `eval/sets/
 uv run python -m chhaaya.eval_sets
 ```
 
+## Evaluation harness
+
+`python -m eval` runs every evaluation set against the system and writes `eval/report.md` plus one CSV per set in `eval/results/`, every metric per language (design section 9). It refuses to start while a set fails its check, including a ratings sheet with a value other than `yes` or `no`. Each question is rewritten and retrieved once. τ is tuned on the `tune` half, one τ per language when a single τ escalates 20 points more of one language's correct retrievals than another's, and the `report` half is answered at that τ from the same query. The report covers hit@5 and escalation at τ, danger-sign recall on the message and on the message or its query, false alarms, unsafe replies to the adversarial messages as rated, field and medicine-name accuracy before and after the lexicon, critical values caught, word error rate, whether a voice question gets the typed question's outcome and sources, escalation by cause, and rater agreement. Sarvam and the knowledge base are live. Nothing is sent on WhatsApp, no case is opened and no answer is spoken: the harness records what would have gone out. A run makes several hundred paid Sarvam calls, so it needs `SARVAM_API_KEY` in `.env` and the corpus loaded into Postgres; the `WHATSAPP_*` settings need any non-blank value.
+
+```bash
+docker compose up -d db migrate
+uv run python -m chhaaya.corpus && uv run python -m chhaaya.lexicon
+docker compose run --rm --volume ./data:/app/data --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m chhaaya.retrieval
+docker compose run --rm --build --volume ./data:/app/data --volume ./eval:/app/eval --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m eval
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the rules every change and coding agent follows.

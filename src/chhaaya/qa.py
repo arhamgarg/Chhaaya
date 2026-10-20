@@ -20,7 +20,7 @@ log = logging.getLogger("chhaaya.qa")
 
 # A best retrieval score below τ escalates instead of answering. This is a
 # placeholder: issue #17 tunes it on half of the question set.
-TAU = 0.5
+TAU: float = 0.5
 # Voice replies stay around 60 words; an answer past this is sent as text only.
 VOICE_WORD_LIMIT = 80
 NO_ANSWER = "NO_ANSWER"
