@@ -67,7 +67,7 @@ def world(engine: Engine) -> World:
     world = World(engine)
     cases = world.cases_
     agent = DocumentAgent(
-        world.worker.sarvam, world.worker.whatsapp, cases, lambda: LEXICON
+        world.worker.gemini, world.worker.whatsapp, cases, lambda: LEXICON
     )
     world.agents["document"] = agent.read
     world.agents["escalation"] = cases.answer
@@ -143,7 +143,7 @@ def test_a_lab_report_is_compared_with_its_ranges_and_a_critical_value_escalates
     assert any(line.startswith("TSH 3.1 uIU/mL: no range") for line in lines)
     assert world.message(message).status == "done"
     # The OCR text is what the LLM structures, and nothing else.
-    assert world.chat_requests[0]["messages"][1]["content"] == CBC
+    assert world.chat_requests[0]["contents"][0]["parts"][0]["text"] == CBC
 
 
 @pytest.mark.parametrize(
@@ -190,13 +190,13 @@ def test_a_critical_test_in_a_unit_we_cannot_check_goes_to_the_asha(world: World
 @pytest.mark.parametrize(
     ("ocr", "reply", "status"),
     [
-        # A blurry photo: Sarvam Vision reads fragments, the LLM calls it unreadable.
+        # A blurry photo: Gemini reads fragments, the LLM calls it unreadable.
         ("H@em0g ~~ 1?.? g/d", extracted("unreadable"), "done"),
         # A value the OCR text does not contain was made up, not read.
         (CBC, extracted("lab_report", [{**CBC_TESTS[0], "value": "11.8"}]), "failed"),
         (CBC, "Here is the JSON you asked for: {}", "failed"),
         (CBC, extracted("lab_report"), "failed"),  # a report with no tests
-        (None, None, "failed"),  # the Sarvam Vision job fails
+        (None, None, "failed"),  # Gemini OCR fails
     ],
     ids=["blurry", "invented-value", "not-json", "no-tests", "ocr-failed"],
 )

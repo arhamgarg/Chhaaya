@@ -10,7 +10,7 @@ from chhaaya.audio import to_ogg_opus
 
 
 def tone(seconds: float = 1.0, rate: int = 22050) -> bytes:
-    """A mono 16-bit WAV like the ones Sarvam returns."""
+    """A mono 16-bit WAV like the ones Gemini returns."""
     out = BytesIO()
     with wave.open(out, "wb") as wav:
         wav.setnchannels(1)

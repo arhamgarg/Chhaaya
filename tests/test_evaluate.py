@@ -14,9 +14,9 @@ from chhaaya import eval_sets, evaluate, qa
 from chhaaya.db import KbChunk
 from chhaaya.document import STRUCTURE
 from chhaaya.evaluate import agreement, choose_tau, run, word_error_rate
+from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Entry, Lexicon
 from chhaaya.retrieval import KnowledgeBase
-from chhaaya.sarvam import SarvamClient
 
 
 def scored(language: str, score: float, hit: bool) -> dict:
@@ -75,7 +75,7 @@ def test_agreement_compares_the_two_raters_on_every_criterion():
     assert agreement(rows) == (3, 4)
 
 
-# A list is the rewrite for each call in turn: Sarvam's rewrite can change between
+# A list is the rewrite for each call in turn: Gemini's rewrite can change between
 # calls, so the report must score an answer against the query it was given.
 QUERIES: dict[str, str | list[str]] = {
     "how do i make ors at home": "ors preparation",
@@ -100,8 +100,8 @@ TRANSCRIPTS = {
 }
 
 
-class FakeSarvam:
-    """Sarvam's replies to the prompts the system sends it."""
+class FakeGemini:
+    """Gemini's replies to the prompts the system sends it."""
 
     def __init__(self) -> None:
         self.rewrites = Counter()
@@ -250,7 +250,7 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
         sets,
         results,
         KnowledgeBase(engine, fake_embed),
-        cast(SarvamClient, FakeSarvam()),
+        cast(GeminiClient, FakeGemini()),
         lexicon,
     )
 

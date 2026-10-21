@@ -1,9 +1,7 @@
 import base64
-import io
 import json
 import threading
 import time
-import zipfile
 from collections.abc import Callable
 
 import httpx2
@@ -12,13 +10,13 @@ from sqlalchemy import Engine, text
 from test_audio import tone
 
 from chhaaya.cases import Cases
-from chhaaya.sarvam import SarvamClient
+from chhaaya.gemini import LANGUAGE_PROMPT, TRANSCRIBE_PROMPT, GeminiClient
 from chhaaya.whatsapp import WhatsAppClient
 from chhaaya.worker import Inbound, Worker
 
 
 class World:
-    """The outside world: Meta and Sarvam answer from here, and agents record calls."""
+    """The outside world: Meta and Gemini answer from here, and agents record calls."""
 
     def __init__(self, engine: Engine):
         self.engine = engine
@@ -28,11 +26,11 @@ class World:
         self.language: tuple[str, str] | None = ("hi-IN", "Latn")
         self.transcript: str | None = None  # None means speech-to-text is down
         self.transcript_language: str | None = "hi-IN"
-        self.sarvam_calls: list[str] = []
-        # Sarvam-105B answers each chat request with the next of these, in order.
+        self.gemini_calls: list[str] = []
+        # Gemini Flash answers each chat request with the next of these, in order.
         self.chat_replies: list[str] = []
         self.chat_requests: list[dict] = []
-        # The Markdown Sarvam Vision reads off a photo; None means the job fails.
+        # The Markdown Gemini reads off a photo; None means OCR fails.
         self.ocr: str | None = None
         self.images: list[tuple[str, str]] = []  # (to, caption)
         self.whatsapp_up = True
@@ -42,10 +40,10 @@ class World:
             name: self.agent(name) for name in ("qa", "document", "escalation")
         }
         whatsapp = WhatsAppClient("token", "123456", http)
-        sarvam = SarvamClient("key", http)
+        gemini = GeminiClient("key", http)
         self.embedded: list[str] = []
-        self.cases_ = Cases(engine, whatsapp, sarvam, self.embed)
-        self.worker = Worker(engine, whatsapp, sarvam, self.cases_, self.agents)
+        self.cases_ = Cases(engine, whatsapp, gemini, self.embed)
+        self.worker = Worker(engine, whatsapp, gemini, self.cases_, self.agents)
 
     def embed(self, texts):
         """A stand-in for BGE-M3: one fixed 1024-dimensional vector per text."""
@@ -57,15 +55,9 @@ class World:
 
     def handle(self, request: httpx2.Request) -> httpx2.Response:
         path = request.url.path
-        if request.url.host == "api.sarvam.ai":
-            self.sarvam_calls.append(path.strip("/"))
-            if path.endswith("chat/completions"):
-                return self.chat(json.loads(request.read()))
-            if path.startswith("/doc-ai/"):
-                return self.vision(path)
-            return self.sarvam(path)
-        if request.url.host == "files.sarvam.example":
-            return httpx2.Response(200, content=self.vision_output())
+        if request.url.host == "generativelanguage.googleapis.com":
+            self.gemini_calls.append(path.strip("/"))
+            return self.gemini(request)
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
                 return httpx2.Response(200, json={"url": "https://lookaside.example/m"})
@@ -105,48 +97,48 @@ class World:
                 {"wa_id": wa_id},
             ).scalar_one()
 
-    def chat(self, body: dict) -> httpx2.Response:
-        self.chat_requests.append(body)
-        message = {"role": "assistant", "content": self.chat_replies.pop(0)}
-        choice = {"index": 0, "message": message, "finish_reason": "stop"}
-        return httpx2.Response(200, json={"choices": [choice]})
-
-    def vision(self, path: str) -> httpx2.Response:
-        if path.endswith("/digitise"):
-            return httpx2.Response(202, json={"job_id": "job-1", "status": "pending"})
-        if path.endswith("/status"):
-            status = "failed" if self.ocr is None else "completed"
-            return httpx2.Response(200, json={"job_id": "job-1", "status": status})
-        url = "https://files.sarvam.example/job-1.zip"
-        return httpx2.Response(200, json={"method": "GET", "url": url})
-
-    def vision_output(self) -> bytes:
-        archive = io.BytesIO()
-        with zipfile.ZipFile(archive, "w") as zf:
-            zf.writestr("document.md", self.ocr or "")
-            zf.writestr("manifest.json", "{}")
-            zf.writestr("metadata/page_001.json", "{}")
-        return archive.getvalue()
-
-    def sarvam(self, path: str) -> httpx2.Response:
-        if path.endswith("text-to-speech"):
-            audio = base64.b64encode(tone(0.3)).decode()
-            return httpx2.Response(200, json={"audios": [audio]})
-        if path.endswith("speech-to-text"):
-            if self.transcript is None:
-                return httpx2.Response(500, json={"error": {"message": "down"}})
-            return httpx2.Response(
-                200,
-                json={
-                    "transcript": self.transcript,
-                    "language_code": self.transcript_language,
-                },
+    def gemini(self, request: httpx2.Request) -> httpx2.Response:
+        body = json.loads(request.read())
+        if "tts:generateContent" in request.url.path:
+            part = {
+                "inlineData": {
+                    "mimeType": "audio/wav",
+                    "data": base64.b64encode(tone(0.3)).decode(),
+                }
+            }
+        else:
+            system = (
+                body.get("systemInstruction", {}).get("parts", [{}])[0].get("text", "")
             )
-        if self.language is None:
-            return httpx2.Response(500, json={"error": {"message": "down"}})
-        language, script = self.language
+            media = body["contents"][0]["parts"][0].get("inlineData")
+            if system == LANGUAGE_PROMPT:
+                if self.language is None:
+                    return httpx2.Response(500, json={"error": {"message": "down"}})
+                language, script = self.language
+                text_ = json.dumps({"language_code": language, "script_code": script})
+            elif system == TRANSCRIBE_PROMPT:
+                if self.transcript is None:
+                    return httpx2.Response(500, json={"error": {"message": "down"}})
+                text_ = json.dumps(
+                    {
+                        "transcript": self.transcript,
+                        "language_code": self.transcript_language,
+                        "script_code": "Latn",
+                    }
+                )
+            elif media:
+                if self.ocr is None:
+                    return httpx2.Response(500, json={"error": {"message": "down"}})
+                text_ = self.ocr
+            else:
+                self.chat_requests.append(body)
+                text_ = self.chat_replies.pop(0)
+            part = {"text": text_}
         return httpx2.Response(
-            200, json={"language_code": language, "script_code": script}
+            200,
+            json={
+                "candidates": [{"finishReason": "STOP", "content": {"parts": [part]}}]
+            },
         )
 
     def add_user(self, wa_id: str, role: str = "patient", asha: int | None = None):
@@ -233,10 +225,10 @@ def test_two_workers_never_take_the_same_message(world: World):
     assert all(world.message(i).status == "done" for i in ids)
 
 
-def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_sarvam_is_down(
+def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_gemini_is_down(
     world: World,
 ):
-    world.language = None  # Sarvam is down
+    world.language = None  # Gemini is down
     asha = world.add_user("919999999999", "asha")
     patient = world.add_user("911111111111", asha=asha)
     message = world.receive(patient, body="pregnancy mein khoon aa raha hai")
@@ -248,7 +240,7 @@ def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_sarvam_is_down(
     assert "108" in reply
     assert world.cases() == [("danger_sign", patient, asha, "open")]
     assert world.message(message).status == "done"
-    assert world.sarvam_calls == []
+    assert world.gemini_calls == []
     assert world.agent_calls == []
 
 
@@ -309,7 +301,7 @@ def test_an_ashas_message_skips_screening_and_a_photo_goes_to_the_document_agent
     assert world.agent_calls == [("escalation", reply), ("document", photo)]
     assert world.sent == []
     assert world.cases() == []
-    assert world.sarvam_calls == []
+    assert world.gemini_calls == []
 
 
 def test_a_failed_message_keeps_its_error_and_is_not_retried(world: World):
@@ -332,7 +324,7 @@ def test_a_failed_message_keeps_its_error_and_is_not_retried(world: World):
     ("kind", "body", "language", "expected"),
     [
         ("text", "vanakkam", ("ta-IN", "Taml"), "ta-IN"),
-        ("text", "hello", None, "api.sarvam.ai"),
+        ("text", "hello", None, "generativelanguage.googleapis.com"),
     ],
 )
 def test_messages_that_cannot_be_handled_fail_loudly(
@@ -433,7 +425,7 @@ def test_a_voice_note_that_cannot_be_read_gets_a_text_reply_not_silence(world: W
 
 
 def test_a_dangerous_voice_note_in_another_language_still_opens_a_case(world: World):
-    # Saaras can label a Hindi-belt speaker as Marathi; the words are still screened.
+    # A transcript labelled as Marathi must still be screened for danger signs.
     world.transcript = "pregnancy mein khoon aa raha hai"
     world.transcript_language = "mr-IN"
     asha = world.add_user("919999999999", "asha")
