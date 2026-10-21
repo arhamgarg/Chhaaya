@@ -487,6 +487,7 @@ def test_the_router_follows_a_sure_intent_and_treats_an_unsure_one_as_a_question
     thanks = world.receive(patient, body="thank you didi, bahut madad mili")
 
     world.intent = {"reminder_setup": 0.9, "question": 0.1}
+    world.chat_replies = ["daily reminder for blood pressure tablet at 8 am"]
     world.worker.work_one()
     world.intent = {"reminder_setup": 0.45, "question": 0.35, "smalltalk": 0.2}
     world.worker.work_one()

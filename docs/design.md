@@ -59,7 +59,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
 3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Sarvam's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
 4. **Screen for danger signs** before anything else (section 6).
-5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. Small talk goes to the Q&A agent as well, because only there is the English search query screened for danger signs (section 6). If the classifier is unsure (no label above 0.5 probability), the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
+5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. Small talk goes to the Q&A agent as well, which screens its English search query for danger signs (section 6). A message for the reminder agent is rewritten into the same English query and screened before it is handed over. If the classifier is unsure (no label above 0.5 probability), the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
 6. **Reply** in the patient's language, as text plus a voice note. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
 ## 4. Components

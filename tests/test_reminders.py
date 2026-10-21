@@ -1,10 +1,12 @@
 import json
 from datetime import UTC, date, datetime, time, timedelta
 
+import httpx2
 import pytest
 from sqlalchemy import Engine, text
 from test_worker import World
 
+from chhaaya import qa
 from chhaaya.reminders import IST, Reminders, next_due
 
 ASHA = "919999999999"
@@ -18,6 +20,15 @@ class ReminderWorld(World):
         self.reminders = Reminders(engine, worker.whatsapp, worker.sarvam, self.cases_)
         self.agents["reminder"] = self.reminders.handle
         self.agents["escalation"] = self.cases_.answer
+
+    def chat(self, body: dict) -> httpx2.Response:
+        """The danger-sign query for a reminder message is the message itself."""
+        system, user = (m["content"] for m in body["messages"])
+        if system == qa.REWRITE:
+            message = {"role": "assistant", "content": user}
+            choice = {"index": 0, "message": message, "finish_reason": "stop"}
+            return httpx2.Response(200, json={"choices": [choice]})
+        return super().chat(body)
 
 
 @pytest.fixture

@@ -92,9 +92,12 @@ def test_a_hinglish_question_gets_a_cited_answer_in_text_and_voice(world: World)
     assert answering[1]["content"] == "bachche ko loose motion hai, kya dein"
 
 
-# However sure the classifier is that a message is small talk, it still reaches
-# the English-query check.
-@pytest.mark.parametrize("intent", [None, {"smalltalk": 0.9, "question": 0.1}])
+# However sure the classifier is that a message is small talk or a reminder
+# request, it still reaches the English-query check.
+@pytest.mark.parametrize(
+    "intent",
+    [None, {"smalltalk": 0.9, "question": 0.1}, {"reminder_setup": 0.92}],
+)
 def test_a_danger_sign_only_the_english_query_names_fires(
     world: World, intent: dict[str, float] | None
 ):

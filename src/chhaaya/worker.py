@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy import Engine, create_engine, text
 
-from chhaaya import danger_signs, intent, reminders
+from chhaaya import danger_signs, intent, qa, reminders
 from chhaaya.cases import Cases
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
@@ -129,10 +129,14 @@ class Worker:
         if message.kind == "text":
             message = self.store_language(message)
         label = intent.decide(self.classify(message.body or ""))
-        # Small talk goes to the Q&A agent too: only there is the English search
-        # query screened for danger signs.
-        wants = reminders.wants(self.engine, message, label)
-        self.route("reminder" if wants else "qa", message)
+        if not reminders.wants(self.engine, message, label):
+            # Small talk too: the Q&A agent screens its English search query.
+            return self.route("qa", message)
+        # The reminder agent builds no search query, so screen one here.
+        query = self.sarvam.chat(qa.REWRITE, message.body or "").strip()
+        if signs := danger_signs.detect(query):
+            return self.escalate(message, signs)
+        self.route("reminder", message)
 
     def route(self, agent: str, message: Inbound) -> None:
         if agent not in self.agents:
