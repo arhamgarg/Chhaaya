@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import Engine, text
 from test_audio import tone
 
+from chhaaya import intent
 from chhaaya.cases import Cases
 from chhaaya.sarvam import SarvamClient
 from chhaaya.whatsapp import WhatsAppClient
@@ -37,15 +38,24 @@ class World:
         self.images: list[tuple[str, str]] = []  # (to, caption)
         self.whatsapp_up = True
         self.agent_calls: list[tuple[str, int]] = []
+        # The intent classifier's probabilities; None means the keyword rules decide.
+        self.intent: dict[str, float] | None = None
         http = httpx2.Client(transport=httpx2.MockTransport(self.handle))
         self.agents: dict[str, Callable[[Inbound], None]] = {
-            name: self.agent(name) for name in ("qa", "document", "escalation")
+            name: self.agent(name)
+            for name in ("qa", "document", "reminder", "escalation")
         }
         whatsapp = WhatsAppClient("token", "123456", http)
         sarvam = SarvamClient("key", http)
         self.embedded: list[str] = []
         self.cases_ = Cases(engine, whatsapp, sarvam, self.embed)
-        self.worker = Worker(engine, whatsapp, sarvam, self.cases_, self.agents)
+        self.worker = Worker(
+            engine, whatsapp, sarvam, self.cases_, self.agents, self.classify
+        )
+
+    def classify(self, text: str) -> dict[str, float]:
+        """A stand-in for MuRIL: `intent` if set, else the keyword rules for sure."""
+        return self.intent or {intent.keywords(text): 1.0}
 
     def embed(self, texts):
         """A stand-in for BGE-M3: one fixed 1024-dimensional vector per text."""
@@ -466,3 +476,26 @@ def test_a_voice_note_in_another_language_or_silent_asks_the_patient_to_type(
     assert world.message(message).status == "failed"
     assert world.user(patient) == (None, None)
     assert world.agent_calls == []
+
+
+def test_the_router_follows_a_sure_intent_and_treats_an_unsure_one_as_a_question(
+    world: World,
+):
+    patient = world.add_user("911111111111")
+    sure = world.receive(patient, body="roz subah 8 baje BP ki goli yaad dilana")
+    unsure = world.receive(patient, body="goli roz yaad rakhna mushkil hai")
+    thanks = world.receive(patient, body="thank you didi, bahut madad mili")
+
+    world.intent = {"reminder_setup": 0.9, "question": 0.1}
+    world.worker.work_one()
+    world.intent = {"reminder_setup": 0.45, "question": 0.35, "smalltalk": 0.2}
+    world.worker.work_one()
+    world.intent = {"smalltalk": 0.8, "question": 0.2}
+    world.worker.work_one()
+
+    assert world.agent_calls == [("reminder", sure), ("qa", unsure)]
+    # Small talk gets a short reply in the patient's Hinglish, and no answer.
+    assert world.texts_to("911111111111") == [intent.SMALLTALK["hi-Latn"]]
+    assert world.voice_notes == ["911111111111"]
+    assert world.message(thanks).status == "done"
+    assert world.cases() == []

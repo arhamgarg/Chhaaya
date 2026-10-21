@@ -367,3 +367,16 @@ def test_a_worker_back_after_days_sends_one_late_reminder_not_a_burst(
     assert len(doses(world)) == 1
     [row] = reminders(world)
     assert row.next_due_at > datetime.now(UTC)
+
+
+def test_a_yes_to_a_read_back_is_kept_whatever_the_classifier_makes_of_it(
+    world: ReminderWorld,
+):
+    _, patient = setup(world)
+    say(world, patient, "metformin yaad dilana", extracted(("Metformin", ["08:00"], 5)))
+
+    world.intent = {"smalltalk": 0.95, "question": 0.05}
+    say(world, patient, "ok ji")
+
+    assert reminders(world)[0].confirmed_at is not None
+    assert [agent for agent, _ in world.agent_calls] == []

@@ -10,8 +10,8 @@ from dataclasses import dataclass, replace
 
 from sqlalchemy import Engine, create_engine, text
 
-from chhaaya import danger_signs, reminders
-from chhaaya.cases import Cases
+from chhaaya import danger_signs, intent, reminders
+from chhaaya.cases import Cases, in_language
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
@@ -20,7 +20,7 @@ from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
-from chhaaya.voice import send_voice
+from chhaaya.voice import send_reply, send_voice
 from chhaaya.whatsapp import WhatsAppClient
 
 log = logging.getLogger("chhaaya.worker")
@@ -82,6 +82,8 @@ class Worker:
     cases: Cases
     # "qa", "document", "reminder" and "escalation" each take the message and reply.
     agents: dict[str, Callable[[Inbound], None]]
+    # The intent classifier: label probabilities for a text.
+    classify: Callable[[str], dict[str, float]]
 
     def work_one(self) -> bool:
         """Process the oldest pending message; False when there is none."""
@@ -126,8 +128,15 @@ class Worker:
             return self.route("document", message)
         if message.kind == "text":
             message = self.store_language(message)
-        wants = reminders.wants(self.engine, message)
-        self.route("reminder" if wants else "qa", message)
+        label = intent.decide(self.classify(message.body or ""))
+        if reminders.wants(self.engine, message, label):
+            return self.route("reminder", message)
+        if label == "smalltalk":
+            reply = in_language(intent.SMALLTALK, message.language, message.script)
+            return send_reply(
+                self.whatsapp, self.sarvam, message.wa_id, reply, message.language
+            )
+        self.route("qa", message)
 
     def route(self, agent: str, message: Inbound) -> None:
         if agent not in self.agents:
@@ -207,7 +216,16 @@ def main() -> None:
     # held up by the 2 GB model download.
     load = functools.cache(bge_m3)
     cases = Cases(engine, whatsapp, sarvam, lambda texts: load()(texts))
-    worker = Worker(engine, whatsapp, sarvam, cases, {"escalation": cases.answer})
+    # MuRIL loads on the first text to route, for the same reason.
+    muril = functools.cache(intent.load_muril)
+    worker = Worker(
+        engine,
+        whatsapp,
+        sarvam,
+        cases,
+        {"escalation": cases.answer},
+        lambda text: muril()(text),
+    )
     lexicon = functools.cache(Lexicon.load)
     worker.agents["document"] = DocumentAgent(sarvam, whatsapp, cases, lexicon).read
     kb = KnowledgeBase(engine, lambda texts: load()(texts))

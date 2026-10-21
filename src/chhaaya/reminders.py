@@ -1,7 +1,6 @@
 """The reminder agent: set medicine reminders, send them, count doses (design 5.3)."""
 
 import logging
-import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from typing import TYPE_CHECKING
@@ -25,9 +24,6 @@ IST = timezone(timedelta(hours=5, minutes=30), "IST")
 # confirm.
 DRAFT_LIFETIME = timedelta(hours=24)
 MISSED_IN_A_ROW = 3
-# Until the intent classifier routes messages (design section 7), these rules pick
-# out the messages for this agent; everything else stays a question.
-ASKS = re.compile(r"remind|reminder|yaad|याद|रिमाइंडर", re.IGNORECASE)
 TOOK = {"taken", "took", "li", "liya", "lia", "khai", "done", "ली", "लिया", "खाई"}
 TAKEN_WORDS = TOOK | {
     "maine", "mene", "le", "kha", "khaa", "dawa", "dawai", "dawaai", "goli",
@@ -121,15 +117,21 @@ def declines(message: str) -> bool:
     return bool(said) and said <= DECLINES
 
 
-def wants(engine: Engine, message: "Inbound") -> bool:
-    """Whether a patient's text is for this agent rather than a question."""
+def wants(engine: Engine, message: "Inbound", intent: str) -> bool:
+    """Whether a patient's text, labelled `intent`, is for this agent."""
     body = message.body or ""
-    if ASKS.search(body):
-        return True
     with engine.connect() as conn:
-        if confirms(body) or declines(body):
-            return has_drafts(conn, message.user_id)
-        return taken(body) and has_pending_doses(conn, message.user_id)
+        # A yes or no to a read-back is read from the conversation, not the label.
+        if (confirms(body) or declines(body)) and has_drafts(conn, message.user_id):
+            return True
+        if intent == "reminder_setup":
+            return True
+        # Only a dose taken can be recorded; any other reply stays a question.
+        return (
+            intent == "reminder_reply"
+            and taken(body)
+            and has_pending_doses(conn, message.user_id)
+        )
 
 
 def has_drafts(conn: Connection, patient_id: int) -> bool:
