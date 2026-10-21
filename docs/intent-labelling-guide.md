@@ -7,7 +7,7 @@ Every message from a patient gets exactly one of four labels. The router (design
 | `question` | asking for health information: symptoms, medicines, food, pregnancy, children, tests, vaccines, when or how to take something | Q&A agent |
 | `reminder_setup` | asking Chhaaya to remind them to take a medicine, or to change or stop a reminder | Reminder agent |
 | `reminder_reply` | answering a reminder that Chhaaya sent: taken, not taken, will take later | Reminder agent |
-| `smalltalk` | greeting, thanking, saying goodbye, or writing something off-topic | Canned reply |
+| `smalltalk` | greeting, thanking, saying goodbye, or writing something off-topic | Q&A agent, which screens its English search query for danger signs |
 
 ## Rules
 

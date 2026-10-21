@@ -56,15 +56,6 @@ GREETINGS = {
     "शुक्रिया", "अलविदा",
 }  # fmt: skip
 
-SMALLTALK = {
-    "en": "Namaste! I am Chhaaya. Ask me a health question, send a photo of a lab "
-    "report or prescription, or ask me to remind you to take a medicine.",
-    "hi": "नमस्ते! मैं छाया हूँ। मुझसे सेहत का कोई सवाल पूछें, लैब रिपोर्ट या पर्चे "
-    "की फ़ोटो भेजें, या दवा याद दिलाने को कहें।",
-    "hi-Latn": "Namaste! Main Chhaaya hoon. Mujhse sehat ka koi sawaal poochhein, "
-    "lab report ya parche ki photo bhejein, ya dawa yaad dilane ko kahein.",
-}
-
 ZERO_SHOT = """\
 Label a patient's WhatsApp message to a health assistant with exactly one of \
 these labels:

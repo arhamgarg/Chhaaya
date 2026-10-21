@@ -11,7 +11,7 @@ from dataclasses import dataclass, replace
 from sqlalchemy import Engine, create_engine, text
 
 from chhaaya import danger_signs, intent, reminders
-from chhaaya.cases import Cases, in_language
+from chhaaya.cases import Cases
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
@@ -20,7 +20,7 @@ from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
-from chhaaya.voice import send_reply, send_voice
+from chhaaya.voice import send_voice
 from chhaaya.whatsapp import WhatsAppClient
 
 log = logging.getLogger("chhaaya.worker")
@@ -129,14 +129,10 @@ class Worker:
         if message.kind == "text":
             message = self.store_language(message)
         label = intent.decide(self.classify(message.body or ""))
-        if reminders.wants(self.engine, message, label):
-            return self.route("reminder", message)
-        if label == "smalltalk":
-            reply = in_language(intent.SMALLTALK, message.language, message.script)
-            return send_reply(
-                self.whatsapp, self.sarvam, message.wa_id, reply, message.language
-            )
-        self.route("qa", message)
+        # Small talk goes to the Q&A agent too: only there is the English search
+        # query screened for danger signs.
+        wants = reminders.wants(self.engine, message, label)
+        self.route("reminder" if wants else "qa", message)
 
     def route(self, agent: str, message: Inbound) -> None:
         if agent not in self.agents:

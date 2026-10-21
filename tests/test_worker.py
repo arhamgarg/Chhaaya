@@ -493,9 +493,4 @@ def test_the_router_follows_a_sure_intent_and_treats_an_unsure_one_as_a_question
     world.intent = {"smalltalk": 0.8, "question": 0.2}
     world.worker.work_one()
 
-    assert world.agent_calls == [("reminder", sure), ("qa", unsure)]
-    # Small talk gets a short reply in the patient's Hinglish, and no answer.
-    assert world.texts_to("911111111111") == [intent.SMALLTALK["hi-Latn"]]
-    assert world.voice_notes == ["911111111111"]
-    assert world.message(thanks).status == "done"
-    assert world.cases() == []
+    assert world.agent_calls == [("reminder", sure), ("qa", unsure), ("qa", thanks)]
