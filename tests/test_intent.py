@@ -21,18 +21,21 @@ def test_each_system_is_scored_per_language_with_macro_f1_over_the_four_labels()
             ("taken", "reminder_reply", "en"),
         ]
     ]
-    # Sarvam-105B's replies, in row order. A reply that is not a label counts as
-    # the router's default, question.
+    # Sarvam-105B's replies, in row order. A reply that is not a label, or none
+    # because reasoning used up the tokens (None), counts as the router's
+    # default, question.
     replies = iter(
         ["question", "I am not sure", "reminder_setup", "`reminder_reply`"]
-        + ["question", "smalltalk", "reminder_reply", "reminder_reply"]
+        + [None, "smalltalk", "reminder_reply", "reminder_reply"]
     )
     prompts: list[str] = []
 
     def chat(request: httpx2.Request) -> httpx2.Response:
         prompts.append(json.loads(request.read())["messages"][0]["content"])
-        message = {"role": "assistant", "content": next(replies)}
-        choice = {"index": 0, "message": message, "finish_reason": "stop"}
+        reply = next(replies)
+        message = {"role": "assistant", "content": reply or ""}
+        stop = "stop" if reply else "length"
+        choice = {"index": 0, "message": message, "finish_reason": stop}
         return httpx2.Response(200, json={"choices": [choice]})
 
     sarvam = SarvamClient("key", httpx2.Client(transport=httpx2.MockTransport(chat)))
@@ -46,6 +49,6 @@ def test_each_system_is_scored_per_language_with_macro_f1_over_the_four_labels()
     assert result.macro_f1["hinglish"] == pytest.approx((2 / 3 + 0 + 1 + 1) / 4)
     # English: setup F1 0 and reply F1 2/3 (one setup read as a reply).
     assert result.macro_f1["en"] == pytest.approx((1 + 1 + 0 + 2 / 3) / 4)
-    assert result.invalid == 1
+    assert result.invalid == 2
     assert len(prompts) == len(rows)
     assert all("reminder_reply" in prompt for prompt in prompts)

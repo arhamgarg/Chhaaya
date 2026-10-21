@@ -99,7 +99,11 @@ def sarvam_zero_shot(sarvam: SarvamClient) -> Callable[[str], str | None]:
     """The LLM baseline: Sarvam-105B's label, or None when it replies with no label."""
 
     def classify(text: str) -> str | None:
-        reply = sarvam.chat(ZERO_SHOT, text).strip().strip("`'\".").lower()
+        try:
+            reply = sarvam.chat(ZERO_SHOT, text)
+        except ValueError:  # reasoning used up the tokens and left no answer
+            return None
+        reply = reply.strip().strip("`'\".").lower()
         return reply if reply in LABELS else None
 
     return classify
@@ -269,7 +273,7 @@ def main() -> None:
     print(table(results))
     for r in results:
         if r.invalid:
-            print(f"{r.system}: {r.invalid} replies were not a label")
+            print(f"{r.system}: {r.invalid} replies had no label")
 
 
 if __name__ == "__main__":
