@@ -57,7 +57,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 
 1. **Receive.** The webhook checks Meta's `X-Hub-Signature-256` signature, stores the message keyed by its WhatsApp message id (so retried deliveries are ignored), and returns `200` immediately. WhatsApp retries any webhook that responds slowly.
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
-3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Sarvam's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
+3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Gemini's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
 4. **Screen for danger signs** before anything else (section 6).
 5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
 6. **Reply** in the patient's language, as text plus a voice note. Voice replies are short (about 60 words) because a long voice note is hard to follow.
@@ -70,16 +70,16 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Service | Python 3.12, FastAPI | All the ML is in Python; one language for the whole backend |
 | Tooling | uv, ruff, ty, pytest | |
 | Database | PostgreSQL 16 + pgvector | Records, the work queue and the vector index in one database |
-| Speech to text | Sarvam Saaras v4 | Handles Hindi, English and code-mixed speech |
-| Text to speech | Sarvam Bulbul v4 Flash | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
-| LLM | Sarvam-105B | Strong on Indic languages and hosted in India. Unlike free-tier APIs, it does not keep our data for training |
-| OCR | Sarvam Vision | Async job API; returns Markdown and page-level JSON |
-| Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline. Sarvam has no embedding API |
+| Speech to text | Gemini Flash | Inline audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
+| Text to speech | Gemini Flash TTS | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
+| LLM | Gemini Flash | Hosted Gemini API; data handling follows Google's current API terms. Hindi and Hinglish quality must be evaluated |
+| OCR | Gemini Flash | Inline image input returns Markdown, then a separate JSON extraction is validated |
+| Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline; embeddings remain local |
 | Intent classifier | MuRIL (base), fine-tuned by us | Pretrained on Indian languages including transliterated text, which matters for Hinglish |
 | Fuzzy matching | rapidfuzz | Medicine-name lookup |
 | Running it | Docker Compose (app, worker, Postgres) and a Cloudflare tunnel for the webhook URL | |
 
-All Sarvam calls go through one small client module, so that changing a model version touches a single file.
+All Gemini calls go through one small client module, so that changing a model version touches a single file.
 
 ## 5. The four agents
 
@@ -98,7 +98,7 @@ The system prompt forbids naming a condition the patient has, changing or starti
 
 ### 5.2 Document agent
 
-A photo goes to Sarvam Vision, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
+A photo goes to Gemini Flash, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
 
 - **Lab reports** are explained automatically. For each test, code says whether the value is inside, below or above the reference range printed on the report, or that no range is printed. A value past a critical threshold (for example, haemoglobin below 7 g/dL) escalates at once. Critical thresholds live in a data file, and every row cites its source. The patient's age on the report picks the population; without one, the strictest threshold applies. A critical test in a unit the thresholds do not use, or printed without a unit, escalates too, since it cannot be checked; a unitless haemoglobin of 75 could be a critical 75 g/L.
 - **Prescriptions** are never explained until a human has checked them. OCR cannot tell handwriting from print reliably, and a misread drug name can match a different real drug, which a lexicon check will not catch. The agent therefore:
@@ -159,7 +159,7 @@ Photos never reach it.
 **Evaluation.** We report macro-F1 (the F1 score averaged equally over the four labels) per language. We compare against two baselines:
 
 - a keyword rule baseline;
-- zero-shot classification by Sarvam-105B.
+- zero-shot classification by Gemini Flash.
 
 The classifier earns its place only if it beats the keyword rules and comes close to the LLM at a fraction of the latency and cost. If it does not, we report that honestly.
 
@@ -237,8 +237,8 @@ References:
 |---|---|---|
 | WhatsApp and IVR | WhatsApp only | IVR needs a paid, KYC'd telephony account |
 | "All 22 languages" via IndicBERT, IndicTrans2, IndicWhisper, MuRIL | Hindi, English, Hinglish | The claim was also wrong: IndicWhisper covers 12 languages and MuRIL 17. Every language needs its own checked evaluation set |
-| IndicWhisper for voice output | Saaras v4 in, Bulbul v4 Flash out | Whisper models only transcribe; they cannot speak |
-| Self-hosted AI4Bharat models | Sarvam APIs | No GPU needed; one vendor for speech, OCR and the LLM |
+| IndicWhisper for voice output | Gemini Flash in, Gemini Flash TTS out | Whisper models only transcribe; they cannot speak |
+| Self-hosted AI4Bharat models | Gemini APIs | No GPU needed; Gemini for speech, OCR and the LLM, with local embeddings |
 | Symptom-disease datasets | Rule-based danger signs | Chhaaya does not diagnose |
 | Trained handwriting recognition | ASHA confirms every prescription | A misread drug name can match another real drug |
 | FastAPI or Node.js; Redis and Celery; FAISS | FastAPI; one Postgres with pgvector and a job table | Fewer moving parts |

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Connection, Engine, insert, text
 
 from chhaaya.db import KbChunk
-from chhaaya.sarvam import SarvamClient
+from chhaaya.gemini import GeminiClient
 from chhaaya.voice import send_reply
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -149,7 +149,7 @@ def in_window(conn: Connection, user_id: int) -> bool:
 class Cases:
     engine: Engine
     whatsapp: WhatsAppClient
-    sarvam: SarvamClient
+    gemini: GeminiClient
     embed: "Embed"
 
     def open(
@@ -235,7 +235,7 @@ class Cases:
         if cause not in ("danger_sign", "missed_doses") and patient_in_window:
             notice = in_language(NOTICE, people.language, people.script)
             send_reply(
-                self.whatsapp, self.sarvam, people.wa_id, notice, people.language
+                self.whatsapp, self.gemini, people.wa_id, notice, people.language
             )
         return number
 
@@ -327,7 +327,7 @@ class Cases:
     def relay(self, conn: Connection, case, message: str, update: str) -> None:
         """Send the message, or outside the window `update` in case_update."""
         if in_window(conn, case.patient_id):
-            send_reply(self.whatsapp, self.sarvam, case.wa_id, message, case.language)
+            send_reply(self.whatsapp, self.gemini, case.wa_id, message, case.language)
         else:
             self.whatsapp.send_template(
                 case.wa_id,
