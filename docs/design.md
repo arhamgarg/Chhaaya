@@ -59,7 +59,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
 3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Sarvam's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
 4. **Screen for danger signs** before anything else (section 6).
-5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
+5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent; small talk gets a fixed reply saying what Chhaaya can do. If the classifier is unsure (no label above 0.5 probability), the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
 6. **Reply** in the patient's language, as text plus a voice note. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
 ## 4. Components
@@ -114,7 +114,7 @@ Reminders are set by the patient saying something like "subah 8 baje aur raat 8 
 
 At each due time, the worker sends the reminder. The patient replies (for example "le li" or "taken") to mark the dose as taken. A dose not marked taken by the time the next one is due counts as missed. After three missed doses in a row, the ASHA is told, once per run of misses. Reminder times are India times of day; due times are stored in UTC.
 
-Until the intent classifier is trained (section 7), keyword rules route reminder messages: a message naming a reminder ("yaad", "remind", "याद"), a yes or no while a read-back waits, or a message saying only that a dose was taken while one is pending. Everything else is a question.
+A yes or no while a read-back waits goes to the reminder agent whatever the intent classifier (section 7) says, because the conversation, not the message, makes it a reply. Otherwise a `reminder_setup` message goes to the agent, and a `reminder_reply` goes to it only when it says just that a dose was taken and one is pending; any other dose report stays a question, since only a dose taken can be recorded.
 
 WhatsApp only allows free-form messages within 24 hours of the patient's last message. Outside that window, reminders must go out as a pre-approved message template (`medicine_reminder`). The ASHA's case alerts (`asha_case_alert`) and relayed replies (`case_update`) work the same way.
 

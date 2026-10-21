@@ -42,6 +42,9 @@ services:
   worker:
     build: .
     command: ["python", "-m", "chhaaya.worker"]
+    # The intent classifier, trained on the host by `python -m chhaaya.intent train`.
+    volumes:
+      - ./data/intent/model:/app/data/intent/model:ro
     # A database error outside a message stops the process; start it again.
     restart: unless-stopped
     env_file: .env
