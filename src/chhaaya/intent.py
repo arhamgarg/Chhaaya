@@ -12,6 +12,7 @@ from pathlib import Path
 
 import torch
 import transformers
+from huggingface_hub import snapshot_download
 from transformers import (
     BertForSequenceClassification,
     BertTokenizer,
@@ -32,11 +33,11 @@ BASE_REVISION = "afd9f36c7923d54e97903922ff1b260d091d202f"
 
 @dataclass(frozen=True)
 class Hyperparameters:
-    """Fixed before the first run and never chosen by looking at the test set."""
+    """Chosen from the training loss alone, never by looking at the test set."""
 
-    epochs: int = 4
+    epochs: int = 8
     batch_size: int = 16
-    learning_rate: float = 3e-5
+    learning_rate: float = 5e-5
     weight_decay: float = 0.01
     warmup_ratio: float = 0.1
     max_length: int = 64  # tokens; the longest training message has fewer
@@ -134,10 +135,15 @@ def train(rows: list[dict[str, str]], out: Path) -> dict:
     """Fine-tune MuRIL on `rows` on the CPU and save it with its training record."""
     h = Hyperparameters()
     transformers.set_seed(h.seed)
-    tokenizer = BertTokenizer.from_pretrained(BASE_MODEL, revision=BASE_REVISION)
+    # MuRIL ships only PyTorch .bin weights. Loading it from the Hub by name would
+    # start a thread asking Hugging Face's bot to convert them, and the process
+    # would not exit until it returned; a local snapshot skips that.
+    base = snapshot_download(
+        BASE_MODEL, revision=BASE_REVISION, allow_patterns=["*.json", "*.txt", "*.bin"]
+    )
+    tokenizer = BertTokenizer.from_pretrained(base)
     model = BertForSequenceClassification.from_pretrained(
-        BASE_MODEL,
-        revision=BASE_REVISION,
+        base,
         num_labels=len(LABELS),
         id2label=dict(enumerate(LABELS)),
         label2id={label: i for i, label in enumerate(LABELS)},
@@ -244,7 +250,7 @@ def table(results: Iterable[Result]) -> str:
     ]
     for r in results:
         f1 = " | ".join(f"{r.macro_f1[k]:.2f}" for k in (*LANGUAGES, "all"))
-        lines.append(f"| {r.system} | {f1} | {r.median_ms:.1f} ms |")
+        lines.append(f"| {r.system} | {f1} | {r.median_ms:.2f} ms |")
     return "\n".join(lines)
 
 
