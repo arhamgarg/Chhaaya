@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 from chhaaya import danger_signs
 from chhaaya.cases import Cases
+from chhaaya.gemini import GeminiClient
 from chhaaya.retrieval import Hit, KnowledgeBase
-from chhaaya.sarvam import SarvamClient
 from chhaaya.voice import send_voice
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -72,7 +72,7 @@ Passages:
 @dataclass
 class QaAgent:
     kb: KnowledgeBase
-    sarvam: SarvamClient
+    gemini: GeminiClient
     whatsapp: WhatsAppClient
     cases: Cases
     # The worker's danger-sign escalation, for a sign only the English query names.
@@ -81,7 +81,7 @@ class QaAgent:
     def answer(self, message: "Inbound") -> None:
         question = message.body or ""
         key = language_key(message)
-        query = self.sarvam.chat(REWRITE, question).strip()
+        query = self.gemini.chat(REWRITE, question).strip()
         if signs := danger_signs.detect(query):
             return self.escalate(message, signs)
         hits = self.kb.search(query)
@@ -93,7 +93,7 @@ class QaAgent:
             language=LANGUAGE_NAMES[key],
             passages="\n\n".join(passage(hit) for hit in hits),
         )
-        reply = self.sarvam.chat(prompt, question).strip()
+        reply = self.gemini.chat(prompt, question).strip()
         if reply == NO_ANSWER:
             self.cases.open("weak_evidence", message.user_id, question)
             return
@@ -115,7 +115,7 @@ class QaAgent:
         if len(answer.split()) > VOICE_WORD_LIMIT:
             log.warning("message %s: answer too long to speak", message.id)
             return
-        send_voice(self.whatsapp, self.sarvam, message.wa_id, answer, message.language)
+        send_voice(self.whatsapp, self.gemini, message.wa_id, answer, message.language)
 
 
 def language_key(message: "Inbound") -> str:

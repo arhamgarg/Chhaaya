@@ -3,7 +3,7 @@
 import logging
 
 from chhaaya.audio import to_ogg_opus
-from chhaaya.sarvam import SarvamClient
+from chhaaya.gemini import GeminiClient
 from chhaaya.whatsapp import WhatsAppClient
 
 log = logging.getLogger("chhaaya.voice")
@@ -11,19 +11,19 @@ log = logging.getLogger("chhaaya.voice")
 
 def send_reply(
     whatsapp: WhatsAppClient,
-    sarvam: SarvamClient,
+    gemini: GeminiClient,
     to: str,
     text: str,
     language: str | None,
 ) -> None:
     """Send text first so a patient is never left in silence, then a voice note."""
     whatsapp.send_text(to, text)
-    send_voice(whatsapp, sarvam, to, text, language)
+    send_voice(whatsapp, gemini, to, text, language)
 
 
 def send_voice(
     whatsapp: WhatsAppClient,
-    sarvam: SarvamClient,
+    gemini: GeminiClient,
     to: str,
     text: str,
     language: str | None,
@@ -36,7 +36,7 @@ def send_voice(
     if language is None:
         return
     try:
-        ogg = to_ogg_opus(sarvam.synthesize(text, language))
+        ogg = to_ogg_opus(gemini.synthesize(text, language))
         media_id = whatsapp.upload_media(ogg, "audio/ogg; codecs=opus")
         whatsapp.send_audio(to, media_id)
     except Exception:

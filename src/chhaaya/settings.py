@@ -13,6 +13,6 @@ class Settings(BaseSettings):
     whatsapp_app_secret: str = Field(min_length=1)
     whatsapp_access_token: str = Field(min_length=1)
     whatsapp_phone_number_id: str = Field(min_length=1)
-    sarvam_api_key: str = Field(min_length=1)
+    gemini_api_key: str = Field(min_length=1)
     # Read by Compose for the optional `tunnel` profile, not by the service.
     cloudflare_tunnel_token: str | None = None

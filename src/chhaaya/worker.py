@@ -14,11 +14,11 @@ from chhaaya import danger_signs, reminders
 from chhaaya.cases import Cases
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
+from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Lexicon
 from chhaaya.qa import QaAgent
 from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
-from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
 from chhaaya.voice import send_voice
 from chhaaya.whatsapp import WhatsAppClient
@@ -78,7 +78,7 @@ class Inbound:
 class Worker:
     engine: Engine
     whatsapp: WhatsAppClient
-    sarvam: SarvamClient
+    gemini: GeminiClient
     cases: Cases
     # "qa", "document", "reminder" and "escalation" each take the message and reply.
     agents: dict[str, Callable[[Inbound], None]]
@@ -141,7 +141,7 @@ class Worker:
         """
         try:
             audio = self.whatsapp.download_media(message.media_id or "")
-            body, language, script = self.sarvam.transcribe(audio, "audio/ogg")
+            body, language, script = self.gemini.transcribe(audio, "audio/ogg")
         except Exception:
             self.whatsapp.send_text(message.wa_id, VOICE_UNREADABLE)
             raise
@@ -156,7 +156,7 @@ class Worker:
         return self.save_language(message, language, script), True
 
     def store_language(self, message: Inbound) -> Inbound:
-        language, script = self.sarvam.identify_language(message.body or "")
+        language, script = self.gemini.identify_language(message.body or "")
         return self.save_language(message, language, script)
 
     def save_language(self, message: Inbound, language: str, script: str) -> Inbound:
@@ -177,13 +177,13 @@ class Worker:
             if message.asha_id is not None:
                 details = f"Danger signs: {', '.join(signs)}. Message: {message.body}"
                 self.cases.open("danger_sign", message.user_id, details)
-        send_voice(self.whatsapp, self.sarvam, message.wa_id, reply, message.language)
+        send_voice(self.whatsapp, self.gemini, message.wa_id, reply, message.language)
         if message.asha_id is None:
             raise LookupError("patient has no ASHA to alert")
 
 
 def urgent_reply(message: Inbound) -> str:
-    """The urgent reply in the patient's language. Reading it must not need Sarvam."""
+    """The urgent reply in the patient's language. Reading it must not need Gemini."""
     replies = danger_signs.URGENT_REPLY
     if message.language == "en":
         return replies["en"]
@@ -202,17 +202,17 @@ def main() -> None:
     whatsapp = WhatsAppClient(
         settings.whatsapp_access_token, settings.whatsapp_phone_number_id
     )
-    sarvam = SarvamClient(settings.sarvam_api_key)
+    gemini = GeminiClient(settings.gemini_api_key)
     # BGE-M3 loads on the first answer to a question, so a danger sign is never
     # held up by the 2 GB model download.
     load = functools.cache(bge_m3)
-    cases = Cases(engine, whatsapp, sarvam, lambda texts: load()(texts))
-    worker = Worker(engine, whatsapp, sarvam, cases, {"escalation": cases.answer})
+    cases = Cases(engine, whatsapp, gemini, lambda texts: load()(texts))
+    worker = Worker(engine, whatsapp, gemini, cases, {"escalation": cases.answer})
     lexicon = functools.cache(Lexicon.load)
-    worker.agents["document"] = DocumentAgent(sarvam, whatsapp, cases, lexicon).read
+    worker.agents["document"] = DocumentAgent(gemini, whatsapp, cases, lexicon).read
     kb = KnowledgeBase(engine, lambda texts: load()(texts))
-    worker.agents["qa"] = QaAgent(kb, sarvam, whatsapp, cases, worker.escalate).answer
-    due = Reminders(engine, whatsapp, sarvam, cases)
+    worker.agents["qa"] = QaAgent(kb, gemini, whatsapp, cases, worker.escalate).answer
+    due = Reminders(engine, whatsapp, gemini, cases)
     worker.agents["reminder"] = due.handle
     stop = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):

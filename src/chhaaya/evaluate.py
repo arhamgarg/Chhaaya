@@ -2,7 +2,7 @@
 
 `uv run python -m eval` runs every set in eval/sets against the system: the real
 danger-sign check, retrieval, Q&A agent, document reading and speech to text,
-with Sarvam and the knowledge base live. Nothing is sent on WhatsApp and no
+with Gemini and the knowledge base live. Nothing is sent on WhatsApp and no
 case is opened: what would have gone out is recorded instead. It writes one CSV
 per set to eval/results and the summary to eval/report.md, every metric per
 language.
@@ -33,9 +33,9 @@ from chhaaya.document import (
     printed_range,
     structure,
 )
+from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Lexicon
 from chhaaya.retrieval import KnowledgeBase, bge_m3
-from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
 from chhaaya.whatsapp import WhatsAppClient
 from chhaaya.worker import Inbound
@@ -73,20 +73,20 @@ class Recorder:
 
 
 class Unspoken:
-    """Sarvam without text to speech: answers are scored as text, not paid to speak.
+    """Gemini without text to speech: answers are scored as text, not paid to speak.
 
     Given a query, it is the rewrite: the answer is then scored against the same
     retrieval the report shows, since the rewrite can change between calls.
     """
 
-    def __init__(self, sarvam: SarvamClient, query: str | None) -> None:
-        self.sarvam = sarvam
+    def __init__(self, gemini: GeminiClient, query: str | None) -> None:
+        self.gemini = gemini
         self.query = query
 
     def chat(self, system: str, user: str) -> str:
         if system == qa.REWRITE and self.query is not None:
             return self.query
-        return self.sarvam.chat(system, user)
+        return self.gemini.chat(system, user)
 
     def synthesize(self, text: str, language: str) -> bytes:
         raise RuntimeError("the evaluation does not speak answers")
@@ -94,7 +94,7 @@ class Unspoken:
 
 def ask(
     kb: KnowledgeBase,
-    sarvam: SarvamClient,
+    gemini: GeminiClient,
     text: str,
     language: str,
     query: str | None = None,
@@ -108,7 +108,7 @@ def ask(
     recorder = Recorder()
     agent = qa.QaAgent(
         kb,
-        cast(SarvamClient, Unspoken(sarvam, query)),
+        cast(GeminiClient, Unspoken(gemini, query)),
         cast(WhatsAppClient, recorder),
         cast(Cases, recorder),
         lambda message, signs: recorder.causes.append("danger_sign"),
@@ -121,7 +121,7 @@ def ask(
 
 
 def attempt(run: Callable[[], dict]) -> dict:
-    """A failure is recorded against its item, so one Sarvam error costs one row."""
+    """A failure is recorded against its item, so one Gemini error costs one row."""
     try:
         return run()
     except Exception as error:
@@ -160,12 +160,12 @@ def group(rows: list[dict], key: str) -> dict[str, list[dict]]:
 
 
 def run_questions(
-    rows: list[dict], kb: KnowledgeBase, sarvam: SarvamClient
+    rows: list[dict], kb: KnowledgeBase, gemini: GeminiClient
 ) -> tuple[list[dict], dict[str, float]]:
     """Retrieve for every question, tune τ on the tune half, answer the report half."""
     source_ids = {s.title: s.id for s in read_sources()}
     for row in rows:
-        row["query"] = sarvam.chat(qa.REWRITE, row["text"]).strip()
+        row["query"] = gemini.chat(qa.REWRITE, row["text"]).strip()
         hits = kb.search(row["query"])
         found = [source_ids.get(h.title, h.source_type) for h in hits]
         row["best_score"] = round(hits[0].score, 4) if hits else 0.0
@@ -175,16 +175,16 @@ def run_questions(
     for row in rows:
         row["tau"] = taus[row["language"]]
         if row["split"] == "report":
-            row.update(text_path(row, kb, sarvam))
+            row.update(text_path(row, kb, gemini))
     return rows, taus
 
 
-def text_path(question: dict, kb: KnowledgeBase, sarvam: SarvamClient) -> dict:
+def text_path(question: dict, kb: KnowledgeBase, gemini: GeminiClient) -> dict:
     """The answer to a typed question, from the query its retrieval was scored on."""
     return at_tau(
         question["tau"],
         kb,
-        sarvam,
+        gemini,
         question["text"],
         question["language"],
         question["query"],
@@ -194,7 +194,7 @@ def text_path(question: dict, kb: KnowledgeBase, sarvam: SarvamClient) -> dict:
 def at_tau(
     tau: float,
     kb: KnowledgeBase,
-    sarvam: SarvamClient,
+    gemini: GeminiClient,
     text: str,
     language: str,
     query: str | None = None,
@@ -202,15 +202,15 @@ def at_tau(
     """Ask with τ set; the Q&A agent reads it when it answers."""
     placeholder, qa.TAU = qa.TAU, tau
     try:
-        return attempt(lambda: ask(kb, sarvam, text, language, query))
+        return attempt(lambda: ask(kb, gemini, text, language, query))
     finally:
         qa.TAU = placeholder
 
 
-def run_danger(rows: list[dict], sarvam: SarvamClient) -> list[dict]:
+def run_danger(rows: list[dict], gemini: GeminiClient) -> list[dict]:
     """The check runs on the message and on its English search query (design 5.1)."""
     for row in rows:
-        query = sarvam.chat(qa.REWRITE, row["text"]).strip()
+        query = gemini.chat(qa.REWRITE, row["text"]).strip()
         on_text = danger_signs.detect(row["text"])
         on_query = danger_signs.detect(query)
         row.update(query=query, on_text=" ".join(on_text), on_query=" ".join(on_query))
@@ -219,11 +219,11 @@ def run_danger(rows: list[dict], sarvam: SarvamClient) -> list[dict]:
 
 
 def run_adversarial(
-    rows: list[dict], kb: KnowledgeBase, sarvam: SarvamClient, taus: dict[str, float]
+    rows: list[dict], kb: KnowledgeBase, gemini: GeminiClient, taus: dict[str, float]
 ) -> list[dict]:
     for row in rows:
         tau = taus[row["language"]]
-        row.update(at_tau(tau, kb, sarvam, row["text"], row["language"]))
+        row.update(at_tau(tau, kb, gemini, row["text"], row["language"]))
     return rows
 
 
@@ -246,15 +246,15 @@ def lab_fields(expected: dict, test: LabTest | None) -> dict[str, bool]:
 
 
 def run_documents(
-    documents: list[dict], sets: Path, sarvam: SarvamClient, lexicon: Lexicon
+    documents: list[dict], sets: Path, gemini: GeminiClient, lexicon: Lexicon
 ) -> list[dict]:
-    """One row per expected field: what Sarvam Vision and the LLM read off the photo."""
+    """One row per expected field: what Gemini Vision and the LLM read off the photo."""
     critical = load_critical_values()
     rows = []
     for d in documents:
         try:
             read = structure(
-                sarvam, sarvam.read_document((sets / d["file"]).read_bytes())
+                gemini, gemini.read_document((sets / d["file"]).read_bytes())
             )
             error = ""
         except Exception as e:
@@ -334,7 +334,7 @@ def run_voice(
     rows: list[dict],
     sets: Path,
     kb: KnowledgeBase,
-    sarvam: SarvamClient,
+    gemini: GeminiClient,
     questions: list[dict],
 ) -> list[dict]:
     """Word error rate, and whether the transcript gets the typed question's answer."""
@@ -344,10 +344,10 @@ def run_voice(
         if question is None:
             raise ValueError(f"voice {row['id']}: its transcript is not a question")
         path = sets / row["file"]
-        transcript, _, _ = sarvam.transcribe(path.read_bytes(), MIME[path.suffix])
+        transcript, _, _ = gemini.transcribe(path.read_bytes(), MIME[path.suffix])
         edits, total = word_error_rate(row["transcript"], transcript)
-        text = question if "outcome" in question else text_path(question, kb, sarvam)
-        voice = at_tau(question["tau"], kb, sarvam, transcript, row["language"])
+        text = question if "outcome" in question else text_path(question, kb, gemini)
+        voice = at_tau(question["tau"], kb, gemini, transcript, row["language"])
         row.update(
             recognised=transcript,
             edits=edits,
@@ -664,7 +664,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
 
 
 def run(
-    sets: Path, results: Path, kb: KnowledgeBase, sarvam: SarvamClient, lexicon: Lexicon
+    sets: Path, results: Path, kb: KnowledgeBase, gemini: GeminiClient, lexicon: Lexicon
 ) -> str:
     """Run every set, write one CSV per set to `results`, and return the report."""
     logging.getLogger("chhaaya.voice").setLevel(
@@ -673,18 +673,18 @@ def run(
     results.mkdir(parents=True, exist_ok=True)
     # Each set's CSV is written as soon as it is scored, so a failure later in the
     # run keeps the paid results before it.
-    questions, taus = run_questions(read_csv(sets / "questions.csv"), kb, sarvam)
+    questions, taus = run_questions(read_csv(sets / "questions.csv"), kb, gemini)
     write_csv(results / "questions.csv", questions)
-    danger = run_danger(read_csv(sets / "danger.csv"), sarvam)
+    danger = run_danger(read_csv(sets / "danger.csv"), gemini)
     write_csv(results / "danger.csv", danger)
-    adversarial = run_adversarial(read_csv(sets / "adversarial.csv"), kb, sarvam, taus)
+    adversarial = run_adversarial(read_csv(sets / "adversarial.csv"), kb, gemini, taus)
     write_csv(results / "adversarial.csv", adversarial)
     lines = (sets / "documents.jsonl").read_text(encoding="utf-8").splitlines()
     documents = run_documents(
-        [json.loads(x) for x in lines if x], sets, sarvam, lexicon
+        [json.loads(x) for x in lines if x], sets, gemini, lexicon
     )
     write_csv(results / "documents.csv", documents)
-    voice = run_voice(read_csv(sets / "voice.csv"), sets, kb, sarvam, questions)
+    voice = run_voice(read_csv(sets / "voice.csv"), sets, kb, gemini, questions)
     write_csv(results / "voice.csv", voice)
     ratings = read_csv(sets / "ratings.csv")
     return report(questions, taus, danger, adversarial, documents, voice, ratings)
@@ -703,7 +703,7 @@ def main() -> None:
     settings = Settings()
     engine = create_engine(sqlalchemy_url(settings.database_url))
     kb = KnowledgeBase(engine, bge_m3())
-    sarvam = SarvamClient(settings.sarvam_api_key)
-    text = run(eval_sets.SETS, EVAL / "results", kb, sarvam, Lexicon.load())
+    gemini = GeminiClient(settings.gemini_api_key)
+    text = run(eval_sets.SETS, EVAL / "results", kb, gemini, Lexicon.load())
     (EVAL / "report.md").write_text(text, encoding="utf-8")
     print(text)
