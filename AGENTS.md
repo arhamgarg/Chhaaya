@@ -22,8 +22,8 @@ Instructions for every coding agent working on Chhaaya and the people driving th
 - **Design stays true:** a change that contradicts [docs/design.md](docs/design.md) updates it in the same PR.
 - **No backlog growth:** finish the issue; no TODOs or deferred work. A separate problem found along the way becomes a new issue.
 - **Golden outputs:** never rewrite expected outputs, evaluation sets or `eval/report.md` baselines to make a test pass.
-- **External services stay opt-in.** Sarvam, the WhatsApp Cloud API and any other third party cost money, use the shared five-phone test number, or send real messages. Tests mock them at the client boundary; a live check runs only when the person driving the agent asks, and is otherwise reported as not performed.
-- **Secrets** (Sarvam keys, the WhatsApp token and app secret, the Cloudflare tunnel token) live only in an untracked `.env`. Never commit, log or paste them.
+- **External services stay opt-in.** Gemini, the WhatsApp Cloud API and any other third party cost money, use the shared five-phone test number, or send real messages. Tests mock them at the client boundary; a live check runs only when the person driving the agent asks, and is otherwise reported as not performed.
+- **Secrets** (Gemini keys, the WhatsApp token and app secret, the Cloudflare tunnel token) live only in an untracked `.env`. Never commit, log or paste them.
 - **No real patient data,** ever (design section 10). Fixtures are synthetic.
 - **Always work in a new worktree** from `origin/main` (`git worktree add <path> -b <branch> origin/main`). Never edit in the main checkout or reuse another task's worktree.
 - **No unauthorized external mutation:** no repository-settings changes, force-pushes to `main`, or deploys. Merging, closing issues and deleting branches are authorized only by a request that starts the [CONTRIBUTING.md](CONTRIBUTING.md) workflow or by an explicit request.
@@ -77,6 +77,6 @@ Apply every item a change touches:
 - Outside WhatsApp's 24-hour window, only the approved templates (`medicine_reminder`, `asha_case_alert`, `case_update`) are sent.
 - The webhook verifies `X-Hub-Signature-256`, stores by WhatsApp message id so retries are ignored, and returns `200` before doing any work.
 - Work is claimed with `SELECT ... FOR UPDATE SKIP LOCKED`; there is no Redis or Celery.
-- Every Sarvam call goes through the single client module.
+- Every Gemini call goes through the single client module.
 - Every row in the danger-sign list, lexicon and critical-value files cites its source.
 - The intent test set is human-written. An evaluation set may be drafted with an LLM only if a person reads and approves every row before results are reported. Neither is used for training, and only the `tune` half of the questions chooses a threshold (τ). Metrics are reported per language.
