@@ -375,7 +375,7 @@ def test_a_failed_message_keeps_its_error_and_is_not_retried(world: World):
     ("kind", "body", "language", "expected"),
     [
         ("text", "vanakkam", ("ta-IN", "Taml"), "ta-IN"),
-        ("text", "hello", None, "generativelanguage.googleapis.com"),
+        ("text", "hello", None, "api.anthropic.com"),
     ],
 )
 def test_messages_that_cannot_be_handled_fail_loudly(

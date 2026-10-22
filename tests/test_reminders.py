@@ -112,7 +112,7 @@ def test_a_reminder_is_read_back_and_saved_only_after_a_yes(
     )
 
     # The LLM read the patient's own words, and nothing is scheduled yet.
-    assert world.chat_requests[0]["contents"][0]["parts"][0]["text"] == request
+    assert world.chat_requests[0]["user"] == request
     [read_back] = world.texts_to(PATIENT)
     assert (
         "Metformin" in read_back and "8:00 am" in read_back and "8:00 pm" in read_back
@@ -302,10 +302,7 @@ def test_a_confirmed_prescription_becomes_reminders_the_same_way(world: Reminder
         ),
     )
     # The LLM sees the medicines the ASHA confirmed, to name them.
-    assert (
-        "Amlodipine 5: 0-0-1"
-        in world.chat_requests[0]["systemInstruction"]["parts"][0]["text"]
-    )
+    assert "Amlodipine 5: 0-0-1" in world.chat_requests[0]["system"]
     say(world, patient, "yes")
 
     assert [r.medicine for r in reminders(world)] == ["Dolo 650", "Amlodipine 5"]

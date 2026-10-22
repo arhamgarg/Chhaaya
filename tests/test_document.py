@@ -143,7 +143,7 @@ def test_a_lab_report_is_compared_with_its_ranges_and_a_critical_value_escalates
     assert any(line.startswith("TSH 3.1 uIU/mL: no range") for line in lines)
     assert world.message(message).status == "done"
     # The OCR text is what the LLM structures, and nothing else.
-    assert world.chat_requests[0]["contents"][0]["parts"][0]["text"] == CBC
+    assert world.chat_requests[0]["user"] == CBC
 
 
 @pytest.mark.parametrize(
