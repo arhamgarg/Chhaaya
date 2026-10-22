@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Chhaaya browser demo</title>
 <style nonce="{{nonce}}">
 :root {
@@ -174,7 +174,9 @@ label.secondary { display: inline-flex; align-items: center; }
   .msg, .case { animation: none; }
 }
 
-@media (max-width: 52rem) {
+@media (max-width: 52rem), (max-height: 30rem) and (pointer: coarse) {
+  :root { --gap: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right)); }
+  button, label.secondary { min-height: 44px; min-width: 44px; }
   .tabs {
     display: flex; gap: 0.25rem; padding: 0.5rem var(--gap) 0;
     border-bottom: 1px solid var(--line);
@@ -188,10 +190,12 @@ label.secondary { display: inline-flex; align-items: center; }
   .pane + .pane { border-left: 0; }
   .stage[data-view="patient"] #asha, .stage[data-view="asha"] #patient { display: none; }
   .running { margin-left: 0; }
-  .band { padding-block: 0.6rem; }
+  .band { padding-top: max(0.6rem, env(safe-area-inset-top)); padding-bottom: 0.6rem; }
   .mark { font-size: 1.25rem; }
   .notice { font-size: 0.8rem; line-height: 1.35; }
   .pane-head p { display: none; }
+  .composer { grid-template-columns: 1fr; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .composer .actions { justify-content: flex-end; }
 }
 </style>
 </head>

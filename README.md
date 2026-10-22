@@ -195,6 +195,8 @@ HF_HUB_OFFLINE=1 uv run python -m chhaaya.demo                     # open the pr
 uv run pytest tests/test_demo.py
 ```
 
+On phones, Patient and ASHA use separate tabs. The message field fills the width, touch targets are at least 44 pixels, and the layout reserves the screen's safe areas. Short touch screens also use tabs in landscape.
+
 ## Intent dataset
 
 The router that sends each message to the Q&A or reminder agent is trained on labelled messages in Hindi (Devanagari), English and Hinglish. `data/intent/train.csv` holds 900 messages, 75 per label in each language, drafted with an LLM, then read in full and corrected by a person. The four labels (`question`, `reminder_setup`, `reminder_reply`, `smalltalk`) and the borderline cases are defined in [docs/intent-labelling-guide.md](docs/intent-labelling-guide.md). The test set (`data/intent/test.csv`, 40 messages per language) is written entirely by people and is never used for training. To measure how well two people agree, each labels `data/intent/agreement_sample.csv` alone into an `id,label` file, and the command below prints the match count and Cohen's kappa. Arham labelled the sample alone; Ananya's labels are the ones she reviewed in `train.csv`. The two agree on 50 of 50 (kappa 1.00).
