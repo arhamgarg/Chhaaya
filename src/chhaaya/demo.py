@@ -49,7 +49,7 @@ COOKIE = "chhaaya_demo"
 WA_IDS = {"patient": "demo-patient", "asha": "demo-asha"}
 TEXT_LIMIT = 4096  # Meta's limit for a text body
 PHOTO_LIMIT = 5 * 1024 * 1024  # Meta's limit for an image
-# How long a photo stays in memory for the ASHA to look at, in seconds.
+# How long a photo remains accessible to the ASHA, in seconds.
 PHOTO_LIFETIME = 30 * 60
 CLIENT_ID = r"^[A-Za-z0-9-]{8,64}$"
 HISTORY = 200
