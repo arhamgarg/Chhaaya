@@ -176,7 +176,30 @@ def test_the_demo_refuses_the_whatsapp_database():
 
     with pytest.raises(ValidationError, match="DEMO_DATABASE_URL"):
         settings("postgresql://chhaaya:other@127.0.0.1/chhaaya")
-    assert (
-        settings("postgresql://chhaaya:pw@localhost:5433/chhaaya").speech_enabled
-        is False
+    # Requiring a distinct database name also covers host aliases and port forwards.
+    for url in (
+        "postgresql://chhaaya:pw@LOCALHOST:5432/chhaaya",
+        "postgresql://chhaaya:pw@localhost:5433/chhaaya",
+    ):
+        with pytest.raises(ValidationError, match="DEMO_DATABASE_URL"):
+            settings(url)
+    assert not settings(
+        "postgresql://chhaaya:pw@localhost:5433/chhaaya_demo"
+    ).speech_enabled
+
+
+def test_shared_service_settings_are_known_but_misspelled_demo_settings_fail(
+    tmp_path: Path, monkeypatch
+):
+    # Shared service keys must load, while typos must not silently select Claude.
+    monkeypatch.chdir(tmp_path)
+    values = (
+        "DEMO_DATABASE_URL=postgresql://chhaaya:pw@localhost/chhaaya_demo\n"
+        "ANTHROPIC_API_KEY=synthetic\nWHATSAPP_ACCESS_TOKEN=synthetic-unused\n"
     )
+    env_file = tmp_path / ".env"
+    env_file.write_text(values)
+    assert DemoSettings().ai_provider == "claude"
+    env_file.write_text(values + "AI_PROVDER=sarvam\n")
+    with pytest.raises(ValidationError, match="ai_provder"):
+        DemoSettings()

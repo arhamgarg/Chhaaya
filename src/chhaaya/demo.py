@@ -39,6 +39,7 @@ from chhaaya.db import Message, User, sqlalchemy_url
 from chhaaya.images import image_media_type
 from chhaaya.lexicon import Lexicon
 from chhaaya.retrieval import Embed
+from chhaaya.settings import Settings
 from chhaaya.whatsapp import WhatsAppClient
 
 log = logging.getLogger("chhaaya.demo")
@@ -64,9 +65,8 @@ SIGN_IN = (
 
 
 class DemoSettings(BaseSettings):
-    # The service's .env also holds settings the demo never reads.
     model_config = SettingsConfigDict(
-        env_file=".env", extra="ignore", hide_input_in_errors=True
+        env_file=".env", extra="forbid", hide_input_in_errors=True
     )
 
     demo_database_url: str
@@ -75,6 +75,13 @@ class DemoSettings(BaseSettings):
     ai_provider: Literal["claude", "sarvam"] = "claude"
     anthropic_api_key: str = ""
     sarvam_api_key: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def shared_service_fields(cls, values: dict) -> dict:
+        # The shared .env contains known service fields the browser never uses.
+        unused = Settings.model_fields.keys() - cls.model_fields.keys()
+        return {name: value for name, value in values.items() if name not in unused}
 
     @property
     def speech_enabled(self) -> bool:
@@ -88,18 +95,14 @@ class DemoSettings(BaseSettings):
         if not key.strip():
             name = "ANTHROPIC_API_KEY" if claude else "SARVAM_API_KEY"
             raise ValueError(f"{name} is required for AI_PROVIDER={self.ai_provider}")
-        if self.database_url and where(self.demo_database_url) == where(
+        if (
             self.database_url
+            and make_url(self.demo_database_url).database
+            == make_url(self.database_url).database
         ):
-            # The WhatsApp worker would claim browser messages and send the replies.
-            raise ValueError("DEMO_DATABASE_URL must not be the DATABASE_URL database")
+            # A distinct name also prevents aliases or port forwards sharing the queue.
+            raise ValueError("DEMO_DATABASE_URL needs a distinct database name")
         return self
-
-
-def where(database_url: str) -> tuple[str, int, str | None]:
-    url = make_url(database_url)
-    host = "127.0.0.1" if url.host in (None, "localhost") else url.host
-    return host, url.port or 5432, url.database
 
 
 @dataclass
