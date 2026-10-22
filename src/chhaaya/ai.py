@@ -1,14 +1,30 @@
 """Select Claude or the manual Sarvam fallback, with speech enabled separately."""
 
+from typing import Protocol
+
 import httpx2
 
 from chhaaya.claude import ClaudeClient
 from chhaaya.sarvam import SarvamClient
-from chhaaya.settings import Settings
+
+
+class ProviderSettings(Protocol):
+    """The settings AIClient reads: the service's and the browser demo's."""
+
+    @property
+    def ai_provider(self) -> str: ...
+    @property
+    def anthropic_api_key(self) -> str: ...
+    @property
+    def sarvam_api_key(self) -> str: ...
+    @property
+    def speech_enabled(self) -> bool: ...
 
 
 class AIClient:
-    def __init__(self, settings: Settings, http: httpx2.Client | None = None) -> None:
+    def __init__(
+        self, settings: ProviderSettings, http: httpx2.Client | None = None
+    ) -> None:
         sarvam = SarvamClient(settings.sarvam_api_key, http)
         self.text = (
             ClaudeClient(settings.anthropic_api_key, http)

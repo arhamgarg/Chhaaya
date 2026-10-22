@@ -18,7 +18,7 @@ from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
 from chhaaya.qa import REWRITE, QaAgent
 from chhaaya.reminders import Reminders
-from chhaaya.retrieval import KnowledgeBase, bge_m3
+from chhaaya.retrieval import Embed, KnowledgeBase, bge_m3
 from chhaaya.settings import Settings
 from chhaaya.voice import send_reply, send_voice
 from chhaaya.whatsapp import WhatsAppClient
@@ -232,39 +232,27 @@ def urgent_reply(message: Inbound) -> str:
     return f"{replies['en']}\n\n{replies['hi-Latn']}"
 
 
-def main() -> None:
-    logging.basicConfig(level=logging.INFO)
-    settings = Settings()
-    engine = create_engine(sqlalchemy_url(settings.database_url))
-    whatsapp = WhatsAppClient(
-        settings.whatsapp_access_token, settings.whatsapp_phone_number_id
-    )
-    ai = AIClient(settings)
-    # BGE-M3 loads on the first answer to a question, so a danger sign is never
-    # held up by the 2 GB model download.
-    load = functools.cache(bge_m3)
-    cases = Cases(engine, whatsapp, ai, lambda texts: load()(texts))
-    from chhaaya.intent import Classifier
-
-    classifier = functools.cache(lambda: Classifier(settings.intent_model_path))
-    worker = Worker(
-        engine,
-        whatsapp,
-        ai,
-        cases,
-        {"escalation": cases.answer},
-        lambda body: classifier()(body),
-    )
-    lexicon = functools.cache(Lexicon.load)
+def build(
+    engine: Engine,
+    whatsapp: WhatsAppClient,
+    ai: AIClient,
+    embed: Embed,
+    lexicon: Callable[[], Lexicon],
+    classify: Callable[[str], str],
+) -> tuple[Worker, Reminders]:
+    """The worker with every agent, and the reminder agent that sends due doses."""
+    cases = Cases(engine, whatsapp, ai, embed)
+    worker = Worker(engine, whatsapp, ai, cases, {"escalation": cases.answer}, classify)
     worker.agents["document"] = DocumentAgent(ai, whatsapp, cases, lexicon).read
-    kb = KnowledgeBase(engine, lambda texts: load()(texts))
+    kb = KnowledgeBase(engine, embed)
     worker.agents["qa"] = QaAgent(kb, ai, whatsapp, cases, worker.escalate).answer
     due = Reminders(engine, whatsapp, ai, cases)
     worker.agents["reminder"] = due.handle
-    stop = threading.Event()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stop.set())
-    log.info("worker started")
+    return worker, due
+
+
+def run(worker: Worker, due: Reminders, stop: threading.Event) -> None:
+    """Send due reminders and work messages until `stop` is set."""
     while not stop.is_set():
         try:
             reminded = due.send_due()
@@ -273,6 +261,34 @@ def main() -> None:
             reminded = True
         if not worker.work_one() and not reminded:
             stop.wait(1)
+
+
+def lazy_bge_m3() -> Embed:
+    """BGE-M3, loaded on the first question so a danger sign never waits for it."""
+    load = functools.cache(bge_m3)
+    return lambda texts: load()(texts)
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = Settings()
+    engine = create_engine(sqlalchemy_url(settings.database_url))
+    whatsapp = WhatsAppClient(
+        settings.whatsapp_access_token, settings.whatsapp_phone_number_id
+    )
+    ai = AIClient(settings)
+    lexicon = functools.cache(Lexicon.load)
+    from chhaaya.intent import Classifier
+
+    classifier = functools.cache(lambda: Classifier(settings.intent_model_path))
+    worker, due = build(
+        engine, whatsapp, ai, lazy_bge_m3(), lexicon, lambda body: classifier()(body)
+    )
+    stop = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda *_: stop.set())
+    log.info("worker started")
+    run(worker, due, stop)
     log.info("worker stopped")
 
 
