@@ -35,6 +35,7 @@ class World:
         self.ai_calls: list[str] = []
         # The provider answers each chat request with the next of these, in order.
         self.chat_replies: list[str] = []
+        self.chat_reasoning_tokens: list[int] = []
         self.chat_requests: list[dict] = []
         # The Markdown read off a photo; None means OCR fails.
         self.ocr: str | None = None
@@ -184,13 +185,21 @@ class World:
                     "user": body["messages"][1]["content"],
                 }
             )
+            reply = self.chat_replies.pop(0)
+            reasoning = (
+                self.chat_reasoning_tokens.pop(0) if self.chat_reasoning_tokens else 0
+            )
+            if body.get("reasoning_effort", "medium") is None:
+                reasoning = 0
+            # Sarvam's default completion budget includes its reasoning tokens.
+            complete = body.get("max_tokens", 2048) - reasoning >= len(reply.split())
             return httpx2.Response(
                 200,
                 json={
                     "choices": [
                         {
-                            "finish_reason": "stop",
-                            "message": {"content": self.chat_replies.pop(0)},
+                            "finish_reason": "stop" if complete else "length",
+                            "message": {"content": reply if complete else None},
                         }
                     ]
                 },

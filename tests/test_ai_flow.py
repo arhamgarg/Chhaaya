@@ -34,6 +34,8 @@ def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
     answer = "ORS helps replace lost water and salts"
     world.language = ("en-IN", "Latn")
     world.chat_replies = ["ORS diarrhoea", answer + (f" [{chunk}]." if cited else ".")]
+    if provider == "sarvam":
+        world.chat_reasoning_tokens = [0, 2048]
     world.transcript = "What is ORS used for?"
     world.transcript_language = "en-IN"
     payload = delivery(

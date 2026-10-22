@@ -22,7 +22,7 @@ CHAT_MODEL = "sarvam-105b"
 TTS_MAX_CHARACTERS = 2500
 DEVANAGARI = re.compile("[ऀ-ॿ]")
 SPEECH_TIMEOUT = 30  # seconds; speech calls are slower than text calls
-CHAT_TIMEOUT = 60  # seconds; Sarvam-105B reasons before it answers
+CHAT_TIMEOUT = 60  # seconds
 # Sarvam Vision reads a photo in a job that is polled. Hindi also reads the
 # English that most Indian lab reports and prescriptions are printed in.
 VISION_LANGUAGE = "hi-IN"
@@ -88,6 +88,9 @@ class SarvamClient:
             "v1/chat/completions",
             json={
                 "model": CHAT_MODEL,
+                "max_tokens": 4096,
+                # Reasoning otherwise consumes the budget before a visible reply.
+                "reasoning_effort": None,
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
@@ -96,7 +99,6 @@ class SarvamClient:
             timeout=CHAT_TIMEOUT,
         ).json()
         choice = found["choices"][0]
-        # Reasoning counts against max_tokens, so a long one can leave no answer.
         if choice["finish_reason"] != "stop" or not choice["message"]["content"]:
             raise ValueError(f"sarvam chat stopped early: {choice['finish_reason']}")
         return choice["message"]["content"]
