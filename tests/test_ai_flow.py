@@ -20,6 +20,9 @@ from chhaaya.retrieval import KnowledgeBase
         "baby is 5 days old and hasnt sucked milk since last night",
         "नवजात की आँखें और शरीर पीला पड़ गया है",
         "bachcha subah se doodh nahi le raha",
+        "सातवें महीने में खून आ रहा है",
+        "गर्भ में बच्चा सुबह से हिल नहीं रहा",
+        "बच्चा जो भी खाता है सब उलटी कर देता है",
     ],
 )
 def test_indirect_danger_signs_open_an_urgent_case_without_a_provider(

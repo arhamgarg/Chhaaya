@@ -43,6 +43,7 @@ signs:
         - गर्भवती खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - गर्भवती खून बह/बहा/बही/बहता/बहती
         - गर्भ में खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
+        - सातवें महीने खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
       hi-Latn:
         - pregnancy khoon aa/aaya/aayi/aaye/aata/aati/aate
         - pregnancy khoon beh/beha/behta/behti/bah/baha/bahta/bahti
@@ -251,6 +252,7 @@ signs:
         - बच्चे की हलचल कम
         - बच्चे की हलचल बंद
         - बच्चा हिलना बंद
+        - गर्भ बच्चा हिल नहीं
       hi-Latn:
         - bachcha hil/hila/hilta/hilti nahi
         - bachche ki halchal kam
@@ -395,9 +397,9 @@ signs:
         - vomits all
         - cannot keep anything down
       hi:
-        - सब कुछ उल्टी
-        - जो खाता है उल्टी
-        - जो पीता है उल्टी
+        - सब कुछ उल्टी/उलटी
+        - जो खाता है उल्टी/उलटी
+        - जो पीता है उल्टी/उलटी
       hi-Latn:
         - sab kuch ulti
         - jo khata ulti

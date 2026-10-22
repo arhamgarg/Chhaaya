@@ -148,6 +148,9 @@ def test_negation_elsewhere_does_not_hide_sign(text, sign):
         "no postpartum haemorrhage was found",
         "the baby has no poor feeding",
         "नवजात का शरीर पीला नहीं है",
+        "सातवें महीने में खून नहीं आ रहा है",
+        "गर्भ में बच्चा हिल रहा है, कोई दिक्कत नहीं",
+        "बच्चा सब कुछ खा रहा है, उलटी नहीं हुई",
         "",
     ],
 )
