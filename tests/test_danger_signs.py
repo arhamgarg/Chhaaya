@@ -145,6 +145,9 @@ def test_negation_elsewhere_does_not_hide_sign(text, sign):
         "baby is feeding well and sleeping",
         "breathing exercises in pregnancy are good?",
         "बच्चा दूध पी रहा है",
+        "no postpartum haemorrhage was found",
+        "the baby has no poor feeding",
+        "नवजात का शरीर पीला नहीं है",
         "",
     ],
 )

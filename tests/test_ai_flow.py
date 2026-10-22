@@ -13,6 +13,47 @@ from chhaaya.retrieval import KnowledgeBase
 
 
 @pytest.mark.parametrize("provider", ["claude", "sarvam"])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "delivered 2 days back and still soaking a pad every hour",
+        "baby is 5 days old and hasnt sucked milk since last night",
+        "नवजात की आँखें और शरीर पीला पड़ गया है",
+        "bachcha subah se doodh nahi le raha",
+    ],
+)
+def test_indirect_danger_signs_open_an_urgent_case_without_a_provider(
+    client, engine, provider, message
+):
+    world = World(engine, provider=provider, speech_enabled=False)
+    world.language = None
+    asha = world.add_user("919999999999", "asha")
+    patient = world.add_user(PATIENT, asha=asha)
+    payload = delivery(
+        {
+            "from": PATIENT,
+            "id": "wamid.indirect-danger",
+            "type": "text",
+            "text": {"body": message},
+        }
+    )
+    assert post(client, payload).status_code == 200
+    assert world.worker.work_one()
+    [reply] = world.texts_to(PATIENT)
+    assert "108" in reply
+    assert world.cases() == [("danger_sign", patient, asha, "open")]
+    with engine.connect() as conn:
+        assert (
+            conn.exec_driver_sql(
+                "SELECT status FROM messages "
+                "WHERE wa_message_id = 'wamid.indirect-danger'"
+            ).scalar_one()
+            == "done"
+        )
+    assert not world.worker.work_one()
+
+
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
 @pytest.mark.parametrize("kind", ["text", "audio"])
 @pytest.mark.parametrize(
     "cited", [True, False], ids=["grounded-reply", "uncited-answer-escalates"]

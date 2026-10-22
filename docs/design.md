@@ -136,6 +136,8 @@ Danger signs are detected by rules, not by a model. That keeps them auditable: a
 
 The list comes from the danger signs in the ASHA training modules, the Mother and Child Protection card, and IMNCI (the national guidelines for sick newborns and children). Examples include bleeding in pregnancy, convulsions, a newborn not feeding, difficulty breathing, and unconsciousness. Each sign has phrasings in Hindi, English and Hinglish.
 
+Indirect feeding and postpartum-bleeding descriptions are included. Newborn jaundice mentions escalate conservatively because chat cannot establish age or clinical severity.
+
 The matcher runs on the original text and on the English search query, and a match on either one fires. A match immediately:
 
 - tells the patient to go to the nearest health centre or call 108 (the ambulance line);

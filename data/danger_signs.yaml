@@ -63,6 +63,8 @@ signs:
         - bleeding after delivery
         - bleeding after childbirth
         - delivery bleeding a lot
+        - postpartum haemorrhage/hemorrhage
+        - delivered soaking pad
       hi:
         - प्रसव के बाद बहुत खून
         - डिलीवरी के बाद बहुत खून
@@ -123,6 +125,10 @@ signs:
         - not able to drink
         - not drinking milk
         - stopped feeding
+        - hasnt suck/sucked milk
+        - not suck/sucked milk
+        - poor feeding
+        - refusing feed/feeds/breastfeed
       hi:
         - दूध नहीं पी/पिया/पीता/पीती/पीते
         - दूध पी/पिया/पीता/पीती/पीते नहीं
@@ -137,6 +143,7 @@ signs:
         - doodh nahi peeta
         - doodh nahi peeti
         - doodh nahi kheench
+        - doodh nahi le/leta/leti/lete
         - kuch nahi pee/piya/peeta/peeti/peete pa
         - feed nahi kar
 
@@ -347,10 +354,15 @@ signs:
         - yellow soles
         - palms are yellow
         - soles are yellow
+        - neonatal jaundice
+        - newborn jaundice
       hi:
         - हथेली पीली
         - हथेलियाँ पीली
         - तलवे पीले
+        # A newborn's age and jaundice severity cannot be established in chat.
+        - नवजात शरीर पीला/पीली/पीले
+        - नवजात आँखें पीला/पीली/पीले
       hi-Latn:
         - hatheli peeli
         - hatheli talve peele
