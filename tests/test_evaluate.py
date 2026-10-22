@@ -8,15 +8,31 @@ from typing import cast
 
 import pytest
 from sqlalchemy import Engine, insert
+from test_ai import settings
 from test_retrieval import fake_embed
 
 from chhaaya import eval_sets, evaluate, qa
+from chhaaya.ai import AIClient
 from chhaaya.db import KbChunk
 from chhaaya.document import STRUCTURE
 from chhaaya.evaluate import agreement, choose_tau, run, word_error_rate
-from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Entry, Lexicon
 from chhaaya.retrieval import KnowledgeBase
+
+
+def test_full_evaluation_refuses_deferred_speech_before_loading_or_calling_models(
+    monkeypatch,
+):
+    monkeypatch.setattr(evaluate, "Settings", lambda: settings(anthropic_api_key="key"))
+    monkeypatch.setattr(evaluate.eval_sets, "CHECKS", {})
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("evaluation must refuse disabled speech before loading resources")
+
+    monkeypatch.setattr(evaluate, "create_engine", forbidden)
+    monkeypatch.setattr(evaluate, "bge_m3", forbidden)
+    with pytest.raises(SystemExit, match="SPEECH_ENABLED=true"):
+        evaluate.main()
 
 
 def scored(language: str, score: float, hit: bool) -> dict:
@@ -75,7 +91,7 @@ def test_agreement_compares_the_two_raters_on_every_criterion():
     assert agreement(rows) == (3, 4)
 
 
-# A list is the rewrite for each call in turn: Gemini's rewrite can change between
+# A list is the rewrite for each call in turn: the rewrite can change between
 # calls, so the report must score an answer against the query it was given.
 QUERIES: dict[str, str | list[str]] = {
     "how do i make ors at home": "ors preparation",
@@ -100,8 +116,8 @@ TRANSCRIPTS = {
 }
 
 
-class FakeGemini:
-    """Gemini's replies to the prompts the system sends it."""
+class FakeAI:
+    """Replies to the prompts the system sends to the selected provider."""
 
     def __init__(self) -> None:
         self.rewrites = Counter()
@@ -250,7 +266,7 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
         sets,
         results,
         KnowledgeBase(engine, fake_embed),
-        cast(GeminiClient, FakeGemini()),
+        cast(AIClient, FakeAI()),
         lexicon,
     )
 

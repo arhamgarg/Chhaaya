@@ -28,7 +28,7 @@ def client(engine: Engine):
         whatsapp_app_secret=APP_SECRET,
         whatsapp_access_token="unused",
         whatsapp_phone_number_id="unused",
-        gemini_api_key="unused",
+        anthropic_api_key="unused",
     )
     app.dependency_overrides[get_engine] = lambda: engine
     app.dependency_overrides[get_settings] = lambda: settings
@@ -194,7 +194,8 @@ def test_startup_errors_do_not_log_credentials(tmp_path):
         "WHATSAPP_VERIFY_TOKEN": "synthetic-verify-token",
         "WHATSAPP_APP_SECRET": "synthetic-app-secret",
         "WHATSAPP_ACCESS_TOKEN": "synthetic-access-token",
-        "GEMINI_API_KEY": "synthetic-gemini-key",
+        "SARVAM_API_KEY": "synthetic-sarvam-key",
+        "ANTHROPIC_API_KEY": "synthetic-anthropic-key",
     }
     env.pop("WHATSAPP_PHONE_NUMBER_ID", None)
     result = subprocess.run(
@@ -223,6 +224,7 @@ def test_startup_errors_do_not_log_credentials(tmp_path):
         "WHATSAPP_VERIFY_TOKEN",
         "WHATSAPP_APP_SECRET",
         "WHATSAPP_ACCESS_TOKEN",
-        "GEMINI_API_KEY",
+        "SARVAM_API_KEY",
+        "ANTHROPIC_API_KEY",
     ):
         assert env[name] not in output

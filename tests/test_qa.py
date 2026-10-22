@@ -17,7 +17,7 @@ def world(engine: Engine) -> World:
     world = World(engine)
     worker = world.worker
     kb = KnowledgeBase(engine, fake_embed)
-    qa = QaAgent(kb, worker.gemini, worker.whatsapp, world.cases_, worker.escalate)
+    qa = QaAgent(kb, worker.ai, worker.whatsapp, world.cases_, worker.escalate)
     world.agents["qa"] = qa.answer
     return world
 
@@ -88,14 +88,8 @@ def test_a_hinglish_question_gets_a_cited_answer_in_text_and_voice(world: World)
     assert world.message(message).status == "done"
     # The answer is written from the retrieved passages, never from the query alone.
     answering = world.chat_requests[1]
-    assert (
-        "Give ORS after every loose stool"
-        in answering["systemInstruction"]["parts"][0]["text"]
-    )
-    assert (
-        answering["contents"][0]["parts"][0]["text"]
-        == "bachche ko loose motion hai, kya dein"
-    )
+    assert "Give ORS after every loose stool" in answering["system"]
+    assert answering["user"] == "bachche ko loose motion hai, kya dein"
 
 
 def test_a_danger_sign_only_the_english_query_names_fires(world: World):

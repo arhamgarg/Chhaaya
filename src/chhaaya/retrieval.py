@@ -32,8 +32,8 @@ class Hit:
 
 
 def bge_m3() -> Embed:
-    """Load BGE-M3 on the CPU; the first call downloads it (about 2 GB)."""
-    model = SentenceTransformer(MODEL, device="cpu")
+    """Load BGE-M3 on the available device; the first call downloads about 2 GB."""
+    model = SentenceTransformer(MODEL)
     return lambda texts: model.encode(list(texts), batch_size=16).tolist()
 
 

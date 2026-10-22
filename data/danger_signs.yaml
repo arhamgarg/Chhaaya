@@ -34,6 +34,8 @@ signs:
         - bleeding in pregnancy
         - bleeding during pregnancy
         - pregnancy bleeding
+        - pregnant blood clothes
+        - bleeding pregnancy
       hi:
         - गर्भावस्था में खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - गर्भावस्था में खून आना
@@ -43,6 +45,7 @@ signs:
         - गर्भवती खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - गर्भवती खून बह/बहा/बही/बहता/बहती
         - गर्भ में खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
+        - सातवें महीने खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
       hi-Latn:
         - pregnancy khoon aa/aaya/aayi/aaye/aata/aati/aate
         - pregnancy khoon beh/beha/behta/behti/bah/baha/bahta/bahti
@@ -63,6 +66,8 @@ signs:
         - bleeding after delivery
         - bleeding after childbirth
         - delivery bleeding a lot
+        - postpartum haemorrhage/hemorrhage
+        - delivered soaking pad
       hi:
         - प्रसव के बाद बहुत खून
         - डिलीवरी के बाद बहुत खून
@@ -89,6 +94,7 @@ signs:
         - having a fit
         - having fits
         - fits
+        - stiff jerking
       hi:
         - दौरा पड़/पड़ा/पड़ी/पड़े/पड़ता/पड़ती/पड़ते
         - दौरे पड़/पड़ा/पड़ी/पड़े/पड़ता/पड़ती/पड़ते
@@ -97,6 +103,7 @@ signs:
         - झटके आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - झटके लग/लगा/लगी/लगे/लगता/लगती/लगते
         - मिर्गी
+        - शरीर अकड़ आँखें ऊपर
       hi-Latn:
         - daura pad/pada/padi/pade/padta/padti/padte
         - daure pad/pada/padi/pade/padta/padti/padte
@@ -123,6 +130,10 @@ signs:
         - not able to drink
         - not drinking milk
         - stopped feeding
+        - hasnt suck/sucked milk
+        - not suck/sucked milk
+        - poor feeding
+        - refusing feed/feeds/breastfeed
       hi:
         - दूध नहीं पी/पिया/पीता/पीती/पीते
         - दूध पी/पिया/पीता/पीती/पीते नहीं
@@ -137,6 +148,7 @@ signs:
         - doodh nahi peeta
         - doodh nahi peeti
         - doodh nahi kheench
+        - doodh nahi le/leta/leti/lete
         - kuch nahi pee/piya/peeta/peeti/peete pa
         - feed nahi kar
 
@@ -203,6 +215,7 @@ signs:
         - headache blurred vision
         - blurred vision
         - blurry vision
+        - headache blurry
       hi:
         - तेज़ सिरदर्द धुंधला
         - धुंधला दिख
@@ -239,11 +252,13 @@ signs:
         - baby moving less
         - no fetal movement
         - reduced fetal movement
+        - cannot feel baby kicking
       hi:
         - बच्चा पेट में हिल नहीं
         - बच्चे की हलचल कम
         - बच्चे की हलचल बंद
         - बच्चा हिलना बंद
+        - गर्भ बच्चा हिल नहीं
       hi-Latn:
         - bachcha hil/hila/hilta/hilti nahi
         - bachche ki halchal kam
@@ -298,14 +313,18 @@ signs:
         - very high fever
         - fever after delivery
         - fever in pregnancy
+        - newborn fever
+        - neonate fever
       hi:
         - तेज़ बुखार
         - बहुत बुखार
         - प्रसव के बाद बुखार
+        - नवजात बुखार
       hi-Latn:
         - tez bukhar
         - bahut bukhar
         - delivery ke baad bukhar
+        - newborn bukhar
 
   - id: foul_discharge_after_delivery
     source: ASHA Module 6 (NHM), p. 39
@@ -347,10 +366,15 @@ signs:
         - yellow soles
         - palms are yellow
         - soles are yellow
+        - neonatal jaundice
+        - newborn jaundice
       hi:
         - हथेली पीली
         - हथेलियाँ पीली
         - तलवे पीले
+        # A newborn's age and jaundice severity cannot be established in chat.
+        - नवजात शरीर पीला/पीली/पीले
+        - नवजात आँखें पीला/पीली/पीले
       hi-Latn:
         - hatheli peeli
         - hatheli talve peele
@@ -365,6 +389,7 @@ signs:
         - navel red
         - umbilical pus
         - umbilicus red
+        - pus umbilical
       hi:
         - नाभि से मवाद
         - नाभि लाल
@@ -373,6 +398,8 @@ signs:
         - naabhi se mawad
         - naabhi laal
         - naal se mawad
+        - naal laal
+        - naal pus
 
   - id: vomits_everything
     source: IMNCI Chart Booklet (MoHFW), p. 12
@@ -383,9 +410,9 @@ signs:
         - vomits all
         - cannot keep anything down
       hi:
-        - सब कुछ उल्टी
-        - जो खाता है उल्टी
-        - जो पीता है उल्टी
+        - सब कुछ उल्टी/उलटी
+        - जो खाता है उल्टी/उलटी
+        - जो पीता है उल्टी/उलटी
       hi-Latn:
         - sab kuch ulti
         - jo khata ulti
@@ -421,5 +448,5 @@ signs:
         - आँखें धंस
         - आंखें अंदर धंस
       hi-Latn:
-        - aankhen dhans
+        - aankhen/aankhein/aankhe dhans
         - aankhein andar dhans

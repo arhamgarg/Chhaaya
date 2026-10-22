@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Connection, Engine, text
 
+from chhaaya.ai import AIClient
 from chhaaya.cases import Cases, confirms, in_language, in_window, one_line, words
-from chhaaya.gemini import GeminiClient
 from chhaaya.voice import send_reply
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -175,7 +175,7 @@ def shown(at: time) -> str:
 class Reminders:
     engine: Engine
     whatsapp: WhatsAppClient
-    gemini: GeminiClient
+    ai: AIClient
     cases: Cases
 
     def handle(self, message: "Inbound") -> None:
@@ -208,7 +208,7 @@ class Reminders:
         with self.engine.connect() as conn:
             prescription = latest_prescription(conn, message.user_id)
         try:
-            reply = self.gemini.chat(
+            reply = self.ai.chat(
                 EXTRACT.format(prescription=prescription or "None."),
                 message.body or "",
             )
@@ -355,7 +355,7 @@ class Reminders:
             }
             send_reply(
                 self.whatsapp,
-                self.gemini,
+                self.ai,
                 due.wa_id,
                 in_language(texts, due.language, due.script),
                 due.language,
@@ -371,7 +371,7 @@ class Reminders:
     def reply(self, message: "Inbound", texts: dict[str, str]) -> None:
         send_reply(
             self.whatsapp,
-            self.gemini,
+            self.ai,
             message.wa_id,
             in_language(texts, message.language, message.script),
             message.language,

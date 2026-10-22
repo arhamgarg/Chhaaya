@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Connection, Engine, insert, text
 
+from chhaaya.ai import AIClient
 from chhaaya.db import KbChunk
-from chhaaya.gemini import GeminiClient
+from chhaaya.images import image_media_type
 from chhaaya.voice import send_reply
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -149,7 +150,7 @@ def in_window(conn: Connection, user_id: int) -> bool:
 class Cases:
     engine: Engine
     whatsapp: WhatsAppClient
-    gemini: GeminiClient
+    ai: AIClient
     embed: "Embed"
 
     def open(
@@ -171,7 +172,7 @@ class Cases:
         # Uploaded first: a prescription case must never exist without its photo.
         media_id = None
         if photo is not None:
-            media_id = self.whatsapp.upload_media(photo, "image/jpeg")
+            media_id = self.whatsapp.upload_media(photo, image_media_type(photo))
         with self.engine.begin() as conn:
             people = conn.execute(
                 text(
@@ -234,9 +235,7 @@ class Cases:
         # Missed doses are the ASHA's to follow up; the patient asked nothing.
         if cause not in ("danger_sign", "missed_doses") and patient_in_window:
             notice = in_language(NOTICE, people.language, people.script)
-            send_reply(
-                self.whatsapp, self.gemini, people.wa_id, notice, people.language
-            )
+            send_reply(self.whatsapp, self.ai, people.wa_id, notice, people.language)
         return number
 
     def answer(self, message: "Inbound") -> None:
@@ -327,7 +326,7 @@ class Cases:
     def relay(self, conn: Connection, case, message: str, update: str) -> None:
         """Send the message, or outside the window `update` in case_update."""
         if in_window(conn, case.patient_id):
-            send_reply(self.whatsapp, self.gemini, case.wa_id, message, case.language)
+            send_reply(self.whatsapp, self.ai, case.wa_id, message, case.language)
         else:
             self.whatsapp.send_template(
                 case.wa_id,

@@ -22,7 +22,7 @@ In scope:
 
 - **WhatsApp Cloud API test number** as the only channel. The test number can message at most five registered phones, which covers the demo: team phones act as patients and one acts as the ASHA.
 - **Languages:** Hindi (Devanagari), English, and Hinglish (Hindi in Latin script, mixed with English). The reply uses the language and script the patient wrote or spoke in.
-- **Input and output:** text, voice notes and photos in; text and voice notes out.
+- **Input and output:** text and photos in; text out. Speech is deferred by default. `SPEECH_ENABLED=true` and a Sarvam key restore the existing voice-note path.
 - **Four jobs:** answer health questions, explain lab reports, read prescriptions (with ASHA confirmation), and send medicine reminders.
 - **Escalation** to a registered ASHA over WhatsApp, with the ASHA's reply relayed back to the patient.
 
@@ -57,10 +57,10 @@ WhatsApp ──> webhook ──> messages table ──> worker
 
 1. **Receive.** The webhook checks Meta's `X-Hub-Signature-256` signature, stores the message keyed by its WhatsApp message id (so retried deliveries are ignored), and returns `200` immediately. WhatsApp retries any webhook that responds slowly.
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
-3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Gemini's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
+3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, the selected provider's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
 4. **Screen for danger signs** before anything else (section 6).
 5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
-6. **Reply** in the patient's language, as text plus a voice note. Voice replies are short (about 60 words) because a long voice note is hard to follow.
+6. **Reply** in the patient's language, as text plus a voice note when speech is enabled. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
 ## 4. Components
 
@@ -70,16 +70,16 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Service | Python 3.12, FastAPI | All the ML is in Python; one language for the whole backend |
 | Tooling | uv, ruff, ty, pytest | |
 | Database | PostgreSQL 16 + pgvector | Records, the work queue and the vector index in one database |
-| Speech to text | Gemini Flash | Inline audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
-| Text to speech | Gemini Flash TTS | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
-| LLM | Gemini Flash | Hosted Gemini API; data handling follows Google's current API terms. Hindi and Hinglish quality must be evaluated |
-| OCR | Gemini Flash | Inline image input returns Markdown, then a separate JSON extraction is validated |
+| Speech to text (opt-in) | Sarvam Saaras v4 | Audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
+| Text to speech (opt-in) | Sarvam Bulbul v4 Flash | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
+| LLM | Claude Sonnet 5.5 | Hosted Anthropic API with API credits; Hindi and Hinglish quality must be evaluated |
+| OCR | Claude Sonnet 5.5 | Inline image input returns Markdown, then a separate JSON extraction is validated |
 | Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline; embeddings remain local |
 | Intent classifier | MuRIL (base), fine-tuned by us | Pretrained on Indian languages including transliterated text, which matters for Hinglish |
 | Fuzzy matching | rapidfuzz | Medicine-name lookup |
 | Running it | Docker Compose (app, worker, Postgres) and a Cloudflare tunnel for the webhook URL | |
 
-All Gemini calls go through one small client module, so that changing a model version touches a single file.
+Every agent and the evaluation harness use `AIClient` in `src/chhaaya/ai.py`. Claude handles text, language identification and images by default. `AI_PROVIDER=sarvam` selects the retained Sarvam client as a manual fallback; a failure never switches providers automatically. Speech is off by default. When enabled separately, Sarvam handles transcription and synthesis. Both providers use the existing HTTP dependency and header authentication. Claude reads images inline. The Sarvam fallback uploads each image to a Vision job and downloads its Markdown output from a signed URL without sending the API key to storage.
 
 ## 5. The four agents
 
@@ -94,11 +94,13 @@ An "agent" here is a module with one job and a fixed set of tools. None of them 
 5. **Citation check.** Code verifies that every cited id is one of the chunks that were retrieved. If the answer cites nothing, or cites something that was not retrieved, it is discarded and the case escalates. An answer in a script other than the patient's (Devanagari for Hindi, Latin for English and Hinglish) is discarded and escalates the same way.
 6. **Delivery.** The ids are replaced by readable source names ("Source: ASHA Module 7, NHM"), and the answer is sent.
 
-The system prompt forbids naming a condition the patient has, changing or starting a medicine, and giving doses. The adversarial evaluation set checks that these rules hold.
+The system prompt forbids naming a condition the patient has, changing or starting a medicine, and giving doses. The adversarial evaluation set checks that these rules hold. Before delivery, a deterministic check also escalates answers containing numeric or common written quantities in medicine units (ml, mg, tablets, drops and related English/Hindi forms). The safety checks examine the question and answer after removing common Markdown and WhatsApp formatting markers and escapes. Valid citations do not bypass them. This conservatively refers non-medicine quantities in those units too, including grams of food. Vaccine timing without such a quantity remains available. This check does not establish clinical safety for every possible phrasing.
+
+Honey advice goes to the ASHA as weak evidence, even when it has valid citations. Some older passages recommend honey for infants, which conflicts with [CDC guidance against honey before twelve months](https://www.cdc.gov/infant-toddler-nutrition/foods-and-drinks/foods-and-drinks-to-avoid-or-limit.html). The prompt forbids recommending honey, and a deterministic check rejects honey mentions in English, Hindi and common Hinglish spellings before delivery. This deliberately also escalates otherwise safe honey answers and advice for older children, because age is not verified.
 
 ### 5.2 Document agent
 
-A photo goes to Gemini Flash, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
+JPEG and PNG media types are detected from the photo bytes for both providers. A photo goes to Claude, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
 
 - **Lab reports** are explained automatically. For each test, code says whether the value is inside, below or above the reference range printed on the report, or that no range is printed. A value past a critical threshold (for example, haemoglobin below 7 g/dL) escalates at once. Critical thresholds live in a data file, and every row cites its source. The patient's age on the report picks the population; without one, the strictest threshold applies. A critical test in a unit the thresholds do not use, or printed without a unit, escalates too, since it cannot be checked; a unitless haemoglobin of 75 could be a critical 75 g/L.
 - **Prescriptions** are never explained until a human has checked them. OCR cannot tell handwriting from print reliably, and a misread drug name can match a different real drug, which a lexicon check will not catch. The agent therefore:
@@ -136,6 +138,8 @@ Danger signs are detected by rules, not by a model. That keeps them auditable: a
 
 The list comes from the danger signs in the ASHA training modules, the Mother and Child Protection card, and IMNCI (the national guidelines for sick newborns and children). Examples include bleeding in pregnancy, convulsions, a newborn not feeding, difficulty breathing, and unconsciousness. Each sign has phrasings in Hindi, English and Hinglish.
 
+Indirect feeding and postpartum-bleeding descriptions are included. Newborn jaundice mentions escalate conservatively because chat cannot establish age or clinical severity.
+
 The matcher runs on the original text and on the English search query, and a match on either one fires. A match immediately:
 
 - tells the patient to go to the nearest health centre or call 108 (the ambulance line);
@@ -159,7 +163,7 @@ Photos never reach it.
 **Evaluation.** We report macro-F1 (the F1 score averaged equally over the four labels) per language. We compare against two baselines:
 
 - a keyword rule baseline;
-- zero-shot classification by Gemini Flash.
+- zero-shot classification by the selected text provider (Claude by default).
 
 The classifier earns its place only if it beats the keyword rules and comes close to the LLM at a fraction of the latency and cost. If it does not, we report that honestly.
 
@@ -237,8 +241,8 @@ References:
 |---|---|---|
 | WhatsApp and IVR | WhatsApp only | IVR needs a paid, KYC'd telephony account |
 | "All 22 languages" via IndicBERT, IndicTrans2, IndicWhisper, MuRIL | Hindi, English, Hinglish | The claim was also wrong: IndicWhisper covers 12 languages and MuRIL 17. Every language needs its own checked evaluation set |
-| IndicWhisper for voice output | Gemini Flash in, Gemini Flash TTS out | Whisper models only transcribe; they cannot speak |
-| Self-hosted AI4Bharat models | Gemini APIs | No GPU needed; Gemini for speech, OCR and the LLM, with local embeddings |
+| IndicWhisper for voice output | Optional Sarvam Saaras v4 in, Sarvam Bulbul v4 Flash out | Speech is deferred by default. Whisper models only transcribe; they cannot speak |
+| Self-hosted AI4Bharat models | Claude, with optional Sarvam speech | No GPU needed; Claude for text and OCR, Sarvam retained as a manual fallback, and local embeddings |
 | Symptom-disease datasets | Rule-based danger signs | Chhaaya does not diagnose |
 | Trained handwriting recognition | ASHA confirms every prescription | A misread drug name can match another real drug |
 | FastAPI or Node.js; Redis and Celery; FAISS | FastAPI; one Postgres with pgvector and a job table | Fewer moving parts |

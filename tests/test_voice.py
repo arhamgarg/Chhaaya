@@ -5,7 +5,8 @@ import httpx2
 import pytest
 from test_audio import tone
 
-from chhaaya.gemini import GeminiClient
+from chhaaya.ai import AIClient
+from chhaaya.settings import Settings
 from chhaaya.voice import send_reply
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -15,51 +16,47 @@ def clients(speech_works: bool):
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
-        if request.url.host == "generativelanguage.googleapis.com":
+        if request.url.host == "api.sarvam.ai":
             if not speech_works:
                 return httpx2.Response(
                     500,
-                    json={"error": {"message": "down"}},
+                    json={"error": {"message": "down", "request_id": "r1"}},
                     headers={"x-request-id": "r1"},
                 )
             audio = base64.b64encode(tone(0.5)).decode()
             return httpx2.Response(
                 200,
-                json={
-                    "candidates": [
-                        {
-                            "finishReason": "STOP",
-                            "content": {
-                                "parts": [
-                                    {
-                                        "inlineData": {
-                                            "mimeType": "audio/wav",
-                                            "data": audio,
-                                        }
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
+                json={"audios": [audio]},
             )
         if request.url.path.endswith("/media"):
             return httpx2.Response(200, json={"id": "media-up"})
         return httpx2.Response(200, json={"messages": [{"id": "wamid.out"}]})
 
     http = httpx2.Client(transport=httpx2.MockTransport(handler))
-    return WhatsAppClient("token", "123", http), GeminiClient("key", http), requests
+    settings = Settings(
+        _env_file=None,
+        postgres_password="unused",
+        database_url="postgresql://unused",
+        whatsapp_verify_token="unused",
+        whatsapp_app_secret="unused",
+        whatsapp_access_token="unused",
+        whatsapp_phone_number_id="unused",
+        anthropic_api_key="claude-key",
+        sarvam_api_key="sarvam-key",
+        speech_enabled=True,
+    )
+    return WhatsAppClient("token", "123", http), AIClient(settings, http), requests
 
 
 def test_a_reply_goes_out_as_text_then_as_an_opus_voice_note():
-    whatsapp, gemini, requests = clients(speech_works=True)
+    whatsapp, ai, requests = clients(speech_works=True)
 
-    send_reply(whatsapp, gemini, "911111111111", "Aap theek ho jaayenge", "hi")
+    send_reply(whatsapp, ai, "911111111111", "Aap theek ho jaayenge", "hi")
 
     paths = [request.url.path for request in requests]
     assert paths == [
         "/v23.0/123/messages",
-        "/v1beta/models/gemini-3.8-flash-tts:generateContent",
+        "/text-to-speech",
         "/v23.0/123/media",
         "/v23.0/123/messages",
     ]
@@ -71,24 +68,24 @@ def test_a_reply_goes_out_as_text_then_as_an_opus_voice_note():
 def test_when_speech_fails_the_text_has_already_gone_and_nothing_raises(
     caplog: pytest.LogCaptureFixture,
 ):
-    whatsapp, gemini, requests = clients(speech_works=False)
+    whatsapp, ai, requests = clients(speech_works=False)
 
     with caplog.at_level(logging.ERROR):
-        send_reply(whatsapp, gemini, "911111111111", "Aap theek ho jaayenge", "hi")
+        send_reply(whatsapp, ai, "911111111111", "Aap theek ho jaayenge", "hi")
 
     assert [r.url.path for r in requests] == [
         "/v23.0/123/messages",
-        "/v1beta/models/gemini-3.8-flash-tts:generateContent",
+        "/text-to-speech",
     ]
     assert "r1" in caplog.text
     assert "911111111111" not in caplog.text
 
 
 def test_without_a_known_language_only_text_is_sent(caplog: pytest.LogCaptureFixture):
-    whatsapp, gemini, requests = clients(speech_works=True)
+    whatsapp, ai, requests = clients(speech_works=True)
 
     with caplog.at_level(logging.ERROR):
-        send_reply(whatsapp, gemini, "911111111111", "Namaste", None)
+        send_reply(whatsapp, ai, "911111111111", "Namaste", None)
 
     assert [r.url.path for r in requests] == ["/v23.0/123/messages"]
     assert caplog.records == []
