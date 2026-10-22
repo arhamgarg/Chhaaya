@@ -31,6 +31,16 @@ LATIN = re.compile("[A-Za-z]")
 HONEY = re.compile(
     r"\b(?:honey|shahad|shehad|shahd|shahed|shehed|madhu)\b|शहद|मधु", re.IGNORECASE
 )
+DOSE = re.compile(
+    r"(?<!\w)(?:\d+(?:[.,]\d+)?|half|quarter|one|two|three|four|five|six|seven|"
+    r"eight|nine|ten|आधा|आधी|चौथाई|एक|दो|तीन|चार|पाँच|पांच)"
+    r"\s*(?:[-–]\s*)?(?:an?\s+)?"
+    r"(?:mg|mcg|[µμ]g|g|gm|grams?|milligrams?|micrograms?|ml|milliliters?|"
+    r"millilitres?|iu|units?|tablets?|capsules?|drops?|"
+    r"मिलीलीटर|मिलिलीटर|मिलिग्राम|मिलीग्राम|एमएल|एमजी|ग्राम|यूनिट|गोली|गोलियाँ|बूँद|बूंद)"
+    r"(?!\w)",
+    re.IGNORECASE,
+)
 LANGUAGE_NAMES = {
     "en": "English",
     "hi": "Hindi in the Devanagari script",
@@ -111,6 +121,13 @@ class QaAgent:
         # Age is unverified, and some older passages recommend honey to infants.
         if HONEY.search(question) or HONEY.search(reply):
             log.warning("message %s: honey advice requires ASHA review", message.id)
+            self.cases.open("weak_evidence", message.user_id, question)
+            return
+        # Valid citations do not make a measured dose safe for automated advice.
+        if DOSE.search(reply):
+            log.warning(
+                "message %s: measured quantity requires ASHA review", message.id
+            )
             self.cases.open("weak_evidence", message.user_id, question)
             return
         answer = " ".join(CITATION.sub("", reply).split())

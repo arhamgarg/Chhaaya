@@ -140,6 +140,96 @@ def test_cited_honey_advice_goes_to_the_asha_instead_of_the_patient(
 
 
 @pytest.mark.parametrize("provider", ["claude", "sarvam"])
+@pytest.mark.parametrize(
+    ("language", "script", "answer", "withheld"),
+    [
+        (
+            "en-IN",
+            "Latn",
+            "BCG is given at birth for babies born in a health facility. "
+            "Otherwise it is given along with DPT-1. It can be given until one "
+            "year of age. The dose is 0.05 ml up to 1 month of age and 0.1 ml "
+            "after that. It goes into the skin of the left upper arm.",
+            True,
+        ),
+        (
+            "hi-IN",
+            "Latn",
+            "BCG ka teeka bachche ko janm ke samay lagta hai, agar delivery "
+            "hospital mein ho. Ya phir ye DPT-1 ke saath bhi diya ja sakta hai. "
+            "Ye teeka bachche ke baayein upper arm mein, skin ke andar lagta "
+            "hai. Ek mahine tak ke bachche ko 0.05 ml aur uske baad 0.1 ml "
+            "dose milta hai. Ye ek saal ki umar tak diya ja sakta hai.",
+            True,
+        ),
+        ("hi-IN", "Deva", "बच्चे को ०.०५ मिलीलीटर टीका दिया जाता है।", True),
+        ("en-IN", "Latn", "Take 500mg of paracetamol.", True),
+        ("en-IN", "Latn", "Give half a tablet.", True),
+        (
+            "en-IN",
+            "Latn",
+            "BCG is given at birth and can be given until one year of age. "
+            "Ask your ASHA to confirm your child's vaccination date.",
+            False,
+        ),
+    ],
+    ids=[
+        "recorded-english",
+        "recorded-hinglish",
+        "hindi",
+        "compact",
+        "written",
+        "timing",
+    ],
+)
+def test_dose_advice_is_withheld_but_vaccine_timing_can_reach_the_patient(
+    client, engine, provider, language, script, answer, withheld
+):
+    world = World(engine, provider=provider, speech_enabled=False)
+    worker = world.worker
+    world.agents["qa"] = QaAgent(
+        KnowledgeBase(engine, fake_embed),
+        worker.ai,
+        worker.whatsapp,
+        world.cases_,
+        worker.escalate,
+    ).answer
+    patient = setup(world)
+    chunk = add_chunk(world, "BCG vaccine is given at birth, 0.05 ml before one month.")
+    world.language = (language, script)
+    world.chat_replies = ["BCG vaccine", f"{answer} [{chunk}]"]
+    payload = delivery(
+        {
+            "from": PATIENT,
+            "id": "wamid.dose-advice",
+            "type": "text",
+            "text": {"body": "When is BCG vaccine given?"},
+        }
+    )
+    assert post(client, payload).status_code == 200
+    assert world.worker.work_one()
+    [reply] = world.texts_to(PATIENT)
+    if withheld:
+        assert answer not in reply
+        assert [(c.cause, c.patient_id, c.status) for c in world.cases()] == [
+            ("weak_evidence", patient, "open")
+        ]
+    else:
+        assert answer in reply and "MoHFW" in reply
+        assert world.cases() == []
+    with engine.connect() as conn:
+        assert (
+            conn.exec_driver_sql(
+                "SELECT status FROM messages WHERE wa_message_id = 'wamid.dose-advice'"
+            ).scalar_one()
+            == "done"
+        )
+    assert post(client, payload).status_code == 200
+    assert not world.worker.work_one()
+    assert world.texts_to(PATIENT) == [reply]
+
+
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
 @pytest.mark.parametrize("kind", ["text", "audio"])
 @pytest.mark.parametrize(
     "cited", [True, False], ids=["grounded-reply", "uncited-answer-escalates"]
