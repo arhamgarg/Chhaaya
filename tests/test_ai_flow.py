@@ -1,0 +1,184 @@
+"""Signed webhooks through real Postgres and mocked AI and WhatsApp boundaries."""
+
+import pytest
+from test_qa import PATIENT, add_chunk, setup
+from test_retrieval import fake_embed
+from test_webhook import client as client
+from test_webhook import delivery, post
+from test_worker import World
+
+from chhaaya.qa import QaAgent
+from chhaaya.retrieval import KnowledgeBase
+
+
+@pytest.mark.parametrize("provider", ["claude", "gemini"])
+@pytest.mark.parametrize("kind", ["text", "audio"])
+@pytest.mark.parametrize(
+    "cited", [True, False], ids=["grounded-reply", "uncited-answer-escalates"]
+)
+def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
+    client, engine, cited, kind, provider
+):
+    world = World(engine, provider=provider)
+    worker = world.worker
+    world.agents["qa"] = QaAgent(
+        KnowledgeBase(engine, fake_embed),
+        worker.ai,
+        worker.whatsapp,
+        world.cases_,
+        worker.escalate,
+    ).answer
+    setup(world)
+    chunk = add_chunk(world, "ORS replaces water and salts lost during diarrhoea")
+    answer = "ORS helps replace lost water and salts"
+    world.language = ("en-IN", "Latn")
+    world.chat_replies = ["ORS diarrhoea", answer + (f" [{chunk}]." if cited else ".")]
+    world.transcript = "What is ORS used for?"
+    world.transcript_language = "en-IN"
+    payload = delivery(
+        {
+            "from": PATIENT,
+            "id": "wamid.ai-e2e",
+            "type": kind,
+            kind: {"body": "What is ORS used for?"}
+            if kind == "text"
+            else {"id": "media-synthetic", "mime_type": "audio/ogg"},
+        }
+    )
+    assert post(client, payload).status_code == 200
+    assert world.worker.work_one()
+    [reply] = world.texts_to(PATIENT)
+    if cited:
+        assert "replaces" in reply or "replace" in reply
+        assert "MoHFW" in reply
+        assert world.voice_notes == [PATIENT]
+    else:
+        assert answer not in reply
+        assert [case.cause for case in world.cases()] == ["citation_failed"]
+    assert len(world.chat_requests) == 2
+    assert post(client, payload).status_code == 200
+    assert not world.worker.work_one()  # Meta's retry cannot send another reply.
+
+
+@pytest.mark.parametrize("provider", ["claude", "gemini"])
+def test_a_prescription_webhook_waits_for_asha_confirmation(client, engine, provider):
+    from sqlalchemy import text
+    from test_document import ASHA, LEXICON, RX, RX_MEDICINES, extracted
+    from test_document import setup as setup_document
+
+    from chhaaya.document import DocumentAgent
+
+    world = World(engine, provider=provider, speech_enabled=False)
+    setup_document(world)
+    world.agents["document"] = DocumentAgent(
+        world.worker.ai, world.worker.whatsapp, world.cases_, lambda: LEXICON
+    ).read
+    world.agents["escalation"] = world.cases_.answer
+    world.ocr = RX
+    world.chat_replies = [extracted("prescription", medicines=RX_MEDICINES)]
+    assert (
+        post(
+            client,
+            delivery(
+                {
+                    "from": PATIENT,
+                    "id": "wamid.ai-prescription",
+                    "type": "image",
+                    "image": {"id": "synthetic-photo", "mime_type": "image/jpeg"},
+                }
+            ),
+        ).status_code
+        == 200
+    )
+    assert world.worker.work_one()
+    assert all("Dolo" not in reply for reply in world.texts_to(PATIENT))
+    assert [case.cause for case in world.cases()] == ["prescription_confirmation"]
+    assert world.images[0][0] == ASHA
+    with engine.connect() as conn:
+        case_id = conn.execute(text("SELECT number FROM cases")).scalar_one()
+    assert (
+        post(
+            client,
+            delivery(
+                {
+                    "from": ASHA,
+                    "id": "wamid.ai-confirmation",
+                    "type": "text",
+                    "text": {"body": f"{case_id} ok"},
+                }
+            ),
+        ).status_code
+        == 200
+    )
+    assert world.worker.work_one()
+    assert any("Dolo" in reply for reply in world.texts_to(PATIENT))
+    assert world.cases()[0].status == "answered"
+
+
+def test_a_text_question_works_without_speech_and_duplicate_delivery_is_ignored(
+    client,
+    engine,
+):
+    world = World(engine, speech_enabled=False)
+    worker = world.worker
+    world.agents["qa"] = QaAgent(
+        KnowledgeBase(engine, fake_embed),
+        worker.ai,
+        worker.whatsapp,
+        world.cases_,
+        worker.escalate,
+    ).answer
+    setup(world)
+    chunk = add_chunk(world, "ORS replaces water and salts lost during diarrhoea")
+    world.language = ("en-IN", "Latn")
+    world.chat_replies = ["ORS diarrhoea", f"ORS replaces water and salts [{chunk}]."]
+    payload = delivery(
+        {
+            "from": PATIENT,
+            "id": "wamid.text-only",
+            "type": "text",
+            "text": {"body": "What is ORS used for?"},
+        }
+    )
+    assert post(client, payload).status_code == 200
+    assert world.worker.work_one()
+    [reply] = world.texts_to(PATIENT)
+    assert "MoHFW" in reply and "water and salts" in reply
+    assert world.voice_notes == []
+    assert world.ai_calls == ["v1/messages"] * 3
+    assert post(client, payload).status_code == 200
+    assert not world.worker.work_one()
+    assert world.texts_to(PATIENT) == [reply]
+
+
+def test_a_deferred_voice_note_asks_for_text_without_calling_an_ai_provider(
+    client,
+    engine,
+):
+    from sqlalchemy import text
+
+    world = World(engine, speech_enabled=False)
+    assert (
+        post(
+            client,
+            delivery(
+                {
+                    "from": PATIENT,
+                    "id": "wamid.speech-deferred",
+                    "type": "audio",
+                    "audio": {"id": "synthetic-voice", "mime_type": "audio/ogg"},
+                }
+            ),
+        ).status_code
+        == 200
+    )
+    assert world.worker.work_one()
+    [reply] = world.texts_to(PATIENT)
+    assert "type" in reply and "108" in reply
+    assert world.ai_calls == [] and world.voice_notes == []
+    with engine.connect() as conn:
+        status, error = conn.execute(
+            text("SELECT status, error FROM messages WHERE wa_message_id = :id"),
+            {"id": "wamid.speech-deferred"},
+        ).one()
+    assert status == "failed" and "speech is disabled" in error

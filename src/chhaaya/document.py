@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from chhaaya.ai import AIClient
 from chhaaya.cases import Cases, in_language
-from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Lexicon
 from chhaaya.qa import VOICE_WORD_LIMIT
 from chhaaya.voice import send_voice
@@ -192,7 +192,7 @@ def load_critical_values(path: Path = CRITICAL_VALUES) -> list[Critical]:
 
 @dataclass
 class DocumentAgent:
-    gemini: GeminiClient
+    ai: AIClient
     whatsapp: WhatsAppClient
     cases: Cases
     # Loaded on the first prescription, so the worker starts without data/lexicon.csv.
@@ -201,7 +201,7 @@ class DocumentAgent:
     def read(self, message: "Inbound") -> None:
         try:
             photo = self.whatsapp.download_media(message.media_id or "")
-            document = structure(self.gemini, self.gemini.read_document(photo))
+            document = structure(self.ai, self.ai.read_document(photo))
         except Exception:
             self.reply(message, COULD_NOT_READ)
             raise
@@ -262,9 +262,7 @@ class DocumentAgent:
         for part in parts(reply):
             self.whatsapp.send_text(message.wa_id, part)
         if len(reply.split()) <= VOICE_WORD_LIMIT:
-            send_voice(
-                self.whatsapp, self.gemini, message.wa_id, reply, message.language
-            )
+            send_voice(self.whatsapp, self.ai, message.wa_id, reply, message.language)
 
 
 def parts(reply: str) -> list[str]:
@@ -277,9 +275,9 @@ def parts(reply: str) -> list[str]:
     return chunks
 
 
-def structure(gemini: GeminiClient, ocr: str) -> Document:
+def structure(ai: AIClient, ocr: str) -> Document:
     """The LLM's JSON for the OCR text, refused if it has a number OCR did not read."""
-    reply = gemini.chat(STRUCTURE, ocr).strip()
+    reply = ai.chat(STRUCTURE, ocr).strip()
     if fenced := FENCE.fullmatch(reply):
         reply = fenced[1]
     document = Document.model_validate_json(reply)

@@ -2,7 +2,7 @@
 
 `uv run python -m eval` runs every set in eval/sets against the system: the real
 danger-sign check, retrieval, Q&A agent, document reading and speech to text,
-with Gemini and the knowledge base live. Nothing is sent on WhatsApp and no
+with the selected provider and knowledge base live. Nothing is sent on WhatsApp and no
 case is opened: what would have gone out is recorded instead. It writes one CSV
 per set to eval/results and the summary to eval/report.md, every metric per
 language.
@@ -22,6 +22,7 @@ from typing import cast
 from sqlalchemy import create_engine
 
 from chhaaya import danger_signs, eval_sets, qa
+from chhaaya.ai import AIClient
 from chhaaya.cases import Cases
 from chhaaya.corpus import read_sources
 from chhaaya.db import sqlalchemy_url
@@ -33,7 +34,6 @@ from chhaaya.document import (
     printed_range,
     structure,
 )
-from chhaaya.gemini import GeminiClient
 from chhaaya.lexicon import Lexicon
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.settings import Settings
@@ -73,20 +73,22 @@ class Recorder:
 
 
 class Unspoken:
-    """Gemini without text to speech: answers are scored as text, not paid to speak.
+    """Answers are scored as text, without paying to speak them.
 
     Given a query, it is the rewrite: the answer is then scored against the same
     retrieval the report shows, since the rewrite can change between calls.
     """
 
-    def __init__(self, gemini: GeminiClient, query: str | None) -> None:
-        self.gemini = gemini
+    speech_enabled = False
+
+    def __init__(self, ai: AIClient, query: str | None) -> None:
+        self.ai = ai
         self.query = query
 
     def chat(self, system: str, user: str) -> str:
         if system == qa.REWRITE and self.query is not None:
             return self.query
-        return self.gemini.chat(system, user)
+        return self.ai.chat(system, user)
 
     def synthesize(self, text: str, language: str) -> bytes:
         raise RuntimeError("the evaluation does not speak answers")
@@ -94,7 +96,7 @@ class Unspoken:
 
 def ask(
     kb: KnowledgeBase,
-    gemini: GeminiClient,
+    ai: AIClient,
     text: str,
     language: str,
     query: str | None = None,
@@ -108,7 +110,7 @@ def ask(
     recorder = Recorder()
     agent = qa.QaAgent(
         kb,
-        cast(GeminiClient, Unspoken(gemini, query)),
+        cast(AIClient, Unspoken(ai, query)),
         cast(WhatsAppClient, recorder),
         cast(Cases, recorder),
         lambda message, signs: recorder.causes.append("danger_sign"),
@@ -121,7 +123,7 @@ def ask(
 
 
 def attempt(run: Callable[[], dict]) -> dict:
-    """A failure is recorded against its item, so one Gemini error costs one row."""
+    """Record a failure against its item, so one provider error costs one row."""
     try:
         return run()
     except Exception as error:
@@ -160,12 +162,12 @@ def group(rows: list[dict], key: str) -> dict[str, list[dict]]:
 
 
 def run_questions(
-    rows: list[dict], kb: KnowledgeBase, gemini: GeminiClient
+    rows: list[dict], kb: KnowledgeBase, ai: AIClient
 ) -> tuple[list[dict], dict[str, float]]:
     """Retrieve for every question, tune τ on the tune half, answer the report half."""
     source_ids = {s.title: s.id for s in read_sources()}
     for row in rows:
-        row["query"] = gemini.chat(qa.REWRITE, row["text"]).strip()
+        row["query"] = ai.chat(qa.REWRITE, row["text"]).strip()
         hits = kb.search(row["query"])
         found = [source_ids.get(h.title, h.source_type) for h in hits]
         row["best_score"] = round(hits[0].score, 4) if hits else 0.0
@@ -175,16 +177,16 @@ def run_questions(
     for row in rows:
         row["tau"] = taus[row["language"]]
         if row["split"] == "report":
-            row.update(text_path(row, kb, gemini))
+            row.update(text_path(row, kb, ai))
     return rows, taus
 
 
-def text_path(question: dict, kb: KnowledgeBase, gemini: GeminiClient) -> dict:
+def text_path(question: dict, kb: KnowledgeBase, ai: AIClient) -> dict:
     """The answer to a typed question, from the query its retrieval was scored on."""
     return at_tau(
         question["tau"],
         kb,
-        gemini,
+        ai,
         question["text"],
         question["language"],
         question["query"],
@@ -194,7 +196,7 @@ def text_path(question: dict, kb: KnowledgeBase, gemini: GeminiClient) -> dict:
 def at_tau(
     tau: float,
     kb: KnowledgeBase,
-    gemini: GeminiClient,
+    ai: AIClient,
     text: str,
     language: str,
     query: str | None = None,
@@ -202,15 +204,15 @@ def at_tau(
     """Ask with τ set; the Q&A agent reads it when it answers."""
     placeholder, qa.TAU = qa.TAU, tau
     try:
-        return attempt(lambda: ask(kb, gemini, text, language, query))
+        return attempt(lambda: ask(kb, ai, text, language, query))
     finally:
         qa.TAU = placeholder
 
 
-def run_danger(rows: list[dict], gemini: GeminiClient) -> list[dict]:
+def run_danger(rows: list[dict], ai: AIClient) -> list[dict]:
     """The check runs on the message and on its English search query (design 5.1)."""
     for row in rows:
-        query = gemini.chat(qa.REWRITE, row["text"]).strip()
+        query = ai.chat(qa.REWRITE, row["text"]).strip()
         on_text = danger_signs.detect(row["text"])
         on_query = danger_signs.detect(query)
         row.update(query=query, on_text=" ".join(on_text), on_query=" ".join(on_query))
@@ -219,11 +221,11 @@ def run_danger(rows: list[dict], gemini: GeminiClient) -> list[dict]:
 
 
 def run_adversarial(
-    rows: list[dict], kb: KnowledgeBase, gemini: GeminiClient, taus: dict[str, float]
+    rows: list[dict], kb: KnowledgeBase, ai: AIClient, taus: dict[str, float]
 ) -> list[dict]:
     for row in rows:
         tau = taus[row["language"]]
-        row.update(at_tau(tau, kb, gemini, row["text"], row["language"]))
+        row.update(at_tau(tau, kb, ai, row["text"], row["language"]))
     return rows
 
 
@@ -246,16 +248,14 @@ def lab_fields(expected: dict, test: LabTest | None) -> dict[str, bool]:
 
 
 def run_documents(
-    documents: list[dict], sets: Path, gemini: GeminiClient, lexicon: Lexicon
+    documents: list[dict], sets: Path, ai: AIClient, lexicon: Lexicon
 ) -> list[dict]:
-    """One row per expected field: what Gemini Vision and the LLM read off the photo."""
+    """One row per expected field read from the photo by the selected provider."""
     critical = load_critical_values()
     rows = []
     for d in documents:
         try:
-            read = structure(
-                gemini, gemini.read_document((sets / d["file"]).read_bytes())
-            )
+            read = structure(ai, ai.read_document((sets / d["file"]).read_bytes()))
             error = ""
         except Exception as e:
             read, error = None, repr(e)
@@ -334,7 +334,7 @@ def run_voice(
     rows: list[dict],
     sets: Path,
     kb: KnowledgeBase,
-    gemini: GeminiClient,
+    ai: AIClient,
     questions: list[dict],
 ) -> list[dict]:
     """Word error rate, and whether the transcript gets the typed question's answer."""
@@ -344,10 +344,10 @@ def run_voice(
         if question is None:
             raise ValueError(f"voice {row['id']}: its transcript is not a question")
         path = sets / row["file"]
-        transcript, _, _ = gemini.transcribe(path.read_bytes(), MIME[path.suffix])
+        transcript, _, _ = ai.transcribe(path.read_bytes(), MIME[path.suffix])
         edits, total = word_error_rate(row["transcript"], transcript)
-        text = question if "outcome" in question else text_path(question, kb, gemini)
-        voice = at_tau(question["tau"], kb, gemini, transcript, row["language"])
+        text = question if "outcome" in question else text_path(question, kb, ai)
+        voice = at_tau(question["tau"], kb, ai, transcript, row["language"])
         row.update(
             recognised=transcript,
             edits=edits,
@@ -664,7 +664,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
 
 
 def run(
-    sets: Path, results: Path, kb: KnowledgeBase, gemini: GeminiClient, lexicon: Lexicon
+    sets: Path, results: Path, kb: KnowledgeBase, ai: AIClient, lexicon: Lexicon
 ) -> str:
     """Run every set, write one CSV per set to `results`, and return the report."""
     logging.getLogger("chhaaya.voice").setLevel(
@@ -673,18 +673,16 @@ def run(
     results.mkdir(parents=True, exist_ok=True)
     # Each set's CSV is written as soon as it is scored, so a failure later in the
     # run keeps the paid results before it.
-    questions, taus = run_questions(read_csv(sets / "questions.csv"), kb, gemini)
+    questions, taus = run_questions(read_csv(sets / "questions.csv"), kb, ai)
     write_csv(results / "questions.csv", questions)
-    danger = run_danger(read_csv(sets / "danger.csv"), gemini)
+    danger = run_danger(read_csv(sets / "danger.csv"), ai)
     write_csv(results / "danger.csv", danger)
-    adversarial = run_adversarial(read_csv(sets / "adversarial.csv"), kb, gemini, taus)
+    adversarial = run_adversarial(read_csv(sets / "adversarial.csv"), kb, ai, taus)
     write_csv(results / "adversarial.csv", adversarial)
     lines = (sets / "documents.jsonl").read_text(encoding="utf-8").splitlines()
-    documents = run_documents(
-        [json.loads(x) for x in lines if x], sets, gemini, lexicon
-    )
+    documents = run_documents([json.loads(x) for x in lines if x], sets, ai, lexicon)
     write_csv(results / "documents.csv", documents)
-    voice = run_voice(read_csv(sets / "voice.csv"), sets, kb, gemini, questions)
+    voice = run_voice(read_csv(sets / "voice.csv"), sets, kb, ai, questions)
     write_csv(results / "voice.csv", voice)
     ratings = read_csv(sets / "ratings.csv")
     return report(questions, taus, danger, adversarial, documents, voice, ratings)
@@ -701,9 +699,14 @@ def main() -> None:
             f"the evaluation sets are incomplete: {json.dumps(incomplete, indent=2)}"
         )
     settings = Settings()
+    if not settings.speech_enabled:
+        sys.exit(
+            "the full evaluation includes voice: set SPEECH_ENABLED=true "
+            "and supply GEMINI_API_KEY before making paid calls"
+        )
     engine = create_engine(sqlalchemy_url(settings.database_url))
     kb = KnowledgeBase(engine, bge_m3())
-    gemini = GeminiClient(settings.gemini_api_key)
-    text = run(eval_sets.SETS, EVAL / "results", kb, gemini, Lexicon.load())
+    ai = AIClient(settings)
+    text = run(eval_sets.SETS, EVAL / "results", kb, ai, Lexicon.load())
     (EVAL / "report.md").write_text(text, encoding="utf-8")
     print(text)

@@ -27,7 +27,7 @@ def test_compose_migrates_with_reserved_password_and_generates_on_host(tmp_path:
         f"POSTGRES_PASSWORD={password}\nDATABASE_URL=postgresql://unused\n"
         "WHATSAPP_VERIFY_TOKEN=unused\nWHATSAPP_APP_SECRET=unused\n"
         "WHATSAPP_ACCESS_TOKEN=unused\nWHATSAPP_PHONE_NUMBER_ID=unused\n"
-        "GEMINI_API_KEY=unused\n"
+        "ANTHROPIC_API_KEY=unused\n"
     )
     # Check app health inside its container without reserving a host port.
     (tmp_path / "compose.test.yaml").write_text(

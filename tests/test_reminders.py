@@ -15,7 +15,7 @@ class ReminderWorld(World):
     def __init__(self, engine: Engine):
         super().__init__(engine)
         worker = self.worker
-        self.reminders = Reminders(engine, worker.whatsapp, worker.gemini, self.cases_)
+        self.reminders = Reminders(engine, worker.whatsapp, worker.ai, self.cases_)
         self.agents["reminder"] = self.reminders.handle
         self.agents["escalation"] = self.cases_.answer
 

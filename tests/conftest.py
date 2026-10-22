@@ -16,6 +16,7 @@ REQUIRED_ENV = (
     "WHATSAPP_ACCESS_TOKEN",
     "WHATSAPP_PHONE_NUMBER_ID",
     "GEMINI_API_KEY",
+    "ANTHROPIC_API_KEY",
 )
 ALEMBIC_INI = Path(__file__).parents[1] / "alembic.ini"
 

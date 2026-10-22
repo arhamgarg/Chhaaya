@@ -9,16 +9,18 @@ import pytest
 from sqlalchemy import Engine, text
 from test_audio import tone
 
+from chhaaya.ai import AIClient
 from chhaaya.cases import Cases
-from chhaaya.gemini import LANGUAGE_PROMPT, TRANSCRIBE_PROMPT, GeminiClient
+from chhaaya.gemini import LANGUAGE_PROMPT, TRANSCRIBE_PROMPT
+from chhaaya.settings import Settings
 from chhaaya.whatsapp import WhatsAppClient
 from chhaaya.worker import Inbound, Worker
 
 
 class World:
-    """The outside world: Meta and Gemini answer from here, and agents record calls."""
+    """Meta and the AI providers answer from here, and agents record calls."""
 
-    def __init__(self, engine: Engine):
+    def __init__(self, engine: Engine, provider="claude", speech_enabled=True):
         self.engine = engine
         self.sent: list[tuple[str, str]] = []
         self.templates: list[tuple[str, str, list[str]]] = []
@@ -26,11 +28,11 @@ class World:
         self.language: tuple[str, str] | None = ("hi-IN", "Latn")
         self.transcript: str | None = None  # None means speech-to-text is down
         self.transcript_language: str | None = "hi-IN"
-        self.gemini_calls: list[str] = []
-        # Gemini Flash answers each chat request with the next of these, in order.
+        self.ai_calls: list[str] = []
+        # The provider answers each chat request with the next of these, in order.
         self.chat_replies: list[str] = []
         self.chat_requests: list[dict] = []
-        # The Markdown Gemini reads off a photo; None means OCR fails.
+        # The Markdown read off a photo; None means OCR fails.
         self.ocr: str | None = None
         self.images: list[tuple[str, str]] = []  # (to, caption)
         self.whatsapp_up = True
@@ -40,10 +42,27 @@ class World:
             name: self.agent(name) for name in ("qa", "document", "escalation")
         }
         whatsapp = WhatsAppClient("token", "123456", http)
-        gemini = GeminiClient("key", http)
+        ai = AIClient(
+            Settings(
+                _env_file=None,
+                postgres_password="unused",
+                database_url="postgresql://unused",
+                whatsapp_verify_token="unused",
+                whatsapp_app_secret="unused",
+                whatsapp_access_token="unused",
+                whatsapp_phone_number_id="unused",
+                anthropic_api_key="claude-key",
+                gemini_api_key="gemini-key"
+                if provider == "gemini" or speech_enabled
+                else "",
+                ai_provider=provider,
+                speech_enabled=speech_enabled,
+            ),
+            http,
+        )
         self.embedded: list[str] = []
-        self.cases_ = Cases(engine, whatsapp, gemini, self.embed)
-        self.worker = Worker(engine, whatsapp, gemini, self.cases_, self.agents)
+        self.cases_ = Cases(engine, whatsapp, ai, self.embed)
+        self.worker = Worker(engine, whatsapp, ai, self.cases_, self.agents)
 
     def embed(self, texts):
         """A stand-in for BGE-M3: one fixed 1024-dimensional vector per text."""
@@ -55,9 +74,12 @@ class World:
 
     def handle(self, request: httpx2.Request) -> httpx2.Response:
         path = request.url.path
+        if request.url.host == "api.anthropic.com":
+            self.ai_calls.append(path.strip("/"))
+            return self.claude(request)
         if request.url.host == "generativelanguage.googleapis.com":
-            self.gemini_calls.append(path.strip("/"))
-            return self.gemini(request)
+            self.ai_calls.append(path.strip("/"))
+            return self.ai(request)
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
                 return httpx2.Response(200, json={"url": "https://lookaside.example/m"})
@@ -97,7 +119,7 @@ class World:
                 {"wa_id": wa_id},
             ).scalar_one()
 
-    def gemini(self, request: httpx2.Request) -> httpx2.Response:
+    def ai(self, request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.read())
         if "tts:generateContent" in request.url.path:
             part = {
@@ -131,13 +153,42 @@ class World:
                     return httpx2.Response(500, json={"error": {"message": "down"}})
                 text_ = self.ocr
             else:
-                self.chat_requests.append(body)
+                self.chat_requests.append(
+                    {"system": system, "user": body["contents"][0]["parts"][0]["text"]}
+                )
                 text_ = self.chat_replies.pop(0)
             part = {"text": text_}
         return httpx2.Response(
             200,
             json={
                 "candidates": [{"finishReason": "STOP", "content": {"parts": [part]}}]
+            },
+        )
+
+    def claude(self, request: httpx2.Request) -> httpx2.Response:
+        body = json.loads(request.read())
+        if body["system"] == LANGUAGE_PROMPT:
+            if self.language is None:
+                return httpx2.Response(500, json={"error": {"message": "down"}})
+            language, script = self.language
+            answer = json.dumps({"language_code": language, "script_code": script})
+        elif body["messages"][0]["content"][0]["type"] == "image":
+            if self.ocr is None:
+                return httpx2.Response(500, json={"error": {"message": "down"}})
+            answer = self.ocr
+        else:
+            self.chat_requests.append(
+                {
+                    "system": body["system"],
+                    "user": body["messages"][0]["content"][0]["text"],
+                }
+            )
+            answer = self.chat_replies.pop(0)
+        return httpx2.Response(
+            200,
+            json={
+                "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": answer}],
             },
         )
 
@@ -225,10 +276,10 @@ def test_two_workers_never_take_the_same_message(world: World):
     assert all(world.message(i).status == "done" for i in ids)
 
 
-def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_gemini_is_down(
+def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_the_provider_is_down(
     world: World,
 ):
-    world.language = None  # Gemini is down
+    world.language = None  # AI provider is down
     asha = world.add_user("919999999999", "asha")
     patient = world.add_user("911111111111", asha=asha)
     message = world.receive(patient, body="pregnancy mein khoon aa raha hai")
@@ -240,7 +291,7 @@ def test_a_danger_sign_gets_an_urgent_reply_and_a_case_even_if_gemini_is_down(
     assert "108" in reply
     assert world.cases() == [("danger_sign", patient, asha, "open")]
     assert world.message(message).status == "done"
-    assert world.gemini_calls == []
+    assert world.ai_calls == []
     assert world.agent_calls == []
 
 
@@ -301,7 +352,7 @@ def test_an_ashas_message_skips_screening_and_a_photo_goes_to_the_document_agent
     assert world.agent_calls == [("escalation", reply), ("document", photo)]
     assert world.sent == []
     assert world.cases() == []
-    assert world.gemini_calls == []
+    assert world.ai_calls == []
 
 
 def test_a_failed_message_keeps_its_error_and_is_not_retried(world: World):

@@ -22,7 +22,7 @@ In scope:
 
 - **WhatsApp Cloud API test number** as the only channel. The test number can message at most five registered phones, which covers the demo: team phones act as patients and one acts as the ASHA.
 - **Languages:** Hindi (Devanagari), English, and Hinglish (Hindi in Latin script, mixed with English). The reply uses the language and script the patient wrote or spoke in.
-- **Input and output:** text, voice notes and photos in; text and voice notes out.
+- **Input and output:** text and photos in; text out. Speech is deferred by default. `SPEECH_ENABLED=true` and a Gemini key restore the existing voice-note path.
 - **Four jobs:** answer health questions, explain lab reports, read prescriptions (with ASHA confirmation), and send medicine reminders.
 - **Escalation** to a registered ASHA over WhatsApp, with the ASHA's reply relayed back to the patient.
 
@@ -57,10 +57,10 @@ WhatsApp ──> webhook ──> messages table ──> worker
 
 1. **Receive.** The webhook checks Meta's `X-Hub-Signature-256` signature, stores the message keyed by its WhatsApp message id (so retried deliveries are ignored), and returns `200` immediately. WhatsApp retries any webhook that responds slowly.
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
-3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, Gemini's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
+3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, the selected provider's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
 4. **Screen for danger signs** before anything else (section 6).
 5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
-6. **Reply** in the patient's language, as text plus a voice note. Voice replies are short (about 60 words) because a long voice note is hard to follow.
+6. **Reply** in the patient's language, as text plus a voice note when speech is enabled. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
 ## 4. Components
 
@@ -70,16 +70,16 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Service | Python 3.12, FastAPI | All the ML is in Python; one language for the whole backend |
 | Tooling | uv, ruff, ty, pytest | |
 | Database | PostgreSQL 16 + pgvector | Records, the work queue and the vector index in one database |
-| Speech to text | Gemini Flash | Inline audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
-| Text to speech | Gemini Flash TTS | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
-| LLM | Gemini Flash | Hosted Gemini API; data handling follows Google's current API terms. Hindi and Hinglish quality must be evaluated |
-| OCR | Gemini Flash | Inline image input returns Markdown, then a separate JSON extraction is validated |
+| Speech to text (opt-in) | Gemini Flash | Inline audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
+| Text to speech (opt-in) | Gemini Flash TTS | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
+| LLM | Claude Sonnet 5.5 | Hosted Anthropic API with API credits; Hindi and Hinglish quality must be evaluated |
+| OCR | Claude Sonnet 5.5 | Inline image input returns Markdown, then a separate JSON extraction is validated |
 | Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline; embeddings remain local |
 | Intent classifier | MuRIL (base), fine-tuned by us | Pretrained on Indian languages including transliterated text, which matters for Hinglish |
 | Fuzzy matching | rapidfuzz | Medicine-name lookup |
 | Running it | Docker Compose (app, worker, Postgres) and a Cloudflare tunnel for the webhook URL | |
 
-All Gemini calls go through one small client module, so that changing a model version touches a single file.
+Every agent and the evaluation harness use `AIClient` in `src/chhaaya/ai.py`. Claude handles text, language identification and images by default. `AI_PROVIDER=gemini` selects the retained Gemini client as a manual fallback; a failure never switches providers automatically. Speech is off by default. When enabled separately, Gemini handles transcription and synthesis. Both providers use the existing HTTP dependency, with header authentication and no media uploads to persistent provider files.
 
 ## 5. The four agents
 
@@ -98,7 +98,7 @@ The system prompt forbids naming a condition the patient has, changing or starti
 
 ### 5.2 Document agent
 
-A photo goes to Gemini Flash, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
+A photo goes to Claude, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
 
 - **Lab reports** are explained automatically. For each test, code says whether the value is inside, below or above the reference range printed on the report, or that no range is printed. A value past a critical threshold (for example, haemoglobin below 7 g/dL) escalates at once. Critical thresholds live in a data file, and every row cites its source. The patient's age on the report picks the population; without one, the strictest threshold applies. A critical test in a unit the thresholds do not use, or printed without a unit, escalates too, since it cannot be checked; a unitless haemoglobin of 75 could be a critical 75 g/L.
 - **Prescriptions** are never explained until a human has checked them. OCR cannot tell handwriting from print reliably, and a misread drug name can match a different real drug, which a lexicon check will not catch. The agent therefore:
@@ -159,7 +159,7 @@ Photos never reach it.
 **Evaluation.** We report macro-F1 (the F1 score averaged equally over the four labels) per language. We compare against two baselines:
 
 - a keyword rule baseline;
-- zero-shot classification by Gemini Flash.
+- zero-shot classification by the selected text provider (Claude by default).
 
 The classifier earns its place only if it beats the keyword rules and comes close to the LLM at a fraction of the latency and cost. If it does not, we report that honestly.
 
@@ -237,8 +237,8 @@ References:
 |---|---|---|
 | WhatsApp and IVR | WhatsApp only | IVR needs a paid, KYC'd telephony account |
 | "All 22 languages" via IndicBERT, IndicTrans2, IndicWhisper, MuRIL | Hindi, English, Hinglish | The claim was also wrong: IndicWhisper covers 12 languages and MuRIL 17. Every language needs its own checked evaluation set |
-| IndicWhisper for voice output | Gemini Flash in, Gemini Flash TTS out | Whisper models only transcribe; they cannot speak |
-| Self-hosted AI4Bharat models | Gemini APIs | No GPU needed; Gemini for speech, OCR and the LLM, with local embeddings |
+| IndicWhisper for voice output | Optional Gemini Flash in, Gemini Flash TTS out | Speech is deferred by default. Whisper models only transcribe; they cannot speak |
+| Self-hosted AI4Bharat models | Claude, with optional Gemini speech | No GPU needed; Claude for text and OCR, Gemini retained as a manual fallback, and local embeddings |
 | Symptom-disease datasets | Rule-based danger signs | Chhaaya does not diagnose |
 | Trained handwriting recognition | ASHA confirms every prescription | A misread drug name can match another real drug |
 | FastAPI or Node.js; Redis and Celery; FAISS | FastAPI; one Postgres with pgvector and a job table | Fewer moving parts |
