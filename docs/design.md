@@ -25,6 +25,7 @@ In scope:
 - **Input and output:** text and photos in; text out. Speech is deferred by default. `SPEECH_ENABLED=true` and a Sarvam key restore the existing voice-note path.
 - **Four jobs:** answer health questions, explain lab reports, read prescriptions (with ASHA confirmation), and send medicine reminders.
 - **Escalation** to a registered ASHA over WhatsApp, with the ASHA's reply relayed back to the patient.
+- **Browser demo** (optional, local only): one page on `127.0.0.1` where a synthetic patient and ASHA use the same worker, agents and safety checks without WhatsApp. It runs on its own database, which the WhatsApp worker never reads, and stores replies there instead of sending them. Photos stay in memory and speech is off. It is for demonstrations, not a public or clinical service.
 
 Out of scope for the first release:
 
