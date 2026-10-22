@@ -140,6 +140,8 @@ class Worker:
         False means the transcript is empty or in an unsupported language.
         """
         try:
+            if not self.ai.speech_enabled:
+                raise ValueError("speech is disabled; send a typed message")
             audio = self.whatsapp.download_media(message.media_id or "")
             body, language, script = self.ai.transcribe(audio, "audio/ogg")
         except Exception:

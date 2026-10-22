@@ -154,10 +154,16 @@ def test_a_text_question_works_without_speech_and_duplicate_delivery_is_ignored(
 def test_a_deferred_voice_note_asks_for_text_without_calling_an_ai_provider(
     client,
     engine,
+    monkeypatch,
 ):
     from sqlalchemy import text
 
     world = World(engine, speech_enabled=False)
+
+    def no_download(_):
+        pytest.fail("disabled speech must not download the voice note")
+
+    monkeypatch.setattr(world.worker.whatsapp, "download_media", no_download)
     assert (
         post(
             client,
