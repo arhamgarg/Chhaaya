@@ -702,7 +702,7 @@ def main() -> None:
     if not settings.speech_enabled:
         sys.exit(
             "the full evaluation includes voice: set SPEECH_ENABLED=true "
-            "and supply GEMINI_API_KEY before making paid calls"
+            "and supply SARVAM_API_KEY before making paid calls"
         )
     engine = create_engine(sqlalchemy_url(settings.database_url))
     kb = KnowledgeBase(engine, bge_m3())

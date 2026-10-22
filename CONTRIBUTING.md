@@ -61,7 +61,7 @@ Push only after the local gates pass. Open a non-draft PR against `main` whose d
 4. `## Key files`: the files to review first;
 5. `## Risks and limitations`;
 6. `## Verification`: exact commands and results;
-7. `## External checks`: the live Gemini or WhatsApp checks not performed;
+7. `## External checks`: the live Claude, Sarvam or WhatsApp checks not performed;
 8. `## Independent review`: only when review was chosen, a placeholder until the review approves.
 
 ## 7. Wait for green

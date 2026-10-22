@@ -12,7 +12,7 @@ from chhaaya.qa import QaAgent
 from chhaaya.retrieval import KnowledgeBase
 
 
-@pytest.mark.parametrize("provider", ["claude", "gemini"])
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
 @pytest.mark.parametrize("kind", ["text", "audio"])
 @pytest.mark.parametrize(
     "cited", [True, False], ids=["grounded-reply", "uncited-answer-escalates"]
@@ -61,7 +61,7 @@ def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
     assert not world.worker.work_one()  # Meta's retry cannot send another reply.
 
 
-@pytest.mark.parametrize("provider", ["claude", "gemini"])
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
 @pytest.mark.parametrize("image_format", ["jpeg", "png"])
 def test_a_prescription_webhook_waits_for_asha_confirmation(
     client, engine, provider, image_format

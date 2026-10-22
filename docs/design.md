@@ -22,7 +22,7 @@ In scope:
 
 - **WhatsApp Cloud API test number** as the only channel. The test number can message at most five registered phones, which covers the demo: team phones act as patients and one acts as the ASHA.
 - **Languages:** Hindi (Devanagari), English, and Hinglish (Hindi in Latin script, mixed with English). The reply uses the language and script the patient wrote or spoke in.
-- **Input and output:** text and photos in; text out. Speech is deferred by default. `SPEECH_ENABLED=true` and a Gemini key restore the existing voice-note path.
+- **Input and output:** text and photos in; text out. Speech is deferred by default. `SPEECH_ENABLED=true` and a Sarvam key restore the existing voice-note path.
 - **Four jobs:** answer health questions, explain lab reports, read prescriptions (with ASHA confirmation), and send medicine reminders.
 - **Escalation** to a registered ASHA over WhatsApp, with the ASHA's reply relayed back to the patient.
 
@@ -70,8 +70,8 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Service | Python 3.12, FastAPI | All the ML is in Python; one language for the whole backend |
 | Tooling | uv, ruff, ty, pytest | |
 | Database | PostgreSQL 16 + pgvector | Records, the work queue and the vector index in one database |
-| Speech to text (opt-in) | Gemini Flash | Inline audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
-| Text to speech (opt-in) | Gemini Flash TTS | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
+| Speech to text (opt-in) | Sarvam Saaras v4 | Audio transcription with language detection; Hindi, English and code-mixed speech require evaluation |
+| Text to speech (opt-in) | Sarvam Bulbul v4 Flash | Hindi and English voices; ffmpeg converts the output to OGG/Opus, which WhatsApp shows as a voice note |
 | LLM | Claude Sonnet 5.5 | Hosted Anthropic API with API credits; Hindi and Hinglish quality must be evaluated |
 | OCR | Claude Sonnet 5.5 | Inline image input returns Markdown, then a separate JSON extraction is validated |
 | Embeddings | BGE-M3, run locally | Multilingual, so a Hindi query can match an English guideline; embeddings remain local |
@@ -79,7 +79,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 | Fuzzy matching | rapidfuzz | Medicine-name lookup |
 | Running it | Docker Compose (app, worker, Postgres) and a Cloudflare tunnel for the webhook URL | |
 
-Every agent and the evaluation harness use `AIClient` in `src/chhaaya/ai.py`. Claude handles text, language identification and images by default. `AI_PROVIDER=gemini` selects the retained Gemini client as a manual fallback; a failure never switches providers automatically. Speech is off by default. When enabled separately, Gemini handles transcription and synthesis. Both providers use the existing HTTP dependency, with header authentication and no media uploads to persistent provider files.
+Every agent and the evaluation harness use `AIClient` in `src/chhaaya/ai.py`. Claude handles text, language identification and images by default. `AI_PROVIDER=sarvam` selects the retained Sarvam client as a manual fallback; a failure never switches providers automatically. Speech is off by default. When enabled separately, Sarvam handles transcription and synthesis. Both providers use the existing HTTP dependency and header authentication. Claude reads images inline. The Sarvam fallback uploads each image to a Vision job and downloads its Markdown output from a signed URL without sending the API key to storage.
 
 ## 5. The four agents
 
@@ -237,8 +237,8 @@ References:
 |---|---|---|
 | WhatsApp and IVR | WhatsApp only | IVR needs a paid, KYC'd telephony account |
 | "All 22 languages" via IndicBERT, IndicTrans2, IndicWhisper, MuRIL | Hindi, English, Hinglish | The claim was also wrong: IndicWhisper covers 12 languages and MuRIL 17. Every language needs its own checked evaluation set |
-| IndicWhisper for voice output | Optional Gemini Flash in, Gemini Flash TTS out | Speech is deferred by default. Whisper models only transcribe; they cannot speak |
-| Self-hosted AI4Bharat models | Claude, with optional Gemini speech | No GPU needed; Claude for text and OCR, Gemini retained as a manual fallback, and local embeddings |
+| IndicWhisper for voice output | Optional Sarvam Saaras v4 in, Sarvam Bulbul v4 Flash out | Speech is deferred by default. Whisper models only transcribe; they cannot speak |
+| Self-hosted AI4Bharat models | Claude, with optional Sarvam speech | No GPU needed; Claude for text and OCR, Sarvam retained as a manual fallback, and local embeddings |
 | Symptom-disease datasets | Rule-based danger signs | Chhaaya does not diagnose |
 | Trained handwriting recognition | ASHA confirms every prescription | A misread drug name can match another real drug |
 | FastAPI or Node.js; Redis and Celery; FAISS | FastAPI; one Postgres with pgvector and a job table | Fewer moving parts |

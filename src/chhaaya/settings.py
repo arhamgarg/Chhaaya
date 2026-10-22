@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     whatsapp_app_secret: str = Field(min_length=1)
     whatsapp_access_token: str = Field(min_length=1)
     whatsapp_phone_number_id: str = Field(min_length=1)
-    ai_provider: Literal["claude", "gemini"] = "claude"
+    ai_provider: Literal["claude", "sarvam"] = "claude"
     anthropic_api_key: str = ""
-    gemini_api_key: str = ""
+    sarvam_api_key: str = ""
     speech_enabled: bool = False
     # Read by Compose for the optional `tunnel` profile, not by the service.
     cloudflare_tunnel_token: str | None = None
@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     def provider_credentials(self) -> Self:
         if self.ai_provider == "claude" and not self.anthropic_api_key.strip():
             raise ValueError("ANTHROPIC_API_KEY is required for AI_PROVIDER=claude")
-        if (self.ai_provider == "gemini" or self.speech_enabled) and not (
-            self.gemini_api_key.strip()
+        if (self.ai_provider == "sarvam" or self.speech_enabled) and not (
+            self.sarvam_api_key.strip()
         ):
-            raise ValueError("GEMINI_API_KEY is required for Gemini or enabled speech")
+            raise ValueError("SARVAM_API_KEY is required for Sarvam or enabled speech")
         return self

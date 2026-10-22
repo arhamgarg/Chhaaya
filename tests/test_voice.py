@@ -16,33 +16,17 @@ def clients(speech_works: bool):
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
-        if request.url.host == "generativelanguage.googleapis.com":
+        if request.url.host == "api.sarvam.ai":
             if not speech_works:
                 return httpx2.Response(
                     500,
-                    json={"error": {"message": "down"}},
+                    json={"error": {"message": "down", "request_id": "r1"}},
                     headers={"x-request-id": "r1"},
                 )
             audio = base64.b64encode(tone(0.5)).decode()
             return httpx2.Response(
                 200,
-                json={
-                    "candidates": [
-                        {
-                            "finishReason": "STOP",
-                            "content": {
-                                "parts": [
-                                    {
-                                        "inlineData": {
-                                            "mimeType": "audio/wav",
-                                            "data": audio,
-                                        }
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
+                json={"audios": [audio]},
             )
         if request.url.path.endswith("/media"):
             return httpx2.Response(200, json={"id": "media-up"})
@@ -58,7 +42,7 @@ def clients(speech_works: bool):
         whatsapp_access_token="unused",
         whatsapp_phone_number_id="unused",
         anthropic_api_key="claude-key",
-        gemini_api_key="gemini-key",
+        sarvam_api_key="sarvam-key",
         speech_enabled=True,
     )
     return WhatsAppClient("token", "123", http), AIClient(settings, http), requests
@@ -72,7 +56,7 @@ def test_a_reply_goes_out_as_text_then_as_an_opus_voice_note():
     paths = [request.url.path for request in requests]
     assert paths == [
         "/v23.0/123/messages",
-        "/v1beta/models/gemini-3.8-flash-tts:generateContent",
+        "/text-to-speech",
         "/v23.0/123/media",
         "/v23.0/123/messages",
     ]
@@ -91,7 +75,7 @@ def test_when_speech_fails_the_text_has_already_gone_and_nothing_raises(
 
     assert [r.url.path for r in requests] == [
         "/v23.0/123/messages",
-        "/v1beta/models/gemini-3.8-flash-tts:generateContent",
+        "/text-to-speech",
     ]
     assert "r1" in caplog.text
     assert "911111111111" not in caplog.text

@@ -1,22 +1,22 @@
-"""Select Claude or the manual Gemini fallback, with speech enabled separately."""
+"""Select Claude or the manual Sarvam fallback, with speech enabled separately."""
 
 import httpx2
 
 from chhaaya.claude import ClaudeClient
-from chhaaya.gemini import GeminiClient
+from chhaaya.sarvam import SarvamClient
 from chhaaya.settings import Settings
 
 
 class AIClient:
     def __init__(self, settings: Settings, http: httpx2.Client | None = None) -> None:
-        gemini = GeminiClient(settings.gemini_api_key, http)
+        sarvam = SarvamClient(settings.sarvam_api_key, http)
         self.text = (
             ClaudeClient(settings.anthropic_api_key, http)
             if settings.ai_provider == "claude"
-            else gemini
+            else sarvam
         )
         self.speech_enabled = settings.speech_enabled
-        self.speech = gemini if self.speech_enabled else None
+        self.speech = sarvam if self.speech_enabled else None
 
     def chat(self, system: str, user: str) -> str:
         return self.text.chat(system, user)

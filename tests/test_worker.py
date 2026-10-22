@@ -1,7 +1,9 @@
 import base64
+import io
 import json
 import threading
 import time
+import zipfile
 from collections.abc import Callable
 
 import httpx2
@@ -11,7 +13,7 @@ from test_audio import tone
 
 from chhaaya.ai import AIClient
 from chhaaya.cases import Cases
-from chhaaya.gemini import LANGUAGE_PROMPT, TRANSCRIBE_PROMPT
+from chhaaya.claude import LANGUAGE_PROMPT
 from chhaaya.settings import Settings
 from chhaaya.whatsapp import WhatsAppClient
 from chhaaya.worker import Inbound, Worker
@@ -54,8 +56,8 @@ class World:
                 whatsapp_access_token="unused",
                 whatsapp_phone_number_id="unused",
                 anthropic_api_key="claude-key",
-                gemini_api_key="gemini-key"
-                if provider == "gemini" or speech_enabled
+                sarvam_api_key="sarvam-key"
+                if provider == "sarvam" or speech_enabled
                 else "",
                 ai_provider=provider,
                 speech_enabled=speech_enabled,
@@ -79,9 +81,11 @@ class World:
         if request.url.host == "api.anthropic.com":
             self.ai_calls.append(path.strip("/"))
             return self.claude(request)
-        if request.url.host == "generativelanguage.googleapis.com":
+        if request.url.host == "api.sarvam.ai":
             self.ai_calls.append(path.strip("/"))
-            return self.ai(request)
+            return self.sarvam(request)
+        if request.url.host == "files.sarvam.example":
+            return httpx2.Response(200, content=self.vision_output())
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
                 return httpx2.Response(200, json={"url": "https://lookaside.example/m"})
@@ -121,56 +125,71 @@ class World:
                 {"wa_id": wa_id},
             ).scalar_one()
 
-    def ai(self, request: httpx2.Request) -> httpx2.Response:
-        body = json.loads(request.read())
-        if "tts:generateContent" in request.url.path:
-            part = {
-                "inlineData": {
-                    "mimeType": "audio/wav",
-                    "data": base64.b64encode(tone(0.3)).decode(),
-                }
-            }
-        else:
-            system = (
-                body.get("systemInstruction", {}).get("parts", [{}])[0].get("text", "")
+    def sarvam(self, request: httpx2.Request) -> httpx2.Response:
+        path = request.url.path
+        if path.endswith("/digitise"):
+            body = request.read()
+            extension = "jpg" if self.media_type == "image/jpeg" else "png"
+            if (
+                self.media not in body
+                or f"Content-Type: {self.media_type}\r\n".encode() not in body
+                or f'filename="photo.{extension}"'.encode() not in body
+            ):
+                return httpx2.Response(400, json={"error": "image type mismatch"})
+            return httpx2.Response(202, json={"job_id": "job-1"})
+        if path.endswith("/status"):
+            return httpx2.Response(
+                200, json={"status": "completed" if self.ocr is not None else "failed"}
             )
-            media = body["contents"][0]["parts"][0].get("inlineData")
-            if system == LANGUAGE_PROMPT:
-                if self.language is None:
-                    return httpx2.Response(500, json={"error": {"message": "down"}})
-                language, script = self.language
-                text_ = json.dumps({"language_code": language, "script_code": script})
-            elif system == TRANSCRIBE_PROMPT:
-                if self.transcript is None:
-                    return httpx2.Response(500, json={"error": {"message": "down"}})
-                text_ = json.dumps(
-                    {
-                        "transcript": self.transcript,
-                        "language_code": self.transcript_language,
-                        "script_code": "Latn",
-                    }
-                )
-            elif media:
-                if (
-                    base64.b64decode(media["data"]) != self.media
-                    or media["mimeType"] != self.media_type
-                ):
-                    return httpx2.Response(400, json={"error": "image type mismatch"})
-                if self.ocr is None:
-                    return httpx2.Response(500, json={"error": {"message": "down"}})
-                text_ = self.ocr
-            else:
-                self.chat_requests.append(
-                    {"system": system, "user": body["contents"][0]["parts"][0]["text"]}
-                )
-                text_ = self.chat_replies.pop(0)
-            part = {"text": text_}
+        if path.endswith("/download-url"):
+            return httpx2.Response(
+                200, json={"url": "https://files.sarvam.example/job-1.zip"}
+            )
+        if path.endswith("text-to-speech"):
+            return httpx2.Response(
+                200, json={"audios": [base64.b64encode(tone(0.3)).decode()]}
+            )
+        if path.endswith("speech-to-text"):
+            if self.transcript is None:
+                return httpx2.Response(500, json={"error": {"message": "down"}})
+            return httpx2.Response(
+                200,
+                json={
+                    "transcript": self.transcript,
+                    "language_code": self.transcript_language,
+                },
+            )
+        if path.endswith("chat/completions"):
+            body = json.loads(request.read())
+            self.chat_requests.append(
+                {
+                    "system": body["messages"][0]["content"],
+                    "user": body["messages"][1]["content"],
+                }
+            )
+            return httpx2.Response(
+                200,
+                json={
+                    "choices": [
+                        {
+                            "finish_reason": "stop",
+                            "message": {"content": self.chat_replies.pop(0)},
+                        }
+                    ]
+                },
+            )
+        if self.language is None:
+            return httpx2.Response(500, json={"error": {"message": "down"}})
+        language, script = self.language
         return httpx2.Response(
-            200,
-            json={
-                "candidates": [{"finishReason": "STOP", "content": {"parts": [part]}}]
-            },
+            200, json={"language_code": language, "script_code": script}
         )
+
+    def vision_output(self) -> bytes:
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("photo.md", self.ocr or "")
+        return archive.getvalue()
 
     def claude(self, request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.read())

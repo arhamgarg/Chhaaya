@@ -25,7 +25,7 @@ def settings(**overrides):
     )
 
 
-@pytest.mark.parametrize("provider", ["claude", "gemini"])
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
 def test_selected_provider_answers_without_calling_the_other_provider(provider):
     def handler(request):
         if provider == "claude":
@@ -35,12 +35,12 @@ def test_selected_provider_answers_without_calling_the_other_provider(provider):
                 "content": [{"type": "text", "text": "Ask your ASHA [12]."}],
             }
         else:
-            assert request.url.host == "generativelanguage.googleapis.com"
+            assert request.url.host == "api.sarvam.ai"
             payload = {
-                "candidates": [
+                "choices": [
                     {
-                        "finishReason": "STOP",
-                        "content": {"parts": [{"text": "Ask your ASHA [12]."}]},
+                        "finish_reason": "stop",
+                        "message": {"content": "Ask your ASHA [12]."},
                     }
                 ]
             }
@@ -50,14 +50,14 @@ def test_selected_provider_answers_without_calling_the_other_provider(provider):
         settings(
             ai_provider=provider,
             anthropic_api_key="claude" if provider == "claude" else "",
-            gemini_api_key="gemini" if provider == "gemini" else "",
+            sarvam_api_key="sarvam" if provider == "sarvam" else "",
         ),
         httpx2.Client(transport=httpx2.MockTransport(handler)),
     )
     assert ai.chat("Only cite sources", "Question") == "Ask your ASHA [12]."
 
 
-def test_a_claude_failure_is_reported_without_sending_patient_text_to_gemini():
+def test_a_claude_failure_is_reported_without_sending_patient_text_to_sarvam():
     calls = []
 
     def handler(request):
@@ -65,7 +65,7 @@ def test_a_claude_failure_is_reported_without_sending_patient_text_to_gemini():
         return httpx2.Response(429, json={"error": {"message": "quota"}})
 
     ai = AIClient(
-        settings(anthropic_api_key="claude", gemini_api_key="gemini"),
+        settings(anthropic_api_key="claude", sarvam_api_key="sarvam"),
         httpx2.Client(transport=httpx2.MockTransport(handler)),
     )
     with pytest.raises(httpx2.HTTPStatusError):
@@ -78,7 +78,7 @@ def test_deferred_speech_does_not_call_a_paid_provider():
         pytest.fail(f"speech must not call {request.url.host}")
 
     ai = AIClient(
-        settings(anthropic_api_key="claude", gemini_api_key="gemini"),
+        settings(anthropic_api_key="claude", sarvam_api_key="sarvam"),
         httpx2.Client(transport=httpx2.MockTransport(handler)),
     )
     with pytest.raises(ValueError, match="speech is disabled"):
@@ -87,9 +87,9 @@ def test_deferred_speech_does_not_call_a_paid_provider():
         ai.synthesize("hello", "en")
 
 
-def test_opted_in_speech_keeps_gemini_and_preserves_an_unsupported_transcript():
+def test_opted_in_speech_keeps_sarvam_and_preserves_an_unsupported_transcript():
     def handler(request):
-        assert request.url.host == "generativelanguage.googleapis.com"
+        assert request.url.host == "api.sarvam.ai"
         text = json.dumps(
             {
                 "transcript": "baby has convulsions",
@@ -97,21 +97,11 @@ def test_opted_in_speech_keeps_gemini_and_preserves_an_unsupported_transcript():
                 "script_code": "Latn",
             }
         )
-        return httpx2.Response(
-            200,
-            json={
-                "candidates": [
-                    {
-                        "finishReason": "STOP",
-                        "content": {"parts": [{"text": text}]},
-                    }
-                ]
-            },
-        )
+        return httpx2.Response(200, json=json.loads(text))
 
     ai = AIClient(
         settings(
-            anthropic_api_key="claude", gemini_api_key="gemini", speech_enabled=True
+            anthropic_api_key="claude", sarvam_api_key="sarvam", speech_enabled=True
         ),
         httpx2.Client(transport=httpx2.MockTransport(handler)),
     )
@@ -126,8 +116,8 @@ def test_opted_in_speech_keeps_gemini_and_preserves_an_unsupported_transcript():
     "configuration",
     [
         {"ai_provider": "claude", "anthropic_api_key": ""},
-        {"ai_provider": "gemini", "gemini_api_key": ""},
-        {"anthropic_api_key": "claude", "speech_enabled": True, "gemini_api_key": ""},
+        {"ai_provider": "sarvam", "sarvam_api_key": ""},
+        {"anthropic_api_key": "claude", "speech_enabled": True, "sarvam_api_key": ""},
         {"ai_provider": "unknown"},
     ],
 )

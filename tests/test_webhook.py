@@ -194,7 +194,7 @@ def test_startup_errors_do_not_log_credentials(tmp_path):
         "WHATSAPP_VERIFY_TOKEN": "synthetic-verify-token",
         "WHATSAPP_APP_SECRET": "synthetic-app-secret",
         "WHATSAPP_ACCESS_TOKEN": "synthetic-access-token",
-        "GEMINI_API_KEY": "synthetic-gemini-key",
+        "SARVAM_API_KEY": "synthetic-sarvam-key",
         "ANTHROPIC_API_KEY": "synthetic-anthropic-key",
     }
     env.pop("WHATSAPP_PHONE_NUMBER_ID", None)
@@ -224,7 +224,7 @@ def test_startup_errors_do_not_log_credentials(tmp_path):
         "WHATSAPP_VERIFY_TOKEN",
         "WHATSAPP_APP_SECRET",
         "WHATSAPP_ACCESS_TOKEN",
-        "GEMINI_API_KEY",
+        "SARVAM_API_KEY",
         "ANTHROPIC_API_KEY",
     ):
         assert env[name] not in output
