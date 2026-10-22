@@ -1,3 +1,5 @@
 .venv
 .git
 .env
+data/intent/model
+data/intent/intent-training-*

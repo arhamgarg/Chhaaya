@@ -116,7 +116,7 @@ Reminders are set by the patient saying something like "subah 8 baje aur raat 8 
 
 At each due time, the worker sends the reminder. The patient replies (for example "le li" or "taken") to mark the dose as taken. A dose not marked taken by the time the next one is due counts as missed. After three missed doses in a row, the ASHA is told, once per run of misses. Reminder times are India times of day; due times are stored in UTC.
 
-Until the intent classifier is trained (section 7), keyword rules route reminder messages: a message naming a reminder ("yaad", "remind", "याद"), a yes or no while a read-back waits, or a message saying only that a dose was taken while one is pending. Everything else is a question.
+The local classifier routes new reminder requests (section 7). Exact yes/no replies to a pending read-back, and an exact taken reply while a dose is pending, belong to that existing conversation and keep their deterministic state checks.
 
 WhatsApp only allows free-form messages within 24 hours of the patient's last message. Outside that window, reminders must go out as a pre-approved message template (`medicine_reminder`). The ASHA's case alerts (`asha_case_alert`) and relayed replies (`case_update`) work the same way.
 
@@ -163,9 +163,11 @@ Photos never reach it.
 **Evaluation.** We report macro-F1 (the F1 score averaged equally over the four labels) per language. We compare against two baselines:
 
 - a keyword rule baseline;
-- zero-shot classification by the selected text provider (Claude by default).
+- zero-shot classification by Sarvam-105B, explicitly enabled for the benchmark even when Claude handles patient messages.
 
 The classifier earns its place only if it beats the keyword rules and comes close to the LLM at a fraction of the latency and cost. If it does not, we report that honestly.
+
+`python -m chhaaya.intent train` fine-tunes the pinned MuRIL revision on the training CSV with seed 42, five epochs, batch size eight, learning rate 0.00002, weight decay 0.01 and 64-token inputs. The checkpoint records these settings and the training-data checksum. Training uses MPS when available or CPU; inference always uses CPU. The test set never chooses weights or thresholds. New messages with confidence below the fixed 0.8 threshold become questions. A predicted reminder reply also becomes a question when there is no pending reminder. A missing or invalid checkpoint fails explicitly; it never silently restores keyword routing. The worker loads the checkpoint lazily after the original-text danger screen. Small talk receives a canned response in the patient's language and script.
 
 ## 8. Data
 

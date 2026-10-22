@@ -12,7 +12,7 @@ from sqlalchemy import Engine, create_engine, text
 
 from chhaaya import danger_signs, reminders
 from chhaaya.ai import AIClient
-from chhaaya.cases import Cases
+from chhaaya.cases import Cases, in_language
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
@@ -20,7 +20,7 @@ from chhaaya.qa import QaAgent
 from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.settings import Settings
-from chhaaya.voice import send_voice
+from chhaaya.voice import send_reply, send_voice
 from chhaaya.whatsapp import WhatsAppClient
 
 log = logging.getLogger("chhaaya.worker")
@@ -82,6 +82,7 @@ class Worker:
     cases: Cases
     # "qa", "document", "reminder" and "escalation" each take the message and reply.
     agents: dict[str, Callable[[Inbound], None]]
+    classify: Callable[[str], str]
 
     def work_one(self) -> bool:
         """Process the oldest pending message; False when there is none."""
@@ -126,8 +127,37 @@ class Worker:
             return self.route("document", message)
         if message.kind == "text":
             message = self.store_language(message)
-        wants = reminders.wants(self.engine, message)
-        self.route("reminder" if wants else "qa", message)
+        # A confirmation belongs to the pending conversation, not a new intent.
+        if reminders.is_pending_reply(self.engine, message):
+            return self.route("reminder", message)
+        intent = self.classify(message.body or "")
+        if intent == "reminder_reply":
+            with self.engine.connect() as conn:
+                pending = reminders.has_drafts(conn, message.user_id) or (
+                    reminders.has_pending_doses(conn, message.user_id)
+                )
+            if not pending:
+                intent = "question"
+        if intent == "smalltalk":
+            reply = in_language(
+                {
+                    "en": "Hello. Send a health question or a photo of a report. "
+                    "I can help with reminders and contact your ASHA.",
+                    "hi": "नमस्ते। स्वास्थ्य का सवाल या रिपोर्ट की फोटो भेजें। "
+                    "मैं दवा की याद दिलाने और आपकी आशा से संपर्क में मदद कर सकती हूँ।",
+                    "hi-Latn": "Namaste. Sehat ka sawal ya report ki photo bhejein. "
+                    "Main dawa ki yaad dilane aur aapki ASHA se sampark mein "
+                    "madad kar sakti hoon.",
+                },
+                message.language,
+                message.script,
+            )
+            return send_reply(
+                self.whatsapp, self.ai, message.wa_id, reply, message.language
+            )
+        if intent not in {"question", "reminder_setup", "reminder_reply"}:
+            raise ValueError(f"unknown classified intent: {intent!r}")
+        self.route("qa" if intent == "question" else "reminder", message)
 
     def route(self, agent: str, message: Inbound) -> None:
         if agent not in self.agents:
@@ -209,7 +239,17 @@ def main() -> None:
     # held up by the 2 GB model download.
     load = functools.cache(bge_m3)
     cases = Cases(engine, whatsapp, ai, lambda texts: load()(texts))
-    worker = Worker(engine, whatsapp, ai, cases, {"escalation": cases.answer})
+    from chhaaya.intent import Classifier
+
+    classifier = functools.cache(lambda: Classifier(settings.intent_model_path))
+    worker = Worker(
+        engine,
+        whatsapp,
+        ai,
+        cases,
+        {"escalation": cases.answer},
+        lambda body: classifier()(body),
+    )
     lexicon = functools.cache(Lexicon.load)
     worker.agents["document"] = DocumentAgent(ai, whatsapp, cases, lexicon).read
     kb = KnowledgeBase(engine, lambda texts: load()(texts))

@@ -25,8 +25,7 @@ IST = timezone(timedelta(hours=5, minutes=30), "IST")
 # confirm.
 DRAFT_LIFETIME = timedelta(hours=24)
 MISSED_IN_A_ROW = 3
-# Until the intent classifier routes messages (design section 7), these rules pick
-# out the messages for this agent; everything else stays a question.
+# Retained for the explicit keyword baseline, not for routing new requests.
 ASKS = re.compile(r"remind|reminder|yaad|याद|रिमाइंडर", re.IGNORECASE)
 TOOK = {"taken", "took", "li", "liya", "lia", "khai", "done", "ली", "लिया", "खाई"}
 TAKEN_WORDS = TOOK | {
@@ -121,11 +120,9 @@ def declines(message: str) -> bool:
     return bool(said) and said <= DECLINES
 
 
-def wants(engine: Engine, message: "Inbound") -> bool:
-    """Whether a patient's text is for this agent rather than a question."""
+def is_pending_reply(engine: Engine, message: "Inbound") -> bool:
+    """An exact confirmation or taken reply belonging to an existing reminder."""
     body = message.body or ""
-    if ASKS.search(body):
-        return True
     with engine.connect() as conn:
         if confirms(body) or declines(body):
             return has_drafts(conn, message.user_id)

@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import Engine, text
 from test_audio import tone
 
+from chhaaya import reminders
 from chhaaya.ai import AIClient
 from chhaaya.cases import Cases
 from chhaaya.claude import LANGUAGE_PROMPT
@@ -69,7 +70,17 @@ class World:
         )
         self.embedded: list[str] = []
         self.cases_ = Cases(engine, whatsapp, ai, self.embed)
-        self.worker = Worker(engine, whatsapp, ai, self.cases_, self.agents)
+        # Most tests mock the classifier boundary; test_intent_flow loads a real one.
+        self.worker = Worker(
+            engine,
+            whatsapp,
+            ai,
+            self.cases_,
+            self.agents,
+            lambda body: (
+                "reminder_setup" if reminders.ASKS.search(body) else "question"
+            ),
+        )
 
     def embed(self, texts):
         """A stand-in for BGE-M3: one fixed 1024-dimensional vector per text."""

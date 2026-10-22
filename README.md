@@ -2,7 +2,7 @@
 
 Chhaaya is a WhatsApp health assistant for rural patients in India. You send it a voice note, a message or a photo, in Hindi, English or Hinglish. It answers from Indian public-health guidelines, explains your lab report in plain words, reminds you to take your medicines, and passes anything urgent or uncertain to your ASHA worker. It does not diagnose.
 
-The project is at an early stage: the service skeleton runs, the features do not exist yet. [docs/design.md](docs/design.md) is the specification, and the open issues are the work plan.
+Train the local intent router and configure the providers before starting the worker. [docs/design.md](docs/design.md) is the specification, and the evaluation reports the measured limitations.
 
 ## How it works
 
@@ -20,6 +20,7 @@ Questions are answered by retrieving passages from MoHFW, ICMR and NHM documents
 
 ```bash
 cp .env.example .env   # then set POSTGRES_PASSWORD, WHATSAPP_* and ANTHROPIC_API_KEY
+uv run python -m chhaaya.intent train  # download MuRIL and train the local router
 docker compose up --build
 curl localhost:8000/health
 ```
@@ -186,6 +187,16 @@ The router that sends each message to the Q&A or reminder agent is trained on la
 
 ```bash
 uv run python -m chhaaya.intent_data data/intent/agreement/Ananya.csv data/intent/agreement/Arham.csv
+```
+
+## Intent classifier
+
+The worker routes new text messages with a fine-tuned [MuRIL](https://huggingface.co/google/muril-base-cased) model on CPU. `python -m chhaaya.intent train` trains every parameter on the 900 training rows with seed 42 and fixed hyperparameters, records them with the dataset checksum in `training.json`, and saves a local checkpoint in `data/intent/model`. It uses MPS for training when available, otherwise CPU. The test set is never used for training or choosing the fixed 0.8 confidence threshold. Lower confidence becomes `question`. Exact replies to a pending reminder retain their state checks, and a predicted reminder reply without a pending reminder becomes a question. Photos and original-text emergencies run before classification. Small talk gets a canned reply in the patient's language and script. A missing or invalid checkpoint fails explicitly. `INTENT_MODEL_PATH` changes the native worker's checkpoint path; Compose mounts the default directory read-only. The explicit benchmark compares all four labels against keyword rules and zero-shot Sarvam-105B, even when Claude handles patient messages. It records macro-F1 from the first pass, three passes of per-message timings, per-language median timings and their spread, and every prediction in a CSV. Completed predictions remain available if a later provider call fails; a failed run has no summary JSON. Use a new output path for another run.
+
+```bash
+uv run python -m chhaaya.intent train
+uv run python -m chhaaya.intent evaluate --sarvam   # paid baseline; needs SARVAM_API_KEY
+uv run pytest tests/test_intent_flow.py
 ```
 
 ## Evaluation sets

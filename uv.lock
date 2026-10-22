@@ -211,6 +211,7 @@ dependencies = [
     { name = "tokenizers" },
     { name = "torch", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torch", version = "2.14.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
+    { name = "transformers" },
     { name = "uvicorn" },
 ]
 
@@ -239,6 +240,7 @@ requires-dist = [
     { name = "tokenizers", specifier = ">=0.23.3" },
     { name = "torch", marker = "sys_platform != 'linux'", specifier = ">=2.14.1" },
     { name = "torch", marker = "sys_platform == 'linux'", specifier = ">=2.14.1", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "transformers", specifier = ">=5.19.0" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 
