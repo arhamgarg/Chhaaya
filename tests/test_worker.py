@@ -34,6 +34,8 @@ class World:
         self.chat_requests: list[dict] = []
         # The Markdown read off a photo; None means OCR fails.
         self.ocr: str | None = None
+        self.media = b"OggS-inbound"
+        self.media_type = "image/jpeg"
         self.images: list[tuple[str, str]] = []  # (to, caption)
         self.whatsapp_up = True
         self.agent_calls: list[tuple[str, int]] = []
@@ -83,7 +85,7 @@ class World:
         if request.method == "GET":  # an inbound voice note
             if request.url.host == "graph.facebook.com":
                 return httpx2.Response(200, json={"url": "https://lookaside.example/m"})
-            return httpx2.Response(200, content=b"OggS-inbound")
+            return httpx2.Response(200, content=self.media)
         if not self.whatsapp_up:
             return httpx2.Response(401, json={"error": {"message": "token expired"}})
         if path.endswith("/media"):
@@ -149,6 +151,11 @@ class World:
                     }
                 )
             elif media:
+                if (
+                    base64.b64decode(media["data"]) != self.media
+                    or media["mimeType"] != self.media_type
+                ):
+                    return httpx2.Response(400, json={"error": "image type mismatch"})
                 if self.ocr is None:
                     return httpx2.Response(500, json={"error": {"message": "down"}})
                 text_ = self.ocr
@@ -173,6 +180,12 @@ class World:
             language, script = self.language
             answer = json.dumps({"language_code": language, "script_code": script})
         elif body["messages"][0]["content"][0]["type"] == "image":
+            source = body["messages"][0]["content"][0]["source"]
+            if (
+                base64.b64decode(source["data"]) != self.media
+                or source["media_type"] != self.media_type
+            ):
+                return httpx2.Response(400, json={"error": "image type mismatch"})
             if self.ocr is None:
                 return httpx2.Response(500, json={"error": {"message": "down"}})
             answer = self.ocr

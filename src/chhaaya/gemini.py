@@ -59,6 +59,14 @@ def inline(data: bytes, mime_type: str) -> dict:
     }
 
 
+def image_media_type(image: bytes) -> str:
+    if image.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    raise ValueError("unsupported document image format: expected JPEG or PNG")
+
+
 class GeminiClient:
     def __init__(self, api_key: str, http: httpx2.Client | None = None) -> None:
         self.http = http or httpx2.Client(timeout=TIMEOUT)
@@ -141,7 +149,7 @@ class GeminiClient:
         )
 
     def read_document(self, image: bytes) -> str:
-        return self._text(OCR_PROMPT, [inline(image, "image/jpeg")])
+        return self._text(OCR_PROMPT, [inline(image, image_media_type(image))])
 
     def synthesize(self, text: str, language: str) -> bytes:
         if language not in ("hi", "en"):

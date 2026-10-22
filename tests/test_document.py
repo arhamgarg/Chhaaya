@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from sqlalchemy import Engine, text
@@ -77,6 +78,9 @@ def world(engine: Engine) -> World:
 def setup(
     world: World, language=("en", "Latn"), asha_wrote_today=True
 ) -> tuple[int, int]:
+    world.media = (
+        Path(__file__).parents[1] / "eval/sets/documents/rx-01.jpg"
+    ).read_bytes()
     asha = world.add_user(ASHA, "asha")
     patient = world.add_user(PATIENT, asha=asha)
     with world.engine.begin() as conn:

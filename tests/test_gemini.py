@@ -5,6 +5,7 @@ answers, invalid language JSON, changed audio formats, bad base64, and API error
 import base64
 import json
 import logging
+from pathlib import Path
 
 import httpx2
 import pytest
@@ -104,15 +105,17 @@ def test_language_detection_rejects_invalid_json_instead_of_guessing():
 
 
 def test_photo_is_sent_inline_and_read_as_text_without_a_remote_upload_job():
+    photo = (Path(__file__).parents[1] / "eval/sets/documents/rx-01.jpg").read_bytes()
+
     def handler(request):
         body = json.loads(request.read())
         assert body["contents"][0]["parts"][0]["inlineData"] == {
             "mimeType": "image/jpeg",
-            "data": base64.b64encode(b"synthetic-jpeg").decode(),
+            "data": base64.b64encode(photo).decode(),
         }
         return httpx2.Response(200, json=response({"text": "Haemoglobin: 6.8 g/dL"}))
 
-    assert client(handler).read_document(b"synthetic-jpeg") == "Haemoglobin: 6.8 g/dL"
+    assert client(handler).read_document(photo) == "Haemoglobin: 6.8 g/dL"
 
 
 def test_tts_passes_the_exact_checked_reply_and_returns_a_wav():

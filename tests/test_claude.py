@@ -5,6 +5,7 @@ invalid language JSON, and altered document numbers at the provider boundary.
 import base64
 import json
 import logging
+from pathlib import Path
 
 import httpx2
 import pytest
@@ -63,6 +64,8 @@ def test_unusable_answers_fail_without_returning_partial_or_reasoning_text(paylo
 
 
 def test_photo_is_read_inline_without_an_upload_job():
+    photo = (Path(__file__).parents[1] / "eval/sets/documents/rx-01.jpg").read_bytes()
+
     def handler(request):
         body = json.loads(request.read())
         assert body["messages"][0]["content"][0] == {
@@ -70,14 +73,14 @@ def test_photo_is_read_inline_without_an_upload_job():
             "source": {
                 "type": "base64",
                 "media_type": "image/jpeg",
-                "data": base64.b64encode(b"synthetic-jpeg").decode(),
+                "data": base64.b64encode(photo).decode(),
             },
         }
         return httpx2.Response(
             200, json=response({"type": "text", "text": "Haemoglobin: 6.8 g/dL"})
         )
 
-    assert client(handler).read_document(b"synthetic-jpeg") == "Haemoglobin: 6.8 g/dL"
+    assert client(handler).read_document(photo) == "Haemoglobin: 6.8 g/dL"
 
 
 @pytest.mark.parametrize(

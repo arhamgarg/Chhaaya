@@ -6,7 +6,13 @@ import logging
 import httpx2
 from pydantic import BaseModel
 
-from chhaaya.gemini import LANGUAGE_PROMPT, OCR_PROMPT, Language, supported
+from chhaaya.gemini import (
+    LANGUAGE_PROMPT,
+    OCR_PROMPT,
+    Language,
+    image_media_type,
+    supported,
+)
 
 log = logging.getLogger("chhaaya.claude")
 API_URL = "https://api.anthropic.com/v1/messages"
@@ -82,7 +88,7 @@ class ClaudeClient:
                     "type": "image",
                     "source": {
                         "type": "base64",
-                        "media_type": "image/jpeg",
+                        "media_type": image_media_type(image),
                         "data": base64.b64encode(image).decode(),
                     },
                 }

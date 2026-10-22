@@ -1,5 +1,6 @@
 """Signed webhooks through real Postgres and mocked AI and WhatsApp boundaries."""
 
+import pymupdf
 import pytest
 from test_qa import PATIENT, add_chunk, setup
 from test_retrieval import fake_embed
@@ -61,7 +62,10 @@ def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
 
 
 @pytest.mark.parametrize("provider", ["claude", "gemini"])
-def test_a_prescription_webhook_waits_for_asha_confirmation(client, engine, provider):
+@pytest.mark.parametrize("image_format", ["jpeg", "png"])
+def test_a_prescription_webhook_waits_for_asha_confirmation(
+    client, engine, provider, image_format
+):
     from sqlalchemy import text
     from test_document import ASHA, LEXICON, RX, RX_MEDICINES, extracted
     from test_document import setup as setup_document
@@ -70,6 +74,8 @@ def test_a_prescription_webhook_waits_for_asha_confirmation(client, engine, prov
 
     world = World(engine, provider=provider, speech_enabled=False)
     setup_document(world)
+    world.media = pymupdf.Pixmap(world.media).tobytes(image_format)
+    world.media_type = f"image/{image_format}"
     world.agents["document"] = DocumentAgent(
         world.worker.ai, world.worker.whatsapp, world.cases_, lambda: LEXICON
     ).read
@@ -84,13 +90,24 @@ def test_a_prescription_webhook_waits_for_asha_confirmation(client, engine, prov
                     "from": PATIENT,
                     "id": "wamid.ai-prescription",
                     "type": "image",
-                    "image": {"id": "synthetic-photo", "mime_type": "image/jpeg"},
+                    "image": {
+                        "id": "synthetic-photo",
+                        "mime_type": f"image/{image_format}",
+                    },
                 }
             ),
         ).status_code
         == 200
     )
     assert world.worker.work_one()
+    with engine.connect() as conn:
+        assert (
+            conn.execute(
+                text("SELECT status FROM messages WHERE wa_message_id = :id"),
+                {"id": "wamid.ai-prescription"},
+            ).scalar_one()
+            == "done"
+        )
     assert all("Dolo" not in reply for reply in world.texts_to(PATIENT))
     assert [case.cause for case in world.cases()] == ["prescription_confirmation"]
     assert world.images[0][0] == ASHA
@@ -113,6 +130,14 @@ def test_a_prescription_webhook_waits_for_asha_confirmation(client, engine, prov
     assert world.worker.work_one()
     assert any("Dolo" in reply for reply in world.texts_to(PATIENT))
     assert world.cases()[0].status == "answered"
+    with engine.connect() as conn:
+        assert (
+            conn.execute(
+                text("SELECT status FROM messages WHERE wa_message_id = :id"),
+                {"id": "wamid.ai-confirmation"},
+            ).scalar_one()
+            == "done"
+        )
 
 
 def test_a_text_question_works_without_speech_and_duplicate_delivery_is_ignored(
