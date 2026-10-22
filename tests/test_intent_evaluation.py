@@ -69,13 +69,27 @@ def test_benchmark_scores_cpu_predictions_and_keeps_completed_paid_requests(
         requests.append(request)
         if fail_second_request and len(requests) == 2:
             return httpx2.Response(503, json={"error": "synthetic provider down"})
+        response_format = json.loads(request.read()).get("response_format", {})
+        constrained = response_format.get("json_schema", {})
+        schema = constrained.get("schema", {})
+        structured = (
+            response_format.get("type") == "json_schema"
+            and constrained.get("strict") is True
+            and schema.get("additionalProperties") is False
+            and schema.get("required") == ["intent"]
+            and set(schema.get("properties", {}).get("intent", {}).get("enum", []))
+            == {"question", "reminder_setup", "reminder_reply", "smalltalk"}
+        )
+        content = '{"intent":"question"}'
+        if not structured:
+            content = f"```json\n{content}\n```"
         return httpx2.Response(
             200,
             json={
                 "choices": [
                     {
                         "finish_reason": "stop",
-                        "message": {"content": '{"intent":"question"}'},
+                        "message": {"content": content},
                     }
                 ]
             },

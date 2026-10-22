@@ -82,20 +82,28 @@ class SarvamClient:
         ).json()
         return base64.b64decode("".join(found["audios"]))
 
-    def chat(self, system: str, user: str) -> str:
-        """Sarvam-105B's reply to one user message under a system prompt."""
+    def chat(
+        self, system: str, user: str, *, json_schema: dict[str, object] | None = None
+    ) -> str:
+        """One reply, optionally constrained by the API to a supplied JSON schema."""
+        body: dict[str, object] = {
+            "model": CHAT_MODEL,
+            "max_tokens": 4096,
+            # Reasoning otherwise consumes the budget before a visible reply.
+            "reasoning_effort": None,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if json_schema is not None:
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "reply", "strict": True, "schema": json_schema},
+            }
         found = self._post(
             "v1/chat/completions",
-            json={
-                "model": CHAT_MODEL,
-                "max_tokens": 4096,
-                # Reasoning otherwise consumes the budget before a visible reply.
-                "reasoning_effort": None,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            },
+            json=body,
             timeout=CHAT_TIMEOUT,
         ).json()
         choice = found["choices"][0]

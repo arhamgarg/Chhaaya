@@ -203,7 +203,10 @@ def evaluate(directory: Path, output: Path, runs: int) -> None:
     sarvam = SarvamClient(key)
 
     def zero_shot(message: str) -> str:
-        return Classified.model_validate_json(sarvam.chat(ZERO_SHOT, message)).intent
+        reply = sarvam.chat(
+            ZERO_SHOT, message, json_schema=Classified.model_json_schema()
+        )
+        return Classified.model_validate_json(reply).intent
 
     rows = load_labelled(Path("data/intent/test.csv"))
     model("A health question")  # Exclude model loading and one CPU warm-up.
