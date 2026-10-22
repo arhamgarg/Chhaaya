@@ -96,6 +96,8 @@ An "agent" here is a module with one job and a fixed set of tools. None of them 
 
 The system prompt forbids naming a condition the patient has, changing or starting a medicine, and giving doses. The adversarial evaluation set checks that these rules hold.
 
+Honey advice goes to the ASHA as weak evidence, even when it has valid citations. Some older passages recommend honey for infants, which conflicts with [CDC guidance against honey before twelve months](https://www.cdc.gov/infant-toddler-nutrition/foods-and-drinks/foods-and-drinks-to-avoid-or-limit.html). The prompt forbids recommending honey, and a deterministic check rejects honey mentions in English, Hindi and common Hinglish spellings before delivery. This deliberately also escalates otherwise safe honey answers and advice for older children, because age is not verified.
+
 ### 5.2 Document agent
 
 JPEG and PNG media types are detected from the photo bytes for both providers. A photo goes to Claude, and the LLM turns the OCR output into a fixed JSON shape, checked against a schema. It is either a lab report (test, value, unit, printed reference range) or a prescription (medicine, strength, frequency, duration). The LLM only copies: a number in its JSON that the OCR text does not contain is treated as made up, and the patient is asked for a clearer photo, as for a blurry one.
