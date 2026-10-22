@@ -23,6 +23,15 @@ from chhaaya.retrieval import KnowledgeBase
         "सातवें महीने में खून आ रहा है",
         "गर्भ में बच्चा सुबह से हिल नहीं रहा",
         "बच्चा जो भी खाता है सब उलटी कर देता है",
+        "im 6 months pregnant and there is blood on my clothes since morning",
+        "my son suddenly went stiff and his hands and legs were jerking",
+        "8 months pregnant she has terrible headache and everything looks blurry",
+        "since this morning i cannot feel the baby kicking at all",
+        "बच्चे का शरीर अकड़ गया और आँखें ऊपर चढ़ गईं",
+        "baby ki naal ke paas laal ho gaya hai aur pus aa raha hai",
+        "bachche ki aankhe andar dhans gayi hai aur bahut sust hai "
+        "pani bhi nahi pee raha",
+        "newborn ko bukhar hai body bahut garam hai",
     ],
 )
 def test_indirect_danger_signs_open_an_urgent_case_without_a_provider(

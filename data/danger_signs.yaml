@@ -34,6 +34,8 @@ signs:
         - bleeding in pregnancy
         - bleeding during pregnancy
         - pregnancy bleeding
+        - pregnant blood clothes
+        - bleeding pregnancy
       hi:
         - गर्भावस्था में खून आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - गर्भावस्था में खून आना
@@ -92,6 +94,7 @@ signs:
         - having a fit
         - having fits
         - fits
+        - stiff jerking
       hi:
         - दौरा पड़/पड़ा/पड़ी/पड़े/पड़ता/पड़ती/पड़ते
         - दौरे पड़/पड़ा/पड़ी/पड़े/पड़ता/पड़ती/पड़ते
@@ -100,6 +103,7 @@ signs:
         - झटके आ/आया/आयी/आई/आए/आये/आता/आती/आते
         - झटके लग/लगा/लगी/लगे/लगता/लगती/लगते
         - मिर्गी
+        - शरीर अकड़ आँखें ऊपर
       hi-Latn:
         - daura pad/pada/padi/pade/padta/padti/padte
         - daure pad/pada/padi/pade/padta/padti/padte
@@ -211,6 +215,7 @@ signs:
         - headache blurred vision
         - blurred vision
         - blurry vision
+        - headache blurry
       hi:
         - तेज़ सिरदर्द धुंधला
         - धुंधला दिख
@@ -247,6 +252,7 @@ signs:
         - baby moving less
         - no fetal movement
         - reduced fetal movement
+        - cannot feel baby kicking
       hi:
         - बच्चा पेट में हिल नहीं
         - बच्चे की हलचल कम
@@ -307,14 +313,18 @@ signs:
         - very high fever
         - fever after delivery
         - fever in pregnancy
+        - newborn fever
+        - neonate fever
       hi:
         - तेज़ बुखार
         - बहुत बुखार
         - प्रसव के बाद बुखार
+        - नवजात बुखार
       hi-Latn:
         - tez bukhar
         - bahut bukhar
         - delivery ke baad bukhar
+        - newborn bukhar
 
   - id: foul_discharge_after_delivery
     source: ASHA Module 6 (NHM), p. 39
@@ -379,6 +389,7 @@ signs:
         - navel red
         - umbilical pus
         - umbilicus red
+        - pus umbilical
       hi:
         - नाभि से मवाद
         - नाभि लाल
@@ -387,6 +398,8 @@ signs:
         - naabhi se mawad
         - naabhi laal
         - naal se mawad
+        - naal laal
+        - naal pus
 
   - id: vomits_everything
     source: IMNCI Chart Booklet (MoHFW), p. 12
@@ -435,5 +448,5 @@ signs:
         - आँखें धंस
         - आंखें अंदर धंस
       hi-Latn:
-        - aankhen dhans
+        - aankhen/aankhein/aankhe dhans
         - aankhein andar dhans
