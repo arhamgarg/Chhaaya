@@ -96,8 +96,20 @@ def test_indirect_danger_signs_open_an_urgent_case_without_a_provider(
             "Can I give my baby honey for a cough?",
             "Yes, it can soothe a cough.",
         ),
+        (
+            "en-IN",
+            "Latn",
+            "Can I give my baby ho**ney** for a cough?",
+            "Yes, it can soothe a cough.",
+        ),
     ],
-    ids=["recorded-english", "recorded-hinglish", "infant-hindi", "implicit-honey"],
+    ids=[
+        "recorded-english",
+        "recorded-hinglish",
+        "infant-hindi",
+        "implicit-honey",
+        "formatted-honey",
+    ],
 )
 def test_cited_honey_advice_goes_to_the_asha_instead_of_the_patient(
     client, engine, provider, language, script, question, answer
@@ -168,6 +180,22 @@ def test_cited_honey_advice_goes_to_the_asha_instead_of_the_patient(
         (
             "en-IN",
             "Latn",
+            "The dose is **0.05** ml up to 1 month of age and **0.1** ml after that.",
+            True,
+        ),
+        (
+            "hi-IN",
+            "Latn",
+            "Ek mahine tak ke bachche ko **0.05** ml aur uske baad **0.1** ml "
+            "dose milta hai.",
+            True,
+        ),
+        ("hi-IN", "Deva", "बच्चे को ०.०५ _मिलीलीटर_ टीका दिया जाता है।", True),
+        ("en-IN", "Latn", "Give `half` a ~tablet~.", True),
+        ("en-IN", "Latn", r"The dose is \*0.05\* ml.", True),
+        (
+            "en-IN",
+            "Latn",
             "BCG is given at birth and can be given until one year of age. "
             "Ask your ASHA to confirm your child's vaccination date.",
             False,
@@ -179,6 +207,11 @@ def test_cited_honey_advice_goes_to_the_asha_instead_of_the_patient(
         "hindi",
         "compact",
         "written",
+        "bold-english",
+        "bold-hinglish",
+        "italic-unit-hindi",
+        "code-strike",
+        "escaped-formatting",
         "timing",
     ],
 )

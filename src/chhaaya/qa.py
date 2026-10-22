@@ -28,6 +28,7 @@ BRACKETS = re.compile(r"\[[^\]]*\]")
 CITATION = re.compile(r"\[\s*\d+(?:\s*,\s*\d+)*\s*\]")
 DEVANAGARI = re.compile("[ऀ-ॿ]")
 LATIN = re.compile("[A-Za-z]")
+FORMATTING = re.compile(r"[*_~`\\]")
 HONEY = re.compile(
     r"\b(?:honey|shahad|shehad|shahd|shahed|shehed|madhu)\b|शहद|मधु", re.IGNORECASE
 )
@@ -118,13 +119,16 @@ class QaAgent:
             log.warning("message %s: answer cites %s", message.id, cited)
             self.cases.open("citation_failed", message.user_id, question)
             return
+        # Formatting can split a dose or remedy name without changing its meaning.
+        plain_question = FORMATTING.sub("", question)
+        plain_reply = FORMATTING.sub("", reply)
         # Age is unverified, and some older passages recommend honey to infants.
-        if HONEY.search(question) or HONEY.search(reply):
+        if HONEY.search(plain_question) or HONEY.search(plain_reply):
             log.warning("message %s: honey advice requires ASHA review", message.id)
             self.cases.open("weak_evidence", message.user_id, question)
             return
         # Valid citations do not make a measured dose safe for automated advice.
-        if DOSE.search(reply):
+        if DOSE.search(plain_reply):
             log.warning(
                 "message %s: measured quantity requires ASHA review", message.id
             )
