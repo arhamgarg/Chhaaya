@@ -8,6 +8,7 @@ from sqlalchemy import Connection, Engine, insert, text
 
 from chhaaya.ai import AIClient
 from chhaaya.db import KbChunk
+from chhaaya.images import image_media_type
 from chhaaya.voice import send_reply
 from chhaaya.whatsapp import WhatsAppClient
 
@@ -171,7 +172,7 @@ class Cases:
         # Uploaded first: a prescription case must never exist without its photo.
         media_id = None
         if photo is not None:
-            media_id = self.whatsapp.upload_media(photo, "image/jpeg")
+            media_id = self.whatsapp.upload_media(photo, image_media_type(photo))
         with self.engine.begin() as conn:
             people = conn.execute(
                 text(

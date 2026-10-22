@@ -5,6 +5,8 @@ import threading
 import time
 import zipfile
 from collections.abc import Callable
+from email.parser import BytesParser
+from email.policy import default
 
 import httpx2
 import pytest
@@ -93,6 +95,21 @@ class World:
         if not self.whatsapp_up:
             return httpx2.Response(401, json={"error": {"message": "token expired"}})
         if path.endswith("/media"):
+            multipart = BytesParser(policy=default).parsebytes(
+                f"Content-Type: {request.headers['content-type']}\r\n\r\n".encode()
+                + request.read()
+            )
+            parts = {
+                part.get_param("name", header="content-disposition"): part
+                for part in multipart.iter_parts()
+            }
+            mime_type = parts["type"].get_content().strip()
+            if mime_type.startswith("image/") and (
+                mime_type != self.media_type
+                or parts["file"].get_content_type() != self.media_type
+                or parts["file"].get_payload(decode=True) != self.media
+            ):
+                return httpx2.Response(400, json={"error": "image type mismatch"})
             return httpx2.Response(200, json={"id": "media-up"})
         body = json.loads(request.read())
         if body["type"] != "template" and not self.in_window(body["to"]):
