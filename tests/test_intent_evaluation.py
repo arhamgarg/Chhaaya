@@ -12,7 +12,7 @@ import pytest
 from test_ai import settings
 from test_intent_flow import saved_classifier
 
-from chhaaya import sarvam
+from chhaaya import intent, sarvam
 from chhaaya import settings as configuration
 from chhaaya.intent import evaluate
 
@@ -48,8 +48,24 @@ def test_benchmark_scores_cpu_predictions_and_keeps_completed_paid_requests(
         lambda: settings(anthropic_api_key="synthetic", sarvam_api_key="synthetic"),
     )
     requests = []
+    clock = [0.0]
+    previous_request = [-2.0]
+
+    def now():
+        clock[0] += 0.001
+        return clock[0]
+
+    def wait(seconds):
+        clock[0] += seconds
+
+    monkeypatch.setattr(intent, "perf_counter", now)
+    monkeypatch.setattr(intent, "sleep", wait, raising=False)
 
     def boundary(request):
+        instant = now()
+        if instant - previous_request[0] < 2.0:
+            return httpx2.Response(429, json={"error": "synthetic rate limit"})
+        previous_request[0] = instant
         requests.append(request)
         if fail_second_request and len(requests) == 2:
             return httpx2.Response(503, json={"error": "synthetic provider down"})

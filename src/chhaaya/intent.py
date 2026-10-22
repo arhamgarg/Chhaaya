@@ -9,7 +9,7 @@ import re
 import statistics
 import tempfile
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -208,6 +208,7 @@ def evaluate(directory: Path, output: Path, runs: int) -> None:
     rows = load_labelled(Path("data/intent/test.csv"))
     model("A health question")  # Exclude model loading and one CPU warm-up.
     predictions = []
+    next_sarvam_request = 0.0
     output.parent.mkdir(parents=True, exist_ok=True)
     # Keep completed paid requests if a later request fails; no summary then exists.
     with output.with_suffix(".csv").open("x", newline="") as f:
@@ -219,6 +220,10 @@ def evaluate(directory: Path, output: Path, runs: int) -> None:
         ]:
             for run in range(1, runs + 1):
                 for index, row in enumerate(rows):
+                    if name == "sarvam-105b":
+                        # Starter allows 40/min; leave room for other account use.
+                        sleep(max(0.0, next_sarvam_request - perf_counter()))
+                        next_sarvam_request = perf_counter() + 2.0
                     started = perf_counter()
                     predicted = classify(row["text"])
                     prediction = {
@@ -283,6 +288,7 @@ def evaluate(directory: Path, output: Path, runs: int) -> None:
                 "latency": "median of per-pass medians, warm CPU, no result cache",
                 "latency_scope": "local tokenizer and CPU model versus sequential "
                 "Sarvam network round trips; provider-side caching is not controlled",
+                "sarvam_start_interval_seconds": 2.0,
                 "test_sha256": hashlib.sha256(
                     Path("data/intent/test.csv").read_bytes()
                 ).hexdigest(),
