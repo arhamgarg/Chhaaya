@@ -1,0 +1,2 @@
+# Preserve the CSV writer's standard CRLF row endings in recorded results.
+eval/results/*.csv whitespace=cr-at-eol
