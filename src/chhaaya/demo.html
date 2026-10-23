@@ -502,7 +502,7 @@ function hint(form, text, tone) {
   node.dataset.tone = tone || "";
 }
 
-// One client id per draft: a repeated or retried submit is stored once.
+// One client id per submitted message, including retries after an uncertain response.
 async function submit(form, role, raw, prefix = "") {
   const text = raw.trim();
   if (!text) {
@@ -512,14 +512,21 @@ async function submit(form, role, raw, prefix = "") {
   }
   if (form.dataset.sending) return;
   form.dataset.sending = "1";
-  form.dataset.clientId ||= crypto.randomUUID();
+  const message = prefix + text;
+  if (form.dataset.clientMessage !== message) {
+    form.dataset.clientId = crypto.randomUUID();
+    form.dataset.clientMessage = message;
+  }
+  const clientId = form.dataset.clientId;
+  const box = form.querySelector("textarea");
   const buttons = form.querySelectorAll("button");
   buttons.forEach((b) => { b.disabled = true; });
   hint(form, "Sending");
   try {
-    await sendText(role, prefix + text, form.dataset.clientId);
-    form.querySelector("textarea").value = "";
+    await sendText(role, message, clientId);
+    if (box.value === raw) box.value = "";
     delete form.dataset.clientId;
+    delete form.dataset.clientMessage;
     hint(form, "");
     refresh();
   } catch (error) {
@@ -537,8 +544,6 @@ function enterSends(box, form) {
       form.requestSubmit();
     }
   });
-  // An edited draft is a new message, not a retry of the old one.
-  box.addEventListener("input", () => { delete form.dataset.clientId; });
 }
 
 function render(state) {
@@ -599,6 +604,8 @@ ashaForm.addEventListener("submit", (event) => {
 });
 enterSends(document.getElementById("asha-text"), ashaForm);
 
+// Unacknowledged photos retain their ids in this page's memory only.
+const photoRetries = new Map();
 document.getElementById("photo").addEventListener("change", async (event) => {
   const input = event.target;
   const [file] = input.files;
@@ -616,7 +623,11 @@ document.getElementById("photo").addEventListener("change", async (event) => {
   patientForm.dataset.sending = "1";
   hint(patientForm, "Sending photo");
   try {
-    await post(`/api/photos?client_id=${crypto.randomUUID()}`, file);
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    const key = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (!photoRetries.has(key)) photoRetries.set(key, crypto.randomUUID());
+    await post(`/api/photos?client_id=${photoRetries.get(key)}`, file);
+    photoRetries.delete(key);
     hint(patientForm, "");
     refresh();
   } catch (error) {
