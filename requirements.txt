@@ -1,0 +1,7 @@
+# Runtime dependencies, including SHAP, matplotlib, NumPy and scikit-learn,
+# are declared in pyproject.toml. uv.lock pins the reproducible uv environment.
+-e .
+matplotlib>=3.11.2
+numpy>=2.0
+scikit-learn>=1.7
+shap>=0.54.1

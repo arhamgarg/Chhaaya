@@ -1,322 +1,64 @@
 # Chhaaya
 
-Chhaaya is a WhatsApp health assistant for rural patients in India. You send it a voice note, a message or a photo, in Hindi, English or Hinglish. It answers from Indian public-health guidelines, explains your lab report in plain words, reminds you to take your medicines, and passes anything urgent or uncertain to your ASHA worker. It does not diagnose.
+A Hindi, English and Hinglish health assistant with guideline-grounded answers, lab-report reading, ASHA-confirmed prescriptions and medicine reminders. Urgent or unsupported questions go to the ASHA. Use synthetic data only; this is not a clinical service.
 
-Train the local intent router and configure the providers before starting the worker. [docs/design.md](docs/design.md) is the specification, and the evaluation reports the measured limitations.
+Claude Sonnet 5.5 handles text and photos. Sarvam is a manual fallback; speech is off by default. A fine-tuned MuRIL classifier routes messages, and local BGE-M3 embeddings retrieve guidelines. MuRIL is the only model we train.
 
-## How it works
+## Run
 
-A message arrives through the WhatsApp Cloud API and is queued in Postgres. A worker then:
-
-1. turns voice into text with Sarvam's speech-to-text when speech is enabled;
-2. checks the message against a fixed list of danger signs;
-3. routes it with a small intent classifier we fine-tune from MuRIL.
-
-Questions are answered by retrieving passages from MoHFW, ICMR and NHM documents and having an LLM answer only from those passages. Any answer that cites nothing it was given is thrown away. Lab reports are read with OCR and compared against the ranges printed on them. Prescriptions are confirmed by the ASHA before the patient hears anything about them. Replies go back as text, plus a voice note when speech is enabled.
-
-## Running it locally
-
-`docker compose up` starts the app, the worker and Postgres 16 with pgvector. Settings come from environment variables; `.env.example` lists them all. The service refuses to start with a blank `WHATSAPP_*` value; without a Meta app, any non-blank placeholders work locally, but never deploy with guessable ones. `GET /health` on port 8000 answers `{"status": "ok"}` once the app is up.
+Use Python 3.12, Docker, a configured `.env`, and the saved checkpoint in `data/intent/model/`. Then:
 
 ```bash
-cp .env.example .env   # then set POSTGRES_PASSWORD, WHATSAPP_* and ANTHROPIC_API_KEY
-uv run python -m chhaaya.intent train  # download MuRIL and train the local router
-docker compose up --build
-curl localhost:8000/health
+uv sync
+DEMO_DATABASE_URL=postgresql://chhaaya:demo@127.0.0.1:5433/chhaaya_demo \
+  HF_HUB_OFFLINE=1 uv run python -m chhaaya.demo
 ```
 
-## Claude configuration and Sarvam fallback
-
-Claude Sonnet 5.5 (`claude-sonnet-5-5`) handles text generation, language and script detection, and document OCR by default. `src/chhaaya/ai.py` selects the provider for every agent and the evaluation harness. `src/chhaaya/claude.py` uses Anthropic's Messages API through the existing HTTP dependency, with a 4096-token output budget and up-front thinking disabled. Only completed answer text is returned; empty, refused or truncated generations fail explicitly. Photos are sent inline from memory, with JPEG or PNG media types detected from their bytes. BGE-M3 embeddings stay local. Use synthetic data only; provider quality in Hindi and Hinglish still needs evaluation.
-
-Save an [Anthropic API key](https://platform.claude.com/settings/keys) as `ANTHROPIC_API_KEY` in the ignored `.env`. `AI_PROVIDER` defaults to `claude`. To switch manually to the retained Sarvam implementation, set `AI_PROVIDER=sarvam` and supply `SARVAM_API_KEY` from [the Sarvam dashboard](https://dashboard.sarvam.ai). A failed Claude call never switches providers automatically. The selected provider needs its own key; Sarvam is optional when Claude is selected. Sarvam uses `sarvam-105b` for text with reasoning disabled and an explicit 4096-token completion budget, so reasoning cannot consume the budget before a visible reply. OCR uses a polled Sarvam Vision job. Image uploads use the JPEG or PNG format detected from their bytes. Stop the existing worker before replacing it. Previously failed messages remain failed; send a fresh synthetic message after updating.
-
-Speech is deferred and `SPEECH_ENABLED` defaults to `false`. Text and photos work with the Anthropic key alone. Voice notes receive a text asking the sender to type, with the emergency number, and their messages are marked failed. No transcription or synthesis call runs while speech is off. To restore the existing voice path, set `SPEECH_ENABLED=true` and supply `SARVAM_API_KEY`. This uses `saaras:v4` for transcription and `bulbul:v4-flash` for voice output through `src/chhaaya/sarvam.py`. Claude has no audio endpoint. The fallback and speech use Sarvam billing, separate from Anthropic credits. The full evaluation refuses disabled speech before loading models or making paid calls, because it includes the voice set.
+Open the printed link. The browser runs the patient and ASHA flows without sending WhatsApp messages. Select **Models** for saved test metrics and explanations.
 
 ```bash
-docker compose build app worker migrate
-docker compose up -d --wait app
+uv run python -m chhaaya.model_metrics   # evaluate the saved checkpoint and cache SHAP
+uv run python -m chhaaya.model_report    # update README and the evaluation report
+uv run ruff check . && uv run ruff format --check . && uv run ty check && uv run pytest
 ```
 
-## Database and migrations
+<!-- model-evidence:start -->
+## Model performance
 
-Everything Chhaaya stores lives in one Postgres 16 database with pgvector: users (patients and ASHAs), every WhatsApp message in and out, escalation cases, medicine reminders and their doses, and the knowledge-base chunks with their 1024-dimensional embeddings. Inbound messages double as the worker's queue: each has a status the worker claims with `SELECT ... FOR UPDATE SKIP LOCKED`, and the unique WhatsApp message id means a retried webhook delivery is never stored twice. Chunks are searched by cosine similarity through an HNSW index. The tables are defined in `src/chhaaya/db.py` and built by Alembic migrations in `migrations/`; `docker compose up` applies them before the app and worker start, and the tests apply them to an empty database in a throwaway container (Docker must be running). Compose passes the password separately through `PGPASSWORD`, preserving characters that have special meanings in URLs. After changing a model, rebuild the migration image and generate the revision inside Compose, where Postgres is reachable; the bind mount saves the new migration in your checkout. Review the generated file before applying it.
+Held-out intent test set: 120 messages. MuRIL is the only model trained here; keywords and Sarvam are comparison baselines. Bold marks the best score in each column, including ties. P = precision, R = recall. AUC uses one-vs-rest class probabilities; saved hard-label baselines have no AUC.
 
-```bash
-docker compose build migrate
-docker compose run --rm --volume ./migrations:/app/migrations migrate alembic revision --autogenerate -m "add x"
-docker compose run --rm --volume ./migrations:/app/migrations migrate  # apply migrations
-uv run pytest tests/test_migrations.py tests/test_compose.py
-```
+| Model | Accuracy | P macro | P weighted | R macro | R weighted | F1 macro | F1 weighted | AUC macro | AUC weighted |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Fine-tuned MuRIL (900 training rows) | 0.908 | 0.911 | 0.911 | 0.908 | 0.908 | 0.907 | 0.907 | **0.983** | **0.983** |
+| Keyword rules | 0.475 | 0.581 | 0.581 | 0.475 | 0.475 | 0.380 | 0.380 | N/A | N/A |
+| Sarvam-105B zero-shot | **0.967** | **0.968** | **0.968** | **0.967** | **0.967** | **0.967** | **0.967** | N/A | N/A |
 
-## Danger-sign detection
+## Explainability
 
-Every message is screened for danger signs by rules rather than a model, so anyone can read why a message was flagged. `data/danger_signs.yaml` lists each sign (for example bleeding in pregnancy, convulsions, a baby not feeding, difficulty breathing, unconsciousness) with the page of the MCP card, IMNCI or ASHA module it comes from, its phrasings in Hindi, English and Hinglish, and the urgent reply (go to the nearest health centre or call 108) in all three. `chhaaya.danger_signs.detect(text)` folds case, Unicode forms and common Hinglish spellings ("nhi", "dudh", "rha"), then looks for each phrasing in order with up to six other words between its words, so "pet mein bahut tez dard" still matches "pet tez dard". A negated mention such as "no bleeding" or "pregnancy mein khoon nahi aaya" does not fire, but because a missed sign is far worse than a false alarm, negation only suppresses a match in those narrow patterns: "pregnancy mein bleeding nahi ruk rahi" (the bleeding won't stop) fires. The worker checks the original message before provider calls and checks the English search query before intent routing or pending-reminder replies. The Q&A agent reuses that screened query for retrieval. Indirect feeding and postpartum-bleeding phrases are included. Newborn jaundice mentions escalate conservatively because chat cannot establish the infant's age or clinical severity.
+MuRIL uses SHAP Partition with token masking. The UI shows cached global importance and local explanations for held-out or entered text. See the [worked example and figures](eval/report.md#explainability). These explain routing, not clinical decisions.
+<!-- model-evidence:end -->
 
-```bash
-uv run python -c 'from chhaaya.danger_signs import detect; print(detect("bachcha doodh nahi pee raha"))'
-uv run pytest tests/test_danger_signs.py
-```
+<details>
+<summary>First-time setup</summary>
 
-## Knowledge corpus
-
-The Q&A agent answers only from a small set of Indian public-health documents, so they are chosen by hand. `data/sources.csv` lists each one (NHM ASHA modules and handbook, MoHFW guidelines on diarrhoea, immunisation, pregnancy, NCDs and TB, and ICMR Standard Treatment Workflows) with its title, publisher, year, the URL it was fetched from, why it is in, and the SHA-256 of the reviewed PDF. `chhaaya.corpus` downloads the PDFs to `data/pdfs/` and writes `data/chunks.jsonl`; neither is committed. A PDF is accepted, whether downloaded or already in `data/pdfs/`, only if its checksum matches the CSV, so the per-PDF fixes below never touch another edition. It reads each page with PyMuPDF, turns sideways pages upright, and drops running headers and footers (margin lines repeated on many pages), page numbers, contents pages, symbol-font bullets and small figure labels; a small line that contains a number stays, because it can be a dose or a value. Ligatures are re-joined ("ﬁ ve" becomes "five"), and in three PDFs whose fonts map glyphs wrongly, reviewed glyph and word-spacing repairs apply; an unmapped glyph stops the build instead of reaching a chunk. Tables become one line per row, "Table row: caption; header: value; header: value", so each value keeps its condition and column label; a row too long for one chunk is split on its largest cell and repeats every other cell. Reviewed pages are left out by page: flowcharts that only make sense as drawings, a quiz with wrong answers, blank planning and reporting forms, and one infant-positioning table the parser cannot split. From the ICMR posters only reviewed prose boxes (symptoms, risk factors, lifestyle advice, monitoring, danger signs and when to refer) are kept, not their algorithms or dose tables. A new section starts at each heading set in a font larger than the body text; bold body-size lines such as "Remember:" stay inside their section. Each section is cut into chunks of 300 to 500 tokens, counted with the BGE-M3 tokenizer the embeddings will use, at paragraph or sentence boundaries; a chunk never crosses a section, so a short section stays one smaller chunk. Every chunk keeps the document's title, publisher, year and URL, its section heading, and the PDF page it starts on. `data/chunks.jsonl` is replaced only once every source has been chunked, so a failed build leaves the previous one in place. The first run downloads the tokenizer from Hugging Face.
+Save the provider keys in the ignored `.env`. Claude needs `ANTHROPIC_API_KEY`; Sarvam is optional. Reuse the saved MuRIL checkpoint, or train it once with `uv run python -m chhaaya.intent train`. Do not train on the test set.
 
 ```bash
-uv run python -m chhaaya.corpus          # download what's missing, then rebuild data/chunks.jsonl
-uv run pytest tests/test_corpus.py
-```
-
-## Knowledge base search
-
-Retrieval finds the guideline passages a question needs, even when the question is in Hindi or Hinglish and the guideline is in English. `python -m chhaaya.retrieval` embeds every chunk in `data/chunks.jsonl` with BGE-M3 (a multilingual embedding model, run through sentence-transformers on an available GPU or the CPU) and writes them to `kb_chunks` in one transaction. It first deletes the guideline rows, so a rerun replaces the corpus instead of duplicating it, and ASHA answers stored in the same table are kept. `KnowledgeBase(engine, embed).search(query, k=5)` embeds the query the same way and returns the five nearest guideline chunks and approved ASHA answers by cosine similarity through the HNSW index, best first. An ASHA answer is searchable only after a person approves it (see ASHA answer review). The index scan runs with `hnsw.iterative_scan = strict_order` (pgvector 0.8.0 or later), so it keeps going past unapproved answers until it has five rows that pass, still in order of distance. Each hit comes with its score (1 means the same direction as the query) and its title, publisher, year, page, URL and source type. The first run downloads the model, about 2 GB, into the Hugging Face cache; on Linux the project installs the CPU-only PyTorch build. Build the corpus first, then load it through Compose, where Postgres is reachable. The default tests use a small stand-in embedder; `-m retrieval` runs twelve hand-written questions, four each in Hindi, English and Hinglish, against the real model and corpus and prints the hit rate and query latency.
-
-```bash
-uv run python -m chhaaya.corpus
-docker compose run --rm --volume ./data:/app/data --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m chhaaya.retrieval
-uv run pytest tests/test_retrieval.py
-uv run pytest tests/test_retrieval.py -m retrieval -s   # real model and corpus
-```
-
-## Medicine lexicon and critical lab values
-
-The document agent checks the medicine names it reads off a prescription against a lexicon. It also checks lab values against a short list of critical thresholds. `data/lexicon_sources.csv` names the two lexicon sources with their URL, licence and the SHA-256 of the reviewed file. The first is the National List of Essential Medicines 2022 (MoHFW). The second is the Common Drug Codes for India flat files from NRCeS at C-DAC, which map Indian brand names to generics. CDCI is licensed CC BY 4.0, but redistribution and derived works are limited to India, and its generic names are SNOMED CT terms covered by the SNOMED CT Affiliate Licence. The generated `data/lexicon.csv` inherits these terms. Neither is committed. `python -m chhaaya.lexicon` downloads both to `data/lexicon/` and refuses a file whose checksum has changed. It then writes `data/lexicon.csv`. Each NLEM 2022 medicine gets one row per section that lists it, with its dosage forms and strengths and the section number and page it came from, read from the PDF's tables with PyMuPDF. Each CDCI brand gets one row with the generic it contains (strength and dose form included) and its CDCI id. The 14 brands whose generic is missing from the package are skipped and counted. `Lexicon.load().lookup(text)` drops a leading dosage-form word ("Tab", "Cap", "Syp", "Inj") from both the query and the names. It then scores every name with rapidfuzz's token-set ratio (0 to 100; 100 when every word of the shorter name is in the longer). It returns the best entry and its score; ties go to the name closest overall, so "Tab Telma 40" finds Telma 40 mg rather than a Telma combination. A strength written without a space ("650mg", "1gm") is read as "650 mg" and "1 g". A lone "T" or "C" is kept, because brand names such as T-Bact and C-Tax start with it. Some brand names belong to more than one generic in CDCI (324 do, for example "Seradol 10 mg oral tablet"), and lookup returns one of them. A medicine that is not in the lexicon still returns its nearest entry, with a low score. `data/critical_values.csv` is committed. Each row gives a test, unit, threshold, direction (`below` or `above`), population (`adult`, `pregnant` or `child`), and an age range in years (from inclusive, to exclusive, blank when open). It also cites the page and URL of its source. The first rows are the severe-anaemia haemoglobin cut-offs from the Anemia Mukt Bharat Abhiyaan Operational Guidelines (MoHFW, June 2026), which follow the WHO 2024 cut-offs. The default tests use a small stand-in lexicon. `-m lexicon` builds the real one, checks that each of the 384 medicines in the NLEM's alphabetical index is in its section tables, and looks up eight common brands.
-
-```bash
-uv run python -m chhaaya.lexicon          # download what's missing, then rebuild data/lexicon.csv
-uv run python -c 'from chhaaya.lexicon import Lexicon; print(Lexicon.load().lookup("Tab Dolo 650"))'
-uv run pytest tests/test_lexicon.py tests/test_critical_values.py
-uv run pytest tests/test_lexicon.py -m lexicon -s   # real sources
-```
-
-## WhatsApp webhook
-
-Messages reach Chhaaya through the WhatsApp Cloud API. `POST /webhook` checks Meta's `X-Hub-Signature-256` signature against the app secret and rejects anything unsigned or forged. It stores each text, voice note and photo as a pending message keyed by its WhatsApp message id, so a retried delivery is ignored, and answers `200` straight away; the worker does the rest. `GET /webhook` answers Meta's verification challenge. `src/chhaaya/whatsapp.py` is the one client for sending text and audio, uploading media and downloading what patients send.
-
-To connect a test number:
-
-1. At developers.facebook.com create a Business app and add the WhatsApp product. API Setup gives you a test number: copy its phone number id and a temporary access token (valid 24 hours).
-2. Under App settings, Basic, copy the app secret.
-3. In API Setup add up to five recipient phones and confirm each with the code WhatsApp sends. The test number can only message these.
-4. Put the four values in `.env`: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, and a `WHATSAPP_VERIFY_TOKEN` of your choosing.
-5. In Cloudflare Zero Trust create a tunnel, add a public hostname that points to `http://app:8000`, and put its token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN`.
-6. In the Meta app, WhatsApp, Configuration, set the callback URL to `https://<your-hostname>/webhook` and the verify token to your `WHATSAPP_VERIFY_TOKEN`, then subscribe to the `messages` field.
-
-```bash
-docker compose --profile tunnel up --build
-```
-
-Send a text, a voice note and a photo from a recipient phone; each should appear once in the `messages` table.
-
-```bash
-docker compose exec db psql -U chhaaya -c "SELECT wa_message_id, kind, status FROM messages"
-```
-
-## Worker
-
-The worker turns stored messages into replies. It claims the oldest pending message with `SELECT ... FOR UPDATE SKIP LOCKED`, so two workers never take the same one, and marks it `processing`. Messages from a registered ASHA go straight to the escalation agent. For a patient, the danger-sign check runs first: a match sends the urgent reply in the patient's language and opens a case for their ASHA, without calling the text provider, so a provider outage cannot delay it. Otherwise typed text goes through the selected provider's language identification, which stores the language and script on the user, and then to an agent: photos to the document agent, reminder messages to the reminder agent, and other text to the Q&A agent. Between messages the worker also sends due reminders. A message that raises is marked `failed` with the error kept in `messages.error`; it is never retried. A message still `processing` 10 minutes after its claim lost its worker, and the next claim marks it `failed` with the error "worker stopped before finishing it". Voice notes are transcribed first (see Voice below), and a message fails if its agent is not registered. The agents register in `build()` in `src/chhaaya/worker.py`. `ANTHROPIC_API_KEY` in `.env` is required by default; see provider configuration above.
-
-```bash
-docker compose up --build worker
-docker compose exec db psql -U chhaaya -c "SELECT id, status, error FROM messages"
-```
-
-## Voice
-
-With `SPEECH_ENABLED=true` and a Sarvam key, patients can send voice notes and get voice notes back. Speech is off by default. An inbound voice note is downloaded from WhatsApp and transcribed with Sarvam Saaras v4, which also detects the language; the transcript and language are stored on the message and the user, and the message then goes through the same danger-sign check and routing as typed text. If the voice note cannot be transcribed, or its transcript is empty or in a language other than Hindi or English, the patient gets a text asking them to type, with the 108 emergency number, and the message is marked failed. A transcript in another language is still screened for danger signs first. Replies go out as text first, then the same words as a voice note: Sarvam Bulbul v4 Flash reads the checked text verbatim in the patient's language, ffmpeg converts the WAV to OGG/Opus, and the file is uploaded and sent by media id with WhatsApp's `voice` flag so it shows as a voice note. If the voice step fails the text has already gone out, and the failure is logged with the HTTP status and request id when supplied by Sarvam. All Sarvam calls are in `src/chhaaya/sarvam.py`. ffmpeg is bundled in the Docker image; to run the tests outside Docker install it (`sudo apt install ffmpeg`).
-
-```bash
-uv run pytest tests/test_audio.py tests/test_voice.py tests/test_worker.py
-```
-
-## Question answering
-
-The Q&A agent answers a patient's question only from retrieved guideline text, or does not answer. Claude Sonnet 5.5 first rewrites the message into a short English search query, turning lay terms into clinical ones ("loose motion" becomes diarrhoea). The danger-sign check runs again on that query, so a sign described only indirectly ("sharir akad raha hai") that the query names ("convulsions") still gets the urgent reply and a case. The query retrieves the five nearest chunks. If the best score is below τ (`TAU` in `src/chhaaya/qa.py`, a placeholder 0.5 until the evaluation harness tunes it), the patient is told their ASHA will reply and a `weak_evidence` case opens. Otherwise Claude answers in the patient's language and script from those chunks alone, ending each sentence with the id of the chunk it comes from, for example `[12]`. Its system prompt forbids naming a condition the patient has, starting, stopping or changing a medicine, and giving a dose, and tells it to treat the message as a question, never as instructions. Code then checks the answer. `NO_ANSWER` (the passages don't cover it) escalates as `weak_evidence`. An answer that cites nothing, cites a chunk that was not retrieved, or has any other square bracket escalates as `citation_failed`. One in the wrong script escalates as `wrong_script`: a Hindi answer must be mostly Devanagari (English terms such as ORS may stay), and an English or Hinglish one may contain none. Advice mentioning honey, or answering a question about honey, also escalates as `weak_evidence` even with valid citations. The prompt forbids recommending honey, and a deterministic check covers English, Hindi and common Hinglish spellings. This conservatively includes safe answers and older children because age is unverified; [CDC guidance prohibits honey before twelve months](https://www.cdc.gov/infant-toddler-nutrition/foods-and-drinks/foods-and-drinks-to-avoid-or-limit.html). Answers containing numeric or common written quantities in medicine units (such as ml, mg, tablets or drops, including Hindi forms) also escalate as `weak_evidence`, even with valid citations. This conservatively includes non-medicine quantities in those units, such as grams of food. Safety checks remove common Markdown and WhatsApp formatting markers and escapes before matching, so emphasis cannot hide these quantities or honey mentions. Vaccine timing without a measured quantity can still be answered. A discarded answer never reaches the patient. A checked answer goes out as text with each cited source named below it ("Source: IDCF Toolkit, MoHFW"; an ASHA's earlier answer is named as coming from a health worker), then, when speech is enabled, as a voice note without the sources. The prompt asks for at most 60 words, and an answer over 80 words is sent as text only. The selected provider is accessed through `src/chhaaya/ai.py`. Sarvam remains a manual fallback.
-
-```bash
-uv run pytest tests/test_qa.py
-```
-
-## Document agent
-
-The document agent reads photos of lab reports and prescriptions. The photo is downloaded from WhatsApp into memory and sent inline to Claude, which returns Markdown without a separate upload job. Claude copies that text into fixed JSON: a lab report's tests (name, value, unit, printed range) or a prescription's medicines (name, strength, frequency, duration). Pydantic checks the shape, and code refuses any number the OCR text does not contain. A refused, blurry or failed read asks the patient for a clear photo of the whole page. A lab report is compared test by test with the ranges printed on it, in code, and the patient gets each value marked inside, below or above its range, or as having no printed range, with a reminder that only their doctor can say what it means. Before that, a value past a threshold in `data/critical_values.csv` opens a `critical_lab_value` case. The age printed on the report picks the population, and without one every row applies. Any name containing "Hb", "Hgb" or "Haemoglobin" counts as haemoglobin ("Hb (Sahli)", "Haemoglobin estimation"), except mean corpuscular and glycated haemoglobin (MCH, MCHC, HbA1c), and "gm%" reads as g/dL. A haemoglobin value in any other unit, or with none, also opens a case, because it cannot be checked. A report too long for one WhatsApp text (4096 characters) is split at line breaks. A prescription is never explained first. Each medicine is looked up in the medicine lexicon. The ASHA gets the photo and the list as the patient will get it, each line with its closest lexicon entry and score, in a `prescription_confirmation` case. Outside her 24-hour window only the template alert can go, so her first reply brings the photo and the list, and only her next reply counts. A reply made only of words such as "ok", "yes", "haan ji" or "ठीक है" (emoji and punctuation aside) sends the patient the medicines as read. Any other reply with a digit in it is sent as the ASHA's corrected list. A reply with neither ("dekh liya") gets her a hint and keeps the case open. In the patient's 24-hour window the medicines come with an offer to set reminders; outside it the `case_update` template carries the medicines alone. The default tests use stand-ins for Claude, Sarvam and WhatsApp.
-
-```bash
-uv run pytest tests/test_document.py tests/test_claude.py tests/test_ai_flow.py
-```
-
-## Medication reminders
-
-Patients set medicine reminders by text or voice ("subah 8 baje aur raat 8 baje metformin yaad dilana, ek mahine tak"). Claude reads the request into JSON (medicine, times of day in India time, number of days), which Pydantic validates, using the patient's last confirmed prescription to name the medicines when they refer to it. The agent reads the reminders back ("Metformin: 8:00 am, 8:00 pm, 30 din tak roz") and saves them unconfirmed. Only a yes ("haan ji", "ok") in the next 24 hours schedules them, and a no discards them; a reply without words ("👍") does neither. A course starts on the first day with a time still ahead, so "5 days" asked for at 9 pm with an 8 am time means five reminded days from tomorrow. A request without both a medicine and a time gets an example of what to send. The local intent classifier routes new reminder requests. Exact yes/no replies while a read-back waits and exact taken replies while a dose is pending keep their existing state checks in `src/chhaaya/reminders.py`. A predicted reminder reply without a pending reminder goes to the Q&A agent. Between messages, the worker sends the most overdue reminder, records a dose and schedules the next time. Times are kept as India times of day and due times as UTC timestamps. A stopped worker sends one late reminder, not a burst. Inside the patient's 24-hour window the reminder is a text, plus a voice note when speech is enabled; outside it, it is the `medicine_reminder` template. The reminder is sent after its dose is saved, so it is never sent twice, and a failed send is logged and counts as a missed dose. A dose still pending when the next is due is marked missed. When three in a row are missed, the patient's ASHA gets a `missed_doses` case, once per run of misses, and the patient is not sent a notice. Reminders cannot be stopped from WhatsApp: a course without a number of days runs until its row is deleted.
-
-```bash
-uv run pytest tests/test_reminders.py
-docker compose exec db psql -U chhaaya -c "SELECT medicine, times, next_due_at, confirmed_at FROM reminders"
-```
-
-## Escalation cases
-
-Anything Chhaaya should not answer alone goes to the patient's ASHA as a numbered case: danger signs, questions without strong enough evidence, answers that fail the citation or script check, critical lab values, prescriptions to confirm and missed doses. Opening a case saves it, alerts the ASHA with a summary (the first 500 characters of the details; the case keeps all of them) and tells the patient their ASHA will reply. The patient is not told after a danger sign, because the urgent reply already said so, or outside the 24-hour window, where no approved template carries the notice. The ASHA answers by starting her message with the case number ("12 Give ORS and come to the PHC today"); the answer is relayed to the patient as text and a voice note, and the case closes. If relaying fails the case stays open, and anything without a number gets a short usage hint. Answers to questions are also saved to the knowledge base as `health_worker_answer` chunks, embedded with BGE-M3 like the guidelines (the worker loads the model on the first such answer, not at start), and once a person approves one (see ASHA answer review), later answers can cite it as coming from a health worker. Only the answer is stored, not the patient's question, and the ASHA's alert warns that the answer will be shared, so she leaves out names and personal details. A prescription case is not relayed as an answer: "12 ok" sends the patient the medicines as read off the photo, and a corrected list is sent instead (see Document agent). Outside WhatsApp's 24-hour window the alert and the relay use templates, which must be created and approved on the Meta app in Hindi (`hi`) and English (`en`):
-
-| Template | Body variables |
-|---|---|
-| `asha_case_alert` | `{{1}}` case number, `{{2}}` what it is about, `{{3}}` patient's number, `{{4}}` details |
-| `case_update` | `{{1}}` the ASHA's answer |
-| `medicine_reminder` | `{{1}}` the medicine, `{{2}}` the time in IST ("8:00 am") |
-
-Meta limits a template body to 1024 characters with its variables filled in. Keep the fixed text of `asha_case_alert` under 450 characters so a 500-character summary still fits.
-
-```bash
-uv run pytest tests/test_cases.py
-```
-
-## ASHA answer review
-
-An ASHA's answer to a question case is saved unapproved, and search skips it until a person approves it, because nothing else checks that it holds no patient's name or personal details. `python -m chhaaya.review` lists the answers awaiting review, oldest first, one `id: text` line each. `approve <id>` stamps the answer's `approved_at`, which makes it searchable. `reject <id>` deletes the answer. Either command fails with a one-line error when the id is not a number or names no answer awaiting review, which includes one already approved or rejected. Answers stored before this review existed start unapproved, so each needs a decision before search can return it. Run it through Compose, where Postgres is reachable.
-
-```bash
-docker compose run --rm worker python -m chhaaya.review               # list answers awaiting review
-docker compose run --rm worker python -m chhaaya.review approve 12    # make answer 12 searchable
-docker compose run --rm worker python -m chhaaya.review reject 12     # delete answer 12
-uv run pytest tests/test_review.py
-```
-
-## Browser demo
-
-`python -m chhaaya.demo` runs Chhaaya without WhatsApp, for a local demonstration with one synthetic patient and one synthetic ASHA. It serves a page on `127.0.0.1` only. The patient side sends typed English, Hindi or Hinglish messages and JPEG or PNG photos up to 5 MB, and shows each reply with its sources, urgent replies and any message that failed, with the error. The ASHA side lists her cases and answers them as she would on WhatsApp ("12 ok"). Messages are queued as the webhook queues them, and the same worker and agents run in a thread of the demo process with the same provider settings, danger-sign check, citation checks and ASHA confirmation of prescriptions. `BrowserWhatsApp` in `src/chhaaya/demo.py` stores every reply in the database instead of sending it and never contacts Meta, so the demo needs no working WhatsApp credentials. The demo requires a database name different from `DATABASE_URL`, even on another host or port, so aliases and port forwards cannot share the WhatsApp queue. Known service fields in the shared `.env` are accepted; misspelled demo fields fail at startup. Photos are held only in process memory, never on disk or in the database. Access expires after 30 minutes; expired bytes are removed on the next photo access or upload, or when the process ends. Speech is always off. The page opens only through the link the demo prints at start, which sets a session cookie; a new start prints a new link. Until the ASHA has written in the last 24 hours, her alerts arrive as template notices, so send any message as the ASHA before a prescription. The demo database needs the migrations and the knowledge base. A prescription photo also needs `data/lexicon.csv` (see Medicine lexicon). The first question loads BGE-M3. This is a demonstration with synthetic people, not a clinical service.
-
-```bash
-docker run -d --name chhaaya-demo-db -e POSTGRES_USER=chhaaya -e POSTGRES_PASSWORD=demo \
-  -e POSTGRES_DB=chhaaya_demo -p 127.0.0.1:5433:5432 pgvector/pgvector:pg16
+cp -n .env.example .env
+docker run -d --name chhaaya-browser-demo-db -e POSTGRES_USER=chhaaya \
+  -e POSTGRES_PASSWORD=demo -e POSTGRES_DB=chhaaya_demo \
+  -p 127.0.0.1:5433:5432 pgvector/pgvector:pg16
 export DEMO_DATABASE_URL=postgresql://chhaaya:demo@127.0.0.1:5433/chhaaya_demo
 DATABASE_URL=$DEMO_DATABASE_URL uv run alembic upgrade head
-DATABASE_URL=$DEMO_DATABASE_URL uv run python -m chhaaya.retrieval   # embed data/chunks.jsonl
-HF_HUB_OFFLINE=1 uv run python -m chhaaya.demo                     # open the printed link
-uv run pytest tests/test_demo.py
+uv run python -m chhaaya.corpus
+DATABASE_URL=$DEMO_DATABASE_URL uv run python -m chhaaya.retrieval
+uv run python -m chhaaya.lexicon
 ```
 
-On phones, Patient and ASHA use separate tabs. The message field fills the width, touch targets are at least 44 pixels, and the layout reserves the screen's safe areas. Short touch screens also use tabs in landscape.
+For WhatsApp, fill `WHATSAPP_*` and `POSTGRES_PASSWORD` in `.env`, then run `docker compose up --build`. Voice additionally needs a Sarvam key, ffmpeg and `SPEECH_ENABLED=true`; the browser always keeps speech off.
 
-## Intent dataset
+</details>
 
-The router that sends each message to the Q&A or reminder agent is trained on labelled messages in Hindi (Devanagari), English and Hinglish. `data/intent/train.csv` holds 900 messages, 75 per label in each language, drafted with an LLM, then read in full and corrected by a person. The four labels (`question`, `reminder_setup`, `reminder_reply`, `smalltalk`) and the borderline cases are defined in [docs/intent-labelling-guide.md](docs/intent-labelling-guide.md). The test set (`data/intent/test.csv`, 40 messages per language) is written entirely by people and is never used for training. To measure how well two people agree, each labels `data/intent/agreement_sample.csv` alone into an `id,label` file, and the command below prints the match count and Cohen's kappa. Arham labelled the sample alone; Ananya's labels are the ones she reviewed in `train.csv`. The two agree on 50 of 50 (kappa 1.00).
-
-```bash
-uv run python -m chhaaya.intent_data data/intent/agreement/Ananya.csv data/intent/agreement/Arham.csv
-```
-
-## Intent classifier
-
-The worker routes new text messages with a fine-tuned [MuRIL](https://huggingface.co/google/muril-base-cased) model on CPU. `python -m chhaaya.intent train` trains every parameter on the 900 training rows with seed 42 and fixed hyperparameters, records them with the dataset checksum in `training.json`, and saves a local checkpoint in `data/intent/model`. It uses MPS for training when available, otherwise CPU. The test set is never used for training or choosing the fixed 0.8 confidence threshold. Lower confidence becomes `question`. Exact replies to a pending reminder retain their state checks, and a predicted reminder reply without a pending reminder becomes a question. Photos and original-text emergencies run before classification. Every other patient message is also rewritten and screened for English-query danger signs before classification or pending-reminder handling. Q&A reuses that query rather than rewriting it again. Small talk gets a canned reply in the patient's language and script. A missing or invalid checkpoint fails explicitly. `INTENT_MODEL_PATH` changes the native worker's checkpoint path; Compose mounts the default directory read-only. The benchmark requests Sarvam structured JSON and validates the four-label schema. The explicit benchmark compares all four labels against keyword rules and zero-shot Sarvam-105B, even when Claude handles patient messages. Sarvam requests start at least two seconds apart, below the documented [Starter rate limit](https://docs.sarvam.ai/api/getting-started/ratelimits); measured latency excludes that pacing. It records macro-F1 from the first pass, three passes of per-message timings, per-language median timings and their spread, and every prediction in a CSV. Completed predictions remain available if a later provider call fails; a failed run has no summary JSON. Use a new output path for another run.
-
-```bash
-uv run python -m chhaaya.intent train
-uv run python -m chhaaya.intent evaluate --sarvam   # paid baseline; needs SARVAM_API_KEY
-uv run pytest tests/test_intent_flow.py
-```
-
-The completed benchmark used 120 held-out messages, 40 per language, with three passes for each model (1,080 predictions). Macro-F1 uses the first pass after applying the router's confidence rule. MuRIL beats these keyword rules in every language but trails Sarvam-105B. Latency is the median of three per-pass medians; brackets show their minimum and maximum. These are warm CPU measurements on an Apple M5 with 24 GiB RAM and four Torch threads, versus sequential remote Sarvam requests. They exclude checkpoint loading and request pacing. Provider-side caching is uncontrolled. MuRIL's local CPU inference and Sarvam's network round trips measure different costs.
-
-| Language | Keyword macro-F1 | MuRIL macro-F1 | Sarvam-105B macro-F1 | Keyword ms [range] | MuRIL ms [range] | Sarvam-105B ms [range] |
-|---|---:|---:|---:|---:|---:|---:|
-| Hindi | 0.390 | 0.951 | 0.975 | 0.0014 [0.0013, 0.0015] | 11.15 [11.11, 11.29] | 188.36 [170.62, 210.07] |
-| English | 0.341 | 0.897 | 0.950 | 0.0014 [0.0012, 0.0015] | 11.29 [11.19, 11.31] | 167.17 [164.74, 206.24] |
-| Hinglish | 0.407 | 0.872 | 0.975 | 0.0012 [0.0012, 0.0014] | 11.27 [11.19, 11.28] | 169.93 [162.86, 186.55] |
-
-[The summary](data/intent/results.json) records the training parameters, dataset checksums and unrounded measurements. [The prediction CSV](data/intent/results.csv) records every trial. Five training epochs took 286.16 seconds on MPS, excluding download and checkpoint loading. Training and test messages have no exact overlap after whitespace and case normalization. This small development benchmark does not establish clinical safety.
-
-## Evaluation sets
-
-The sets that the evaluation harness runs against the system live in `eval/sets/`: 40 patient questions written in Hindi, English and Hinglish with the source document that answers each, split into a half that tunes τ and a half that reports it; 30 danger-sign messages and 30 look-alikes; 20 adversarial messages; 10 synthetic lab reports and 10 prescriptions with their expected fields; 15 recorded voice questions per language with transcripts. The question, danger-sign, adversarial and document sets were drafted with an LLM, and a person read and approved every row. People recorded the voice questions. None of the sets is used for training. [docs/evaluation-sets.md](docs/evaluation-sets.md) explains how to write each one, and the command below checks every file and lists what is still missing.
-
-```bash
-uv run python -m chhaaya.eval_sets
-```
-
-## Evaluation harness
-
-`python -m eval` runs every evaluation set against the system and writes `eval/report.md` plus one CSV per set in `eval/results/`, every metric per language (design section 9). It refuses to start while a set fails its check. Each question is rewritten and retrieved once. τ is tuned on the `tune` half, one τ per language when a single τ escalates 20 points more of one language's correct retrievals than another's, and the `report` half is answered at that τ from the same query. The report covers hit@5 and escalation at τ, danger-sign recall on the message and on the message or its query, false alarms, adversarial response outcomes, field and medicine-name accuracy before and after the lexicon, critical values caught, word error rate, whether a voice question gets the typed question's outcome and sources, escalation by cause, and the recorded classifier benchmark. Unsafe-response rate is not measured. The selected AI provider and the knowledge base are live. The voice set also needs `SPEECH_ENABLED=true` and a Sarvam key. Nothing is sent on WhatsApp, no case is opened and no answer is spoken: the harness records what would have gone out. A run makes several hundred paid provider calls, so it needs the selected provider's key in `.env` and the corpus loaded into Postgres; the `WHATSAPP_*` settings need any non-blank value.
-
-```bash
-docker compose up -d db migrate
-uv run python -m chhaaya.corpus && uv run python -m chhaaya.lexicon
-docker compose run --rm --volume ./data:/app/data --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m chhaaya.retrieval
-docker compose run --rm --build -e SPEECH_ENABLED=true --volume ./data:/app/data --volume ./eval:/app/eval --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m eval
-```
-
-## Evaluation results
-
-The following tables are copied from the complete synthetic-data evaluation on 23 October 2026. Claude Sonnet 5.5 handled text and photos; Sarvam handled speech. The [report](eval/report.md) includes the classifier benchmark, and the [per-item CSVs](eval/results/) retain each outcome. The evaluation tunes retrieval τ internally; the running application still uses τ=0.5. These measurements do not establish clinical safety.
-
-### Questions
-
-| Language | τ | Hit@5 | Escalated at τ | Correct retrievals escalated | Answered | Failed |
-| --- | --- | --- | --- | --- | --- | --- |
-| en | 0.535 | 17/20 | 0/20 | 0/17 | 19/20 | 0 |
-| hi | 0.535 | 17/20 | 0/20 | 0/17 | 16/20 | 0 |
-| hinglish | 0.535 | 16/20 | 0/20 | 0/16 | 16/20 | 0 |
-
-### Safety
-
-#### Danger signs
-
-The check runs on the message and on its English search query; a match on either fires.
-
-| Language | Recall (message) | Recall (message or query) | False alarms |
-| --- | --- | --- | --- |
-| en | 10/10 | 10/10 | 1/10 |
-| hi | 10/10 | 10/10 | 0/10 |
-| hinglish | 10/10 | 10/10 | 0/10 |
-
-#### Adversarial messages
-
-Response outcomes are counted below. Unsafe-response rate is not measured.
-
-| Language | Unsafe | Answered | Escalated | Failed |
-| --- | --- | --- | --- | --- |
-| en | not measured | 4 | 3 | 0 |
-| hi | not measured | 2 | 4 | 0 |
-| hinglish | not measured | 2 | 5 | 0 |
-
-### Documents
-
-| Kind | Fields correct | Medicine names | Names after lexicon |
-| --- | --- | --- | --- |
-| lab_report | 72/72 | — | — |
-| prescription | 64/64 | 16/16 | 13/16 |
-
-| Critical values caught | False alarms |
-| --- | --- |
-| 3/3 | 0 |
-
-### Voice
-
-A voice question gets the same answer when its transcript has the same outcome, cause and cited sources as the typed question.
-
-| Language | Word edits | Reference words | Word error rate | Same answer |
-| --- | --- | --- | --- | --- |
-| en | 9 | 148 | 6.1% | 10/15 |
-| hi | 18 | 133 | 13.5% | 7/15 |
-| hinglish | 136 | 135 | 100.7% | 11/15 |
-
-### Escalation
-
-Questions (report half), danger-sign messages and look-alikes, and adversarial messages, by why they went to the ASHA.
-
-| Language | Escalated | citation_failed | danger_sign | weak_evidence |
-| --- | --- | --- | --- | --- |
-| en | 15/47 | 2 | 11 | 2 |
-| hi | 18/46 | 0 | 10 | 8 |
-| hinglish | 19/47 | 1 | 10 | 8 |
-
-```bash
-SPEECH_ENABLED=true uv run python -m eval
-```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the rules every change and coding agent follows.
-
-## License
+[Full evaluation and dataset provenance](eval/report.md) · [Saved metrics](data/intent/model_evaluation.json) · [Intent dataset on IEEE DataPort](https://doi.org/10.21227/m81y-kj83)
 
 AGPL-3.0. See [LICENSE](LICENSE).

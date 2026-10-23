@@ -1,4 +1,4 @@
-"""Checks for the evaluation sets in eval/sets (design section 9).
+"""Checks for the evaluation sets in eval/sets.
 
 `uv run python -m chhaaya.eval_sets` reports what each set still needs.
 """

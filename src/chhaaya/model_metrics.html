@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chhaaya intent models</title>
+<style nonce="{{nonce}}">
+:root {
+  color-scheme: dark;
+  --shade: oklch(0.205 0.022 165);
+  --canopy: oklch(0.245 0.026 165);
+  --leaf: oklch(0.295 0.03 165);
+  --line: oklch(0.37 0.03 165);
+  --chalk: oklch(0.93 0.018 95);
+  --muted: oklch(0.77 0.025 120);
+  --turmeric: oklch(0.8 0.135 78);
+  --neel: oklch(0.72 0.1 255);
+  --sindoor: oklch(0.68 0.18 32);
+  --sindoor-wash: color-mix(in oklch, var(--sindoor) 20%, var(--canopy));
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Kohinoor Devanagari",
+    "Noto Serif Devanagari", serif;
+  --sans: "Avenir Next", Avenir, "Kohinoor Devanagari", "Noto Sans Devanagari",
+    "Segoe UI", sans-serif;
+  --gap: clamp(0.75rem, 1.5vw, 1.25rem);
+  --target: 2.5rem;
+}
+html { background: var(--shade); }
+* { box-sizing: border-box; }
+body {
+  margin: 0; height: 100dvh; display: flex; flex-direction: column;
+  background: var(--shade); color: var(--chalk);
+  font: 400 1rem/1.5 var(--sans); letter-spacing: 0.01em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+h1, h2, h3, p { margin: 0; }
+button, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
+textarea::placeholder { color: var(--muted); opacity: 1; }
+:focus-visible { outline: 2px solid var(--turmeric); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+.band {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1.25rem;
+  padding: 0.9rem var(--gap); border-bottom: 1px solid var(--line);
+}
+.mark {
+  font: 600 1.5rem/1 var(--serif); color: var(--chalk); text-decoration: none;
+  display: inline-flex; align-items: center; min-height: var(--target);
+}
+.mark span { color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
+.mark:hover span { color: var(--chalk); }
+.title { font: 400 1.25rem/1.2 var(--serif); color: var(--muted); }
+.running { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
+
+.alert {
+  margin: 0.75rem var(--gap) 0; padding: 0.75rem 0.9rem; border-radius: 6px;
+  background: var(--sindoor-wash); display: flex; flex-wrap: wrap; gap: 0.5rem 1rem;
+  align-items: center;
+}
+.alert p { max-width: 70ch; overflow-wrap: anywhere; }
+
+.tabs { display: none; }
+.stage {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+}
+.pane {
+  position: relative; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.1rem var(--gap) 2rem;
+}
+.pane + .pane { border-left: 1px solid var(--line); background: var(--canopy); }
+.pane h2 { font: 600 1.35rem/1.2 var(--serif); }
+.pane h3 { font: 600 1.1rem/1.3 var(--serif); }
+.pane-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 0.5rem 1rem; margin-bottom: 1rem;
+}
+#method { margin-bottom: 1.5rem; }
+.block + .block { margin-top: clamp(1.75rem, 3vw, 2.5rem); }
+.block > h3 { margin-bottom: 0.6rem; }
+.note { color: var(--muted); font-size: 0.875rem; max-width: 68ch; }
+
+.seg { display: flex; flex-wrap: wrap; gap: 0.25rem; border: 0; margin: 0; padding: 0; min-width: 0; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span {
+  display: inline-flex; align-items: center; min-height: var(--target);
+  padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 999px;
+  cursor: pointer; color: var(--muted);
+}
+.seg span:hover { border-color: var(--muted); }
+.seg input:checked + span { color: var(--shade); background: var(--turmeric); border-color: var(--turmeric); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--turmeric); outline-offset: 2px; }
+
+table { border-collapse: collapse; width: 100%; }
+caption { text-align: left; color: var(--muted); font-size: 0.875rem; padding-bottom: 0.4rem; }
+th, td { padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; text-align: left; vertical-align: bottom; }
+thead th { font-size: 0.85rem; }
+thead tr:first-child th[colspan] { border-bottom: 0; padding-bottom: 0; }
+thead tr + tr th { color: var(--muted); font-weight: 400; }
+td { text-align: right; white-space: nowrap; }
+.scores thead th:not(:first-child) { text-align: right; }
+.wide tbody th { min-width: 8rem; }
+.wide th, .wide td { padding-inline: 0.3rem; }
+.wide td { font-size: 0.95rem; }
+.tall tbody th, .tall thead th { overflow-wrap: break-word; }
+td.best { font-weight: 700; color: var(--chalk); }
+td.best .dot { color: var(--turmeric); margin-right: 0.2rem; }
+td.na { color: var(--muted); }
+.kind { display: block; font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+.tall, .scores[data-fit="tall"] .wide { display: none; }
+.scores[data-fit="tall"] .tall { display: table; }
+.tall th, .tall td { font-size: 0.9rem; padding-inline: 0.25rem; }
+.tall td { white-space: normal; }
+.notes { margin: 0.6rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; }
+
+.matrix-wrap { container-type: inline-size; }
+.matrix { width: auto; max-width: 100%; margin-top: 0.75rem; table-layout: fixed; }
+.matrix th, .matrix td { border: 0; padding: 0; }
+.matrix .axis { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+.matrix thead .axis { text-align: center; padding-bottom: 0.25rem; }
+.matrix .side { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; padding: 0 0.35rem 0 0; }
+.matrix thead tr + tr th {
+  color: var(--chalk); font-weight: 600; font-size: 0.82rem; text-align: center;
+  vertical-align: bottom; padding: 0 0.15rem 0.35rem; width: 5.5rem; line-height: 1.2;
+}
+.matrix tbody th { vertical-align: middle; font-size: 0.85rem; padding-right: 0.6rem; text-align: right; line-height: 1.2; max-width: 8rem; }
+.matrix tbody td {
+  height: 3.25rem; min-width: 2.75rem; text-align: center; font-size: 1.05rem;
+  background: var(--canopy); border: 2px solid var(--shade); border-radius: 6px;
+}
+.matrix tbody td.hit { font-weight: 700; }
+@container (max-width: 26rem) {
+  .matrix thead tr + tr th, .matrix tbody th { font-size: 0.72rem; }
+  .matrix { width: 100%; }
+  .matrix tbody th { max-width: 5rem; padding-right: 0.3rem; }
+  .matrix thead tr + tr th { width: auto; }
+  .matrix thead tr + tr th {
+    writing-mode: vertical-rl; transform: rotate(180deg); text-align: left;
+    vertical-align: middle; padding: 0.35rem 0; height: 6.5rem;
+  }
+  .matrix tbody td { min-width: 0; }
+}
+
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; }
+.bars li {
+  display: grid; grid-template-columns: minmax(4rem, 9rem) 1fr 3.5rem; gap: 0.6rem;
+  align-items: center; min-height: 1.75rem;
+}
+.bars .tok { text-align: right; overflow-wrap: anywhere; line-height: 1.2; }
+.bars .track { height: 0.7rem; background: var(--leaf); border-radius: 2px; overflow: hidden; }
+.bars .fill { display: block; height: 100%; background: var(--turmeric); border-radius: 2px; }
+.bars .val { text-align: right; font-size: 0.875rem; color: var(--muted); }
+.more { margin-top: 0.75rem; }
+
+.pick { display: grid; gap: 0.35rem; }
+.pick label { font-weight: 600; font-size: 0.9rem; }
+select, textarea {
+  width: 100%; min-height: var(--target); padding: 0.55rem 0.75rem; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--leaf);
+}
+select { cursor: pointer; }
+textarea { resize: vertical; max-height: 12rem; }
+.ask { display: grid; gap: 0.35rem; margin-top: 1rem; }
+.ask label { font-weight: 600; font-size: 0.9rem; }
+.ask-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.primary, .secondary {
+  border-radius: 8px; padding: 0.55rem 1rem; cursor: pointer; font-weight: 600;
+  min-height: var(--target);
+}
+.primary { background: var(--turmeric); color: var(--shade); border: 0; }
+.secondary { background: none; border: 1px solid var(--line); }
+.secondary:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.55; cursor: progress; }
+.hint { font-size: 0.875rem; color: var(--muted); min-height: 1.3em; overflow-wrap: anywhere; }
+.hint[data-tone="error"] { color: oklch(0.8 0.1 35); }
+.hint button { margin-left: 0.5rem; }
+
+.result { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); display: grid; gap: 0.9rem; }
+.said {
+  font: 400 1.2rem/1.45 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere;
+  padding-left: 0.9rem; border-left: 2px solid var(--line);
+}
+.verdict p + p { margin-top: 0.2rem; }
+.verdict .routed { color: var(--turmeric); }
+.sum { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin: 0; }
+.sum div { display: grid; }
+.sum dt { font-size: 0.8rem; color: var(--muted); }
+.sum dd { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.strip { display: flex; flex-wrap: wrap; gap: 0.3rem; list-style: none; margin: 0; padding: 0; }
+.strip li {
+  display: grid; justify-items: center; padding: 0.25rem 0.4rem; border-radius: 4px;
+  background: var(--leaf); min-width: 2.5rem;
+}
+.strip .t { font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+.strip .v { font-size: 0.75rem; line-height: 1.2; }
+.key { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; font-size: 0.85rem; color: var(--muted); }
+.key span::before {
+  content: ""; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px;
+  margin-right: 0.4rem; vertical-align: -0.05rem;
+}
+.key .up::before { background: var(--turmeric); }
+.key .down::before { background: var(--neel); }
+
+.provenance { margin-top: 2.5rem; font-size: 0.875rem; color: var(--muted); }
+.provenance summary { cursor: pointer; min-height: var(--target); display: flex; align-items: center; }
+.provenance dl { display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 0; }
+.provenance dt { color: var(--chalk); }
+.provenance dd { margin: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 52rem), (max-height: 30rem) {
+  :root {
+    --gap: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right));
+    --target: 44px;
+  }
+  body { height: auto; min-height: 100dvh; }
+  .band { padding-top: max(0.6rem, env(safe-area-inset-top)); padding-bottom: 0.6rem; gap: 0 1rem; }
+  .mark { font-size: 1.25rem; }
+  .title { font-size: 1.05rem; }
+  .running { margin-left: 0; width: 100%; }
+  .tabs {
+    display: flex; gap: 0.25rem; padding: 0.5rem var(--gap) 0;
+    border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 1;
+    background: var(--shade);
+  }
+  .tabs button {
+    background: none; border: 0; border-bottom: 2px solid transparent; min-height: 44px;
+    padding: 0.5rem 0.75rem; cursor: pointer; color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { color: var(--chalk); border-color: var(--turmeric); }
+  .stage { display: block; }
+  .pane { overflow: visible; padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+  .pane + .pane { border-left: 0; }
+  .pane > .pane-head h2 {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+  .stage[data-view="performance"] #explain, .stage[data-view="explain"] #performance { display: none; }
+  .bars li { grid-template-columns: minmax(3.5rem, 7rem) 1fr 3rem; gap: 0.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <a class="mark" href="/">छाया<span>Chhaaya</span></a>
+  <h1 class="title">Intent models</h1>
+  <p class="running" id="status" role="status">Loading saved results</p>
+</header>
+<div class="alert" id="alert" role="alert" hidden>
+  <p id="alert-text"></p>
+  <button class="secondary" type="button" id="reload">Try again</button>
+</div>
+<nav class="tabs" role="tablist" aria-label="View" hidden>
+  <button role="tab" id="tab-performance" aria-controls="performance" aria-selected="true">Performance</button>
+  <button role="tab" id="tab-explain" aria-controls="explain" aria-selected="false" tabindex="-1">Explanations</button>
+</nav>
+<main class="stage" id="stage" data-view="performance" hidden>
+  <section class="pane" id="performance" aria-labelledby="performance-title">
+    <div class="pane-head">
+      <h2 id="performance-title">Performance</h2>
+      <fieldset class="seg" id="languages">
+        <legend class="visually-hidden">Language</legend>
+      </fieldset>
+    </div>
+    <div class="block scores" id="scores">
+      <table class="wide" id="wide"></table>
+      <table class="tall" id="tall"></table>
+      <p class="note"><span aria-hidden="true">● </span>Best score for each metric. Tied best scores are all marked. N/A scores are left out.</p>
+      <ul class="notes note" id="na-notes"></ul>
+    </div>
+    <div class="block matrix-wrap">
+      <h3 id="matrix-title">Confusion matrix</h3>
+      <fieldset class="seg" id="matrix-models">
+        <legend class="visually-hidden">Model for the confusion matrix</legend>
+      </fieldset>
+      <table class="matrix" id="matrix" aria-labelledby="matrix-title"></table>
+    </div>
+    <details class="provenance">
+      <summary>Data and model hashes</summary>
+      <dl id="provenance"></dl>
+    </details>
+  </section>
+  <section class="pane" id="explain" aria-labelledby="explain-title">
+    <div class="pane-head">
+      <h2 id="explain-title">MuRIL explanations</h2>
+    </div>
+    <p class="note" id="method"></p>
+    <div class="block">
+      <h3>Token importance on the test set</h3>
+      <p class="note" id="global-note"></p>
+      <ol class="bars" id="global" aria-label="Mean absolute SHAP value per token"></ol>
+      <button class="secondary more" type="button" id="more" aria-controls="global" hidden></button>
+    </div>
+    <div class="block" id="local">
+      <h3>One message</h3>
+      <div class="pick">
+        <label for="held-out">Held-out message</label>
+        <select id="held-out"></select>
+      </div>
+      <form class="ask" id="ask" novalidate>
+        <label for="custom">Or write a message</label>
+        <textarea id="custom" rows="2" maxlength="512" placeholder="dawai yaad dila dena subah 8 baje"></textarea>
+        <div class="ask-row">
+          <button class="primary" type="submit" id="explain-button">Explain</button>
+        </div>
+        <p class="hint" id="hint" aria-live="polite"></p>
+      </form>
+      <div class="result" id="result" hidden>
+        <p class="said" id="said"></p>
+        <div class="verdict" id="verdict"></div>
+        <fieldset class="seg" id="classes">
+          <legend class="visually-hidden">Class to explain</legend>
+        </fieldset>
+        <dl class="sum" id="sum"></dl>
+        <p class="key"><span class="up" id="key-up"></span><span class="down" id="key-down"></span></p>
+        <ol class="strip" id="strip" aria-label="Token contributions in message order"></ol>
+      </div>
+    </div>
+  </section>
+</main>
+<script nonce="{{nonce}}">
+"use strict";
+const COMMAND = "uv run python -m chhaaya.model_metrics";
+const LANGUAGES = { overall: "Overall", en: "English", hi: "Hindi", hinglish: "Hinglish" };
+const COLUMNS = [
+  ["accuracy", "Accuracy"],
+  ["precision_macro", "Precision", "Macro"], ["precision_weighted", "Precision", "Weighted"],
+  ["recall_macro", "Recall", "Macro"], ["recall_weighted", "Recall", "Weighted"],
+  ["f1_macro", "F1", "Macro"], ["f1_weighted", "F1", "Weighted"],
+  ["roc_auc_macro", "ROC-AUC", "Macro"], ["roc_auc_weighted", "ROC-AUC", "Weighted"],
+];
+const LOAD_TIMEOUT = 15000;
+const EXPLAIN_TIMEOUT = 180000;
+const LIMIT = 512;
+const TOP_TOKENS = 15;
+
+let data = null;
+let language = "overall";
+let matrixModel = null;
+let shown = null;
+let chosenClass = null;
+let explaining = false;
+let latestAction = 0;
+let parked = null;
+let allTokens = false;
+
+const $ = (id) => document.getElementById(id);
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+const fixed = (v) => v.toFixed(3);
+const signed = (v) => `${v < 0 ? "−" : "+"}${Math.abs(v).toFixed(3)}`;
+const labelName = (label) => {
+  const words = label.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+function status(text) { $("status").textContent = text; }
+
+function showAlert(text) {
+  $("alert-text").textContent = text || "";
+  $("alert").hidden = !text;
+}
+
+async function problem(response) {
+  if (response.status === 401) return "Signed out. Open the link printed in the terminal, then come back to this page.";
+  let detail = "";
+  try {
+    const body = await response.json();
+    if (typeof body.detail === "string") detail = body.detail;
+    else if (Array.isArray(body.detail) && body.detail[0] && typeof body.detail[0].msg === "string") detail = body.detail[0].msg;
+  } catch { /* the status code below still explains it */ }
+  return detail || `The demo server answered ${response.status}.`;
+}
+
+function reachError(error, seconds) {
+  if (error && error.name === "TimeoutError") return `No answer from the demo server after ${seconds} seconds.`;
+  if (error instanceof TypeError) return "Could not reach the demo server. Check that it is still running.";
+  return error.message;
+}
+
+// Shape checks, so a stale or hand-edited file fails with a reason instead of a half-drawn page.
+function need(ok, what) {
+  if (!ok) throw new Error(`The saved results are incomplete (${what}). Run ${COMMAND}, then try again.`);
+}
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+const numbers = (list, length) => Array.isArray(list) && list.length === length && list.every(isNum);
+
+function checkMetric(m, where) {
+  need(m && typeof m === "object", `${where} metrics`);
+  need(Number.isInteger(m.n), `${where} n`);
+  for (const [key] of COLUMNS) {
+    need(isNum(m[key]) || (key.startsWith("roc_auc") && m[key] === null), `${where} ${key}`);
+  }
+  need(Array.isArray(m.confusion_matrix) && m.confusion_matrix.length === 4
+    && m.confusion_matrix.every((row) => numbers(row, 4) && row.every(Number.isInteger)), `${where} confusion matrix`);
+}
+
+function checkExample(ex, labels, where) {
+  need(ex && typeof ex === "object" && typeof ex.text === "string", `${where} text`);
+  need(labels.includes(ex.predicted) && labels.includes(ex.routed), `${where} classes`);
+  need(isNum(ex.confidence) && numbers(ex.probabilities, 4) && numbers(ex.base_values, 4), `${where} probabilities`);
+  need(Array.isArray(ex.tokens) && Array.isArray(ex.values) && ex.tokens.length === ex.values.length
+    && ex.tokens.every((t) => typeof t === "string") && ex.values.every((row) => numbers(row, 4)), `${where} token values`);
+}
+
+function check(d) {
+  need(d && d.schema_version === 1, "schema version 1");
+  need(Array.isArray(d.labels) && d.labels.length === 4 && d.labels.every((l) => typeof l === "string"), "labels");
+  need(d.test && Number.isInteger(d.test.rows), "test set");
+  need(Array.isArray(d.models) && d.models.length > 0, "models");
+  for (const m of d.models) {
+    need(typeof m.id === "string" && typeof m.name === "string", "model name");
+    need(m.metrics && m.metrics.by_language, `${m.id} metrics`);
+    checkMetric(m.metrics.overall, `${m.id} overall`);
+    for (const lang of ["en", "hi", "hinglish"]) checkMetric(m.metrics.by_language[lang], `${m.id} ${lang}`);
+  }
+  const x = d.explainability;
+  need(x && Array.isArray(x.global) && x.global.every((g) => typeof g.token === "string" && isNum(g.importance)), "global importance");
+  need(Array.isArray(x.examples), "examples");
+  x.examples.forEach((ex, i) => checkExample(ex, d.labels, `example ${i + 1}`));
+  return d;
+}
+
+function metricFor(model) {
+  return language === "overall" ? model.metrics.overall : model.metrics.by_language[language];
+}
+
+// Best = highest raw score; scores within 1e-12 of it tie, matching model_report.py.
+function bestValues() {
+  const best = {};
+  for (const [key] of COLUMNS) {
+    const values = data.models.map((m) => metricFor(m)[key]).filter(isNum);
+    best[key] = values.length ? Math.max(...values) : null;
+  }
+  return best;
+}
+
+function scoreCell(value, best) {
+  if (value === null) return el("td", "na", "N/A");
+  const td = el("td");
+  if (best !== null && Math.abs(value - best) <= 1e-12) {
+    td.className = "best";
+    td.append(el("span", "dot", "●"), fixed(value), el("span", "visually-hidden", " (best)"));
+    td.firstChild.setAttribute("aria-hidden", "true");
+  } else {
+    td.textContent = fixed(value);
+  }
+  return td;
+}
+
+function modelHeader(model, tag, scope) {
+  const th = el(tag);
+  th.scope = scope;
+  th.append(model.name);
+  if (model.kind) th.append(el("span", "kind", model.kind));
+  return th;
+}
+
+function caption(table) {
+  const n = metricFor(data.models[0]).n;
+  table.append(el("caption", null, `${LANGUAGES[language]}, ${n} held-out messages`));
+}
+
+function renderScores() {
+  const best = bestValues();
+  const wide = $("wide");
+  wide.replaceChildren();
+  caption(wide);
+  const head = el("thead");
+  const top = el("tr");
+  const sub = el("tr");
+  const first = el("th", null, "Model");
+  first.rowSpan = 2;
+  first.scope = "col";
+  top.append(first);
+  for (let i = 0; i < COLUMNS.length; i++) {
+    const [, group, part] = COLUMNS[i];
+    if (!part) {
+      const th = el("th", null, group);
+      th.rowSpan = 2;
+      th.scope = "col";
+      top.append(th);
+    } else {
+      if (COLUMNS[i - 1][1] !== group) {
+        const th = el("th", null, group);
+        th.colSpan = 2;
+        th.scope = "colgroup";
+        top.append(th);
+      }
+      const th = el("th", null, part);
+      th.scope = "col";
+      sub.append(th);
+    }
+  }
+  head.append(top, sub);
+  const body = el("tbody");
+  for (const model of data.models) {
+    const tr = el("tr");
+    tr.append(modelHeader(model, "th", "row"));
+    for (const [key] of COLUMNS) tr.append(scoreCell(metricFor(model)[key], best[key]));
+    body.append(tr);
+  }
+  wide.append(head, body);
+
+  const tall = $("tall");
+  tall.replaceChildren();
+  caption(tall);
+  const tallHead = el("thead");
+  const row = el("tr");
+  const corner = el("th", null, "Metric");
+  corner.scope = "col";
+  row.append(corner);
+  for (const model of data.models) row.append(modelHeader(model, "th", "col"));
+  tallHead.append(row);
+  const tallBody = el("tbody");
+  for (const [key, group, part] of COLUMNS) {
+    const tr = el("tr");
+    const th = el("th", null, part ? `${group}, ${part.toLowerCase()}` : group);
+    th.scope = "row";
+    tr.append(th);
+    for (const model of data.models) tr.append(scoreCell(metricFor(model)[key], best[key]));
+    tallBody.append(tr);
+  }
+  tall.append(tallHead, tallBody);
+
+  const notes = $("na-notes");
+  notes.replaceChildren();
+  for (const model of data.models) {
+    if (model.roc_auc_reason) notes.append(el("li", null, `ROC-AUC is N/A for ${model.name}. ${model.roc_auc_reason}`));
+  }
+  fitScores();
+}
+
+// Metrics become rows when the models-as-rows table would be wider than its pane.
+function fitScores() {
+  const scores = $("scores");
+  delete scores.dataset.fit;
+  if ($("wide").offsetWidth > scores.clientWidth) scores.dataset.fit = "tall";
+}
+new ResizeObserver(() => { if (data) fitScores(); }).observe($("scores"));
+
+function renderMatrix() {
+  const model = data.models.find((m) => m.id === matrixModel);
+  const grid = metricFor(model).confusion_matrix;
+  const table = $("matrix");
+  table.replaceChildren();
+  table.append(el("caption", "visually-hidden", `${model.name}, ${LANGUAGES[language]}. Rows are actual classes, columns are predicted classes.`));
+  const head = el("thead");
+  const axis = el("tr");
+  axis.append(el("td"), el("td"));
+  const predicted = el("th", "axis", "Predicted");
+  predicted.colSpan = 4;
+  predicted.scope = "colgroup";
+  axis.append(predicted);
+  const names = el("tr");
+  names.append(el("td"), el("td"));
+  for (const label of data.labels) {
+    const th = el("th", null, labelName(label));
+    th.scope = "col";
+    names.append(th);
+  }
+  head.append(axis, names);
+  const body = el("tbody");
+  grid.forEach((counts, r) => {
+    const tr = el("tr");
+    if (r === 0) {
+      const actual = el("th", "axis side", "Actual");
+      actual.rowSpan = 4;
+      actual.scope = "rowgroup";
+      tr.append(actual);
+    }
+    const th = el("th", null, labelName(data.labels[r]));
+    th.scope = "row";
+    tr.append(th);
+    const total = counts.reduce((a, b) => a + b, 0);
+    counts.forEach((count, c) => {
+      const td = el("td", r === c ? "hit" : null, count);
+      const share = total ? count / total : 0;
+      if (share) td.style.background = `color-mix(in oklch, var(--turmeric) ${Math.round(8 + 40 * share)}%, var(--canopy))`;
+      tr.append(td);
+    });
+    body.append(tr);
+  });
+  table.append(head, body);
+}
+
+function segmented(fieldset, name, options, selected, onChange) {
+  for (const node of [...fieldset.children]) if (node.tagName !== "LEGEND") node.remove();
+  for (const [value, text] of options) {
+    const label = el("label");
+    const input = el("input");
+    input.type = "radio";
+    input.name = name;
+    input.value = value;
+    input.checked = value === selected;
+    input.addEventListener("change", () => onChange(value));
+    label.append(input, el("span", null, text));
+    fieldset.append(label);
+  }
+}
+
+function renderGlobal() {
+  const x = data.explainability;
+  $("method").textContent = [x.method, x.scope].filter(Boolean).map((t) => t.replace(/\.?$/, ".")).join(" ");
+  $("global-note").textContent = `Mean absolute SHAP value over ${x.sample_size} held-out messages, seed ${x.seed}, in ${x.units}.`;
+  const list = $("global");
+  list.replaceChildren();
+  const ordered = [...x.global].sort((a, b) => b.importance - a.importance);
+  const top = ordered.length ? ordered[0].importance : 0;
+  for (const item of allTokens ? ordered : ordered.slice(0, TOP_TOKENS)) {
+    const li = el("li");
+    const track = el("span", "track");
+    track.setAttribute("aria-hidden", "true");
+    const fill = el("span", "fill");
+    fill.style.width = `${top ? (100 * item.importance) / top : 0}%`;
+    track.append(fill);
+    li.append(el("span", "tok", item.token), track, el("span", "val", item.importance.toFixed(4)));
+    list.append(li);
+  }
+  if (!ordered.length) list.append(el("li", "note", `No token importances were saved. Run ${COMMAND} again.`));
+  const more = $("more");
+  more.hidden = ordered.length <= TOP_TOKENS;
+  more.textContent = allTokens ? `Show top ${TOP_TOKENS}` : `Show all ${ordered.length} tokens`;
+  more.setAttribute("aria-expanded", String(allTokens));
+}
+
+function renderHeldOut() {
+  const select = $("held-out");
+  select.replaceChildren();
+  const examples = data.explainability.examples;
+  const groups = new Map();
+  examples.forEach((ex, i) => {
+    const lang = LANGUAGES[ex.language] || ex.language || "Other";
+    if (!groups.has(lang)) groups.set(lang, el("optgroup"));
+    const group = groups.get(lang);
+    group.label = lang;
+    const text = ex.text.length > 70 ? `${ex.text.slice(0, 69)}…` : ex.text;
+    const option = el("option", null, text);
+    option.value = String(i);
+    group.append(option);
+  });
+  for (const group of groups.values()) select.append(group);
+  if (!examples.length) {
+    select.append(el("option", null, "No held-out examples were saved"));
+    select.disabled = true;
+    return;
+  }
+  const worked = examples.findIndex((ex) => ex.id === data.explainability.worked_example_id);
+  select.value = String(Math.max(worked, 0));
+}
+
+function showExample(ex) {
+  shown = ex;
+  $("result").hidden = false;
+  $("said").textContent = ex.text;
+  const verdict = $("verdict");
+  verdict.replaceChildren();
+  const top = ex.probabilities[data.labels.indexOf(ex.predicted)];
+  verdict.append(el("p", null, `MuRIL predicts ${labelName(ex.predicted)} at ${fixed(top)}.`));
+  if (ex.routed !== ex.predicted) {
+    const router = data.provenance && data.provenance.checkpoint && data.provenance.checkpoint.router;
+    const threshold = router && isNum(router.confidence_threshold) ? ` (${router.confidence_threshold})` : "";
+    verdict.append(el("p", "routed", `Below the router's confidence threshold${threshold}, so Chhaaya routes it as ${labelName(ex.routed)}.`));
+  }
+  if (ex.expected) verdict.append(el("p", "note", `Labelled ${labelName(ex.expected)}.`));
+  const options = data.labels.map((label, i) => [label, `${labelName(label)} ${fixed(ex.probabilities[i])}`]);
+  segmented($("classes"), "class", options, chosenClass || ex.predicted, (value) => {
+    chosenClass = value;
+    renderAttribution();
+  });
+  renderAttribution();
+}
+
+function renderAttribution() {
+  const ex = shown;
+  const label = chosenClass || ex.predicted;
+  const c = data.labels.indexOf(label);
+  const contributions = ex.values.reduce((sum, row) => sum + row[c], 0);
+  const sum = $("sum");
+  sum.replaceChildren();
+  for (const [term, value] of [
+    ["Base probability", fixed(ex.base_values[c])],
+    ["Token contributions", signed(contributions)],
+    [`Final probability of ${labelName(label)}`, fixed(ex.probabilities[c])],
+  ]) {
+    const div = el("div");
+    div.append(el("dt", null, term), el("dd", null, value));
+    sum.append(div);
+  }
+  $("key-up").textContent = `Raises ${labelName(label)}`;
+  $("key-down").textContent = "Lowers it";
+  const strip = $("strip");
+  strip.replaceChildren();
+  const largest = Math.max(...ex.values.map((row) => Math.abs(row[c])), 0);
+  ex.tokens.forEach((token, i) => {
+    const text = token.trim();
+    if (!text) return;
+    const value = ex.values[i][c];
+    const li = el("li");
+    li.append(el("span", "t", text), el("span", "v", signed(value)));
+    if (largest && value) {
+      const color = value > 0 ? "var(--turmeric)" : "var(--neel)";
+      li.style.background = `color-mix(in oklch, ${color} ${Math.round(6 + 28 * (Math.abs(value) / largest))}%, var(--leaf))`;
+    }
+    strip.append(li);
+  });
+}
+
+function hint(text, tone, action) {
+  const node = $("hint");
+  node.replaceChildren(text);
+  node.dataset.tone = tone || "";
+  if (action) node.append(action);
+}
+
+function counter() {
+  const full = $("custom").value.length >= LIMIT;
+  if (full) hint(`Messages stop at ${LIMIT} characters.`);
+  else if ($("hint").textContent.startsWith("Messages stop")) hint("");
+}
+
+async function explain() {
+  const text = $("custom").value.trim();
+  if (!text) {
+    hint("Type a message to explain.", "error");
+    $("custom").focus();
+    return;
+  }
+  if (explaining) return;
+  explaining = true;
+  const action = ++latestAction;
+  parked = null;
+  $("explain-button").disabled = true;
+  hint("Explaining");
+  try {
+    let response;
+    try {
+      response = await fetch("/api/models/explain", {
+        method: "POST", body: JSON.stringify({ text }), cache: "no-store",
+        headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(EXPLAIN_TIMEOUT),
+      });
+    } catch (error) {
+      throw new Error(reachError(error, EXPLAIN_TIMEOUT / 1000));
+    }
+    if (!response.ok) throw new Error(await problem(response));
+    let ex;
+    try {
+      ex = await response.json();
+    } catch {
+      throw new Error("The explanation came back unreadable.");
+    }
+    checkExample(ex, data.labels, "explanation");
+    if (action === latestAction) {
+      showExample(ex);
+      hint("Explanation ready.");
+    } else {
+      parked = ex;
+      const show = el("button", "secondary", "Show it");
+      show.type = "button";
+      show.addEventListener("click", () => {
+        latestAction++;
+        showExample(parked);
+        parked = null;
+        hint("");
+      });
+      hint("Your message's explanation is ready.", "", show);
+    }
+  } catch (error) {
+    hint(`${error.message} Press Explain to try again.`, "error");
+  } finally {
+    explaining = false;
+    $("explain-button").disabled = false;
+  }
+}
+
+function render() {
+  const t = data.test;
+  const langs = t.languages ? Object.entries(t.languages).map(([k, n]) => `${n} ${LANGUAGES[k] || k}`).join(", ") : "";
+  status(`${t.rows} held-out messages${langs ? `: ${langs}` : ""}`);
+  segmented($("languages"), "language", Object.entries(LANGUAGES), language, (value) => {
+    language = value;
+    renderScores();
+    renderMatrix();
+  });
+  matrixModel = matrixModel || (data.models.find((m) => m.kind === "trained") || data.models[0]).id;
+  segmented($("matrix-models"), "matrix-model", data.models.map((m) => [m.id, m.name]), matrixModel, (value) => {
+    matrixModel = value;
+    renderMatrix();
+  });
+  renderScores();
+  renderMatrix();
+  renderProvenance();
+  renderGlobal();
+  renderHeldOut();
+  const examples = data.explainability.examples;
+  if (examples.length) showExample(examples[Number($("held-out").value)]);
+  $("stage").hidden = false;
+  document.querySelector(".tabs").hidden = false;
+}
+
+function renderProvenance() {
+  const list = $("provenance");
+  list.replaceChildren();
+  const rows = [["test sha256", data.test.sha256], ["explanation method", data.explainability.reason]];
+  const walk = (value, path) => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [k, v] of Object.entries(value)) walk(v, path ? `${path} ${k}` : k);
+    } else if (value !== null && value !== undefined) {
+      rows.push([path, Array.isArray(value) ? value.join(", ") : value]);
+    }
+  };
+  walk(data.provenance, "");
+  for (const [term, value] of rows) {
+    if (value === undefined) continue;
+    list.append(el("dt", null, term.replace(/_/g, " ")), el("dd", null, value));
+  }
+}
+
+async function load() {
+  showAlert("");
+  status("Loading saved results");
+  $("reload").disabled = true;
+  try {
+    let response;
+    try {
+      response = await fetch("/api/models", { cache: "no-store", signal: AbortSignal.timeout(LOAD_TIMEOUT) });
+    } catch (error) {
+      throw new Error(reachError(error, LOAD_TIMEOUT / 1000));
+    }
+    if (!response.ok) throw new Error(await problem(response));
+    let body;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(`The saved results are not valid JSON. Run ${COMMAND}, then try again.`);
+    }
+    data = check(body);
+    render();
+  } catch (error) {
+    status("No results shown");
+    showAlert(error.message);
+  } finally {
+    $("reload").disabled = false;
+  }
+}
+
+$("reload").addEventListener("click", load);
+$("more").addEventListener("click", () => {
+  allTokens = !allTokens;
+  renderGlobal();
+});
+$("held-out").addEventListener("change", (event) => {
+  latestAction++;
+  showExample(data.explainability.examples[Number(event.target.value)]);
+});
+$("ask").addEventListener("submit", (event) => {
+  event.preventDefault();
+  explain();
+});
+$("custom").addEventListener("input", counter);
+$("custom").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    $("ask").requestSubmit();
+  }
+});
+
+const tabs = [...document.querySelectorAll(".tabs button")];
+function selectTab(tab) {
+  $("stage").dataset.view = tab.getAttribute("aria-controls");
+  for (const other of tabs) {
+    other.setAttribute("aria-selected", String(other === tab));
+    other.tabIndex = other === tab ? 0 : -1;
+  }
+}
+for (const tab of tabs) {
+  tab.addEventListener("click", () => selectTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    const next = tabs[(tabs.indexOf(tab) + 1) % tabs.length];
+    selectTab(next);
+    next.focus();
+  });
+}
+
+load();
+</script>
+</body>
+</html>

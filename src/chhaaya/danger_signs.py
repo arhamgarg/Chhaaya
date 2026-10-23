@@ -1,4 +1,4 @@
-"""Rule-based danger-sign detection (design section 6).
+"""Rule-based danger-sign detection.
 
 Phrasings live in data/danger_signs.yaml. Text and phrasings go through the
 same normalisation, and a phrasing matches when its words appear in order with

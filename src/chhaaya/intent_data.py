@@ -1,4 +1,4 @@
-"""Loading and checking the intent datasets (design section 7)."""
+"""Loading and checking the intent datasets."""
 
 import csv
 import sys

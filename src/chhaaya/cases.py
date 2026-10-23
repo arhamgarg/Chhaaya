@@ -1,4 +1,4 @@
-"""Escalation cases: alert the ASHA, relay her answer (design section 5.4)."""
+"""Escalation cases: alert the ASHA, relay her answer."""
 
 import re
 from dataclasses import dataclass

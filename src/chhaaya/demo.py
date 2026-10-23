@@ -8,6 +8,7 @@ phone.
 """
 
 import argparse
+import asyncio
 import functools
 import hmac
 import logging
@@ -207,6 +208,12 @@ class Typed(BaseModel):
     client_id: str = Field(pattern=CLIENT_ID)
 
 
+class ExplainInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: str = Field(min_length=1, max_length=512)
+
+
 def demo_users(engine: Engine) -> dict[str, int]:
     """The synthetic ASHA and her patient, created on first start."""
     users = {}
@@ -295,6 +302,7 @@ def create_app(
             raise HTTPException(401, "Open the link printed when the demo started.")
 
     api = [Depends(signed_in)]
+    explanation_lock = asyncio.Semaphore(1)
 
     @app.get("/", response_class=HTMLResponse)
     def page(
@@ -327,6 +335,41 @@ def create_app(
                 "asha": history(conn, users["asha"], photos),
                 "cases": cases(conn, users["asha"]),
             }
+
+    @app.get("/models", response_class=HTMLResponse, dependencies=api)
+    def models_page() -> Response:
+        nonce = secrets.token_urlsafe(16)
+        return HTMLResponse(
+            PAGE.with_name("model_metrics.html")
+            .read_text(encoding="utf-8")
+            .replace("{{nonce}}", nonce),
+            headers={
+                "Content-Security-Policy": CSP.format(nonce=nonce),
+                "Cache-Control": "no-store",
+                "Referrer-Policy": "no-referrer",
+            },
+        )
+
+    @app.get("/api/models", dependencies=api)
+    def model_evidence() -> dict:
+        from chhaaya.model_metrics import load_report
+
+        try:
+            return load_report()
+        except (OSError, ValueError) as error:
+            raise HTTPException(503, str(error)) from error
+
+    @app.post("/api/models/explain", dependencies=api)
+    async def explain_prediction(message: ExplainInput) -> dict:
+        from chhaaya.model_metrics import explain_message
+
+        # SHAP runs outside the event loop, one request at a time; conversations
+        # and saved metrics remain available during an explanation.
+        async with explanation_lock:
+            try:
+                return await run_in_threadpool(explain_message, message.text)
+            except (OSError, ValueError) as error:
+                raise HTTPException(503, str(error)) from error
 
     @app.post("/api/messages", dependencies=api)
     def typed(message: Typed) -> dict:

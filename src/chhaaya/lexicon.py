@@ -1,4 +1,4 @@
-"""Medicine lexicon (design sections 5.2 and 8): NLEM 2022 generics and brand names.
+"""Medicine lexicon: NLEM 2022 generics and brand names.
 
 `uv run python -m chhaaya.lexicon` downloads the sources in
 data/lexicon_sources.csv to data/lexicon/ (kept out of git), checks their

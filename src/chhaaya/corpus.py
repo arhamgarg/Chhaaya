@@ -1,4 +1,4 @@
-"""Build the knowledge corpus (design section 8): download, extract and chunk.
+"""Build the knowledge corpus: download, extract and chunk.
 
 `uv run python -m chhaaya.corpus` downloads every PDF in data/sources.csv to
 data/pdfs/ (kept out of git), extracts text page by page, drops running headers,

@@ -1,4 +1,4 @@
-"""The worker: claims stored messages and turns them into replies (design section 3)."""
+"""The worker: claims stored messages and turns them into replies."""
 
 import functools
 import logging
