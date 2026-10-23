@@ -239,7 +239,9 @@ def evaluate(directory: Path, output: Path, runs: int) -> None:
                         "milliseconds": (perf_counter() - started) * 1000,
                     }
                     if writer is None:
-                        writer = csv.DictWriter(f, fieldnames=list(prediction))
+                        writer = csv.DictWriter(
+                            f, fieldnames=list(prediction), lineterminator="\n"
+                        )
                         writer.writeheader()
                     writer.writerow(prediction)
                     f.flush()
