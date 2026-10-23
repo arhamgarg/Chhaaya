@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Chhaaya browser demo</title>
+<style nonce="{{nonce}}">
+:root {
+  color-scheme: dark;
+  --shade: oklch(0.205 0.022 165);
+  --canopy: oklch(0.245 0.026 165);
+  --leaf: oklch(0.295 0.03 165);
+  --line: oklch(0.37 0.03 165);
+  --chalk: oklch(0.93 0.018 95);
+  --muted: oklch(0.77 0.025 120);
+  --turmeric: oklch(0.8 0.135 78);
+  --sindoor: oklch(0.68 0.18 32);
+  --sindoor-wash: color-mix(in oklch, var(--sindoor) 20%, var(--canopy));
+  --sindoor-light: oklch(0.85 0.09 35);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Kohinoor Devanagari",
+    "Noto Serif Devanagari", serif;
+  --sans: "Avenir Next", Avenir, "Kohinoor Devanagari", "Noto Sans Devanagari",
+    "Segoe UI", sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gap: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+html { background: var(--shade); }
+* { box-sizing: border-box; }
+body {
+  margin: 0; height: 100dvh; display: flex; flex-direction: column;
+  background: var(--shade); color: var(--chalk);
+  font: 400 1rem/1.5 var(--sans); letter-spacing: 0.01em;
+}
+h1, h2, h3, p { margin: 0; }
+button, textarea, input { font: inherit; color: inherit; letter-spacing: inherit; }
+textarea::placeholder { color: var(--muted); opacity: 1; }
+:focus-visible { outline: 2px solid var(--turmeric); outline-offset: 2px; }
+
+.band {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1.25rem;
+  padding: 0.9rem var(--gap); border-bottom: 1px solid var(--line);
+}
+.mark { font: 600 1.5rem/1 var(--serif); }
+.mark span { color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
+.notice { color: var(--muted); font-size: 0.9rem; max-width: 62ch; }
+.running { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
+.running[data-state="stopped"], .running[data-state="offline"] { color: var(--sindoor); }
+
+.alert {
+  margin: 0.75rem var(--gap) 0; padding: 0.6rem 0.9rem; border-radius: 6px;
+  background: var(--sindoor-wash); color: var(--chalk);
+}
+.alert[hidden] { display: none; }
+
+.tabs { display: none; }
+.stage {
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-rows: minmax(0, 1fr);
+}
+.pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
+.pane + .pane { border-left: 1px solid var(--line); background: var(--canopy); }
+.pane-head { padding: 1.1rem var(--gap) 0.6rem; }
+.pane-head h2 { font: 600 1.35rem/1.2 var(--serif); }
+.pane-head p { color: var(--muted); font-size: 0.9rem; }
+
+.thread {
+  list-style: none; margin: 0; padding: 0.5rem var(--gap) 1rem;
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 0.6rem;
+}
+.empty { color: var(--muted); max-width: 44ch; padding: 0.5rem 0; }
+.examples { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+.examples button {
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: 0.3rem 0.8rem; cursor: pointer; text-align: left;
+}
+.examples button:hover { border-color: var(--muted); }
+
+.msg { max-width: min(36rem, 88%); animation: arrive 420ms var(--ease) both; }
+.msg.in { align-self: flex-end; }
+.bubble {
+  padding: 0.6rem 0.85rem; border-radius: 12px; white-space: pre-wrap;
+  overflow-wrap: anywhere; background: var(--canopy);
+}
+.pane + .pane .bubble { background: var(--leaf); }
+.msg.in .bubble { background: var(--leaf); border-bottom-right-radius: 4px; }
+.pane + .pane .msg.in .bubble { background: var(--shade); }
+.msg.out .bubble { border-bottom-left-radius: 4px; }
+.msg.urgent .bubble { background: var(--sindoor-wash); }
+.flag {
+  display: block; margin-bottom: 0.25rem; color: var(--sindoor-light);
+  font-weight: 600; font-size: 0.85rem;
+}
+.sources { list-style: none; margin: 0.5rem 0 0; padding: 0.5rem 0 0; border-top: 1px solid var(--line); }
+.sources li { font-size: 0.85rem; color: var(--muted); padding-left: 1rem; position: relative; }
+.sources li::before {
+  content: ""; position: absolute; left: 0.1rem; top: 0.55em;
+  width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--turmeric);
+}
+.meta {
+  display: flex; flex-wrap: wrap; gap: 0.15rem 0.6rem;
+  font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem;
+}
+.msg.in .meta { justify-content: flex-end; }
+.gone { display: block; font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+.meta[data-status="failed"] { color: var(--sindoor); }
+.meta button {
+  background: none; border: 0; padding: 0; color: var(--turmeric);
+  text-decoration: underline; cursor: pointer;
+}
+.detail { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+.detail summary { cursor: pointer; }
+.detail p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.photo { display: block; max-width: 100%; max-height: 20rem; border-radius: 8px; margin-bottom: 0.3rem; }
+
+.composer {
+  display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: end;
+  padding: 0.75rem var(--gap) 1rem; border-top: 1px solid var(--line);
+}
+.composer textarea, .case textarea {
+  width: 100%; resize: vertical; min-height: 2.75rem; max-height: 10rem;
+  padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--shade);
+}
+.pane + .pane .composer textarea, .case textarea { background: var(--leaf); }
+.actions { display: flex; gap: 0.5rem; align-items: center; }
+.primary, .secondary {
+  border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer; font-weight: 600;
+  min-height: 2.75rem;
+}
+.primary { background: var(--turmeric); color: var(--shade); border: 0; }
+.secondary { background: none; border: 1px solid var(--line); }
+.secondary:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.55; cursor: progress; }
+.hint { grid-column: 1 / -1; font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+.hint[data-tone="error"] { color: var(--sindoor); }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+input[type="file"] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+input[type="file"]:focus-visible + label { outline: 2px solid var(--turmeric); outline-offset: 2px; }
+label.secondary { display: inline-flex; align-items: center; }
+
+.asha-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.register { list-style: none; margin: 0; padding: 0 var(--gap); container-type: inline-size; }
+.case {
+  display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 1rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--line);
+  animation: arrive 520ms var(--ease) both;
+}
+.case-no {
+  font: 500 clamp(2.2rem, 3.2vw, 3rem)/1 var(--serif); color: var(--turmeric);
+  font-variant-numeric: lining-nums tabular-nums; text-align: right;
+}
+.case[data-status="answered"] .case-no { color: var(--muted); }
+.case h3 { font: 600 1.1rem/1.3 var(--serif); }
+.case[data-cause="danger sign"] h3 { color: var(--sindoor); }
+.case .state { font-size: 0.85rem; color: var(--muted); }
+.case .details { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.5rem 0; font-size: 0.95rem; }
+.case form { display: grid; gap: 0.4rem; margin-top: 0.5rem; }
+.case .reply { color: var(--muted); margin-top: 0.4rem; white-space: pre-wrap; }
+@container (max-width: 26rem) {
+  .case { grid-template-columns: 1fr; }
+  .case-no { text-align: left; margin-bottom: 0.25rem; }
+}
+.asha-messages { border-top: 1px solid var(--line); margin-top: 0.5rem; }
+.asha-messages > summary {
+  padding: 0.9rem var(--gap); cursor: pointer; font: 600 1.05rem/1.2 var(--serif);
+}
+.asha-messages .thread { overflow: visible; min-height: 0; }
+
+@keyframes arrive { from { opacity: 0; transform: translateY(0.5rem); } }
+@media (prefers-reduced-motion: reduce) {
+  .msg, .case { animation: none; }
+}
+
+@media (max-width: 52rem), (max-height: 30rem) and (pointer: coarse) {
+  :root { --gap: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right)); }
+  button, label.secondary { min-height: 44px; min-width: 44px; }
+  .tabs {
+    display: flex; gap: 0.25rem; padding: 0.5rem var(--gap) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .tabs button {
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.75rem; cursor: pointer; color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { color: var(--chalk); border-color: var(--turmeric); }
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .pane + .pane { border-left: 0; }
+  .stage[data-view="patient"] #asha, .stage[data-view="asha"] #patient { display: none; }
+  .running { margin-left: 0; }
+  .band { padding-top: max(0.6rem, env(safe-area-inset-top)); padding-bottom: 0.6rem; }
+  .mark { font-size: 1.25rem; }
+  .notice { font-size: 0.8rem; line-height: 1.35; }
+  .pane-head p { display: none; }
+  .composer { grid-template-columns: 1fr; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .composer .actions { justify-content: flex-end; }
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <h1 class="mark">छाया<span>Chhaaya</span></h1>
+  <p class="notice">Local demonstration with a synthetic patient and ASHA. Not a clinical service. Nothing is sent to WhatsApp or a phone.</p>
+  <p class="running" id="running" data-state="starting" role="status">Connecting</p>
+</header>
+<div class="alert" id="alert" role="alert" hidden></div>
+<nav class="tabs" role="tablist" aria-label="View">
+  <button role="tab" id="tab-patient" aria-controls="patient" aria-selected="true">Patient</button>
+  <button role="tab" id="tab-asha" aria-controls="asha" aria-selected="false">ASHA</button>
+</nav>
+<main class="stage" id="stage" data-view="patient">
+  <section class="pane" id="patient" aria-labelledby="patient-title">
+    <div class="pane-head">
+      <h2 id="patient-title">Patient</h2>
+      <p>Write in English, Hindi or Hinglish, or send a photo of a prescription or lab report.</p>
+    </div>
+    <ol class="thread" id="patient-thread" aria-live="polite" aria-label="Patient conversation"></ol>
+    <form class="composer" id="patient-form" data-role="patient" novalidate>
+      <label class="visually-hidden" for="patient-text">Message from the patient</label>
+      <textarea id="patient-text" name="text" rows="2" maxlength="4096" placeholder="Type a message"></textarea>
+      <div class="actions">
+        <input type="file" id="photo" accept="image/jpeg,image/png">
+        <label for="photo" class="secondary">Photo</label>
+        <button class="primary" type="submit">Send</button>
+      </div>
+      <p class="hint" aria-live="polite"></p>
+    </form>
+  </section>
+  <section class="pane" id="asha" aria-labelledby="asha-title">
+    <div class="pane-head">
+      <h2 id="asha-title">ASHA register</h2>
+      <p>Cases Chhaaya hands to the ASHA. Her reply goes back to the patient.</p>
+    </div>
+    <div class="asha-body">
+      <ol class="register" id="register" aria-live="polite" aria-label="Cases"></ol>
+      <details class="asha-messages" id="asha-messages" open>
+        <summary>Messages to the ASHA</summary>
+        <ol class="thread" id="asha-thread" aria-label="ASHA messages"></ol>
+      </details>
+    </div>
+    <form class="composer" id="asha-form" data-role="asha" novalidate>
+      <label class="visually-hidden" for="asha-text">Message from the ASHA</label>
+      <textarea id="asha-text" name="text" rows="2" maxlength="4096" placeholder="Message as the ASHA, for example: 12 ok"></textarea>
+      <div class="actions"><button class="primary" type="submit">Send</button></div>
+      <p class="hint" aria-live="polite"></p>
+    </form>
+  </section>
+</main>
+<script nonce="{{nonce}}">
+"use strict";
+const EXAMPLES = [
+  "bachche ko loose motion hai, kya dein?",
+  "गर्भावस्था में कौन से टीके लगते हैं?",
+  "When should my baby get the measles vaccine?",
+];
+const STATUS = { pending: "Waiting", processing: "Reading", done: "", failed: "Not answered." };
+const SOURCE = /^(Source|स्रोत): /;
+const PHOTO_LIMIT = 5 * 1024 * 1024;
+let latest = null;
+let timer = null;
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = text;
+  return node;
+}
+
+function clock(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function splitSources(body) {
+  const lines = body.split("\n");
+  const sources = [];
+  while (lines.length && SOURCE.test(lines[lines.length - 1])) {
+    sources.unshift(lines.pop().replace(SOURCE, ""));
+  }
+  return { text: lines.join("\n").trim(), sources };
+}
+
+function showAlert(text) {
+  const alert = document.getElementById("alert");
+  alert.textContent = text || "";
+  alert.hidden = !text;
+}
+
+function running(state, text) {
+  const node = document.getElementById("running");
+  node.dataset.state = state;
+  node.textContent = text;
+}
+
+async function problem(response) {
+  if (response.status === 401) return "Signed out. Open the link printed in the terminal.";
+  if (response.status === 422) return "Write a message of up to 4096 characters.";
+  let detail = "";
+  try {
+    const body = await response.json();
+    if (typeof body.detail === "string") detail = body.detail;
+  } catch { /* the status code below still explains it */ }
+  return detail || `The demo server answered ${response.status}.`;
+}
+
+async function post(path, body, headers) {
+  let response;
+  try {
+    response = await fetch(path, { method: "POST", body, headers, cache: "no-store" });
+  } catch {
+    throw new Error("Could not reach the demo server. Your message is kept; send it again.");
+  }
+  if (!response.ok) throw new Error(await problem(response));
+  return response.json();
+}
+
+function sendText(role, text, clientId) {
+  return post("/api/messages", JSON.stringify({ role, text, client_id: clientId }),
+    { "Content-Type": "application/json" });
+}
+
+function message(item, role) {
+  const li = el("li", `msg ${item.direction === "inbound" ? "in" : "out"}`);
+  if (item.urgent) li.classList.add("urgent");
+  const bubble = el("div", "bubble");
+  if (item.urgent) bubble.append(el("strong", "flag", "Urgent"));
+  if (item.photo) {
+    const img = el("img", "photo");
+    img.src = item.photo;
+    img.alt = item.direction === "inbound" ? "Photo sent by the patient" : item.body;
+    bubble.append(img);
+  }
+  if (item.kind === "image" && item.direction === "inbound") {
+    if (!item.photo) bubble.append(document.createTextNode("Photo sent"));
+  } else if (item.direction === "outbound" && item.kind === "text") {
+    const { text, sources } = splitSources(item.body);
+    bubble.append(document.createTextNode(text));
+    if (sources.length) {
+      const list = el("ul", "sources");
+      list.setAttribute("aria-label", "Sources");
+      for (const source of sources) list.append(el("li", null, source));
+      bubble.append(list);
+    }
+  } else {
+    bubble.append(document.createTextNode(item.body));
+    if (item.kind === "image" && !item.photo) {
+      bubble.append(el("span", "gone", "The photo is no longer in memory."));
+    }
+  }
+  li.append(bubble);
+  const meta = el("p", "meta");
+  meta.append(el("span", null, clock(item.sent_at)));
+  if (item.kind === "template") meta.append(el("span", null, "Template alert"));
+  if (item.status) {
+    meta.dataset.status = item.status;
+    if (STATUS[item.status]) meta.append(el("span", null, STATUS[item.status]));
+    if (item.status === "failed" && item.kind === "text") {
+      const again = el("button", null, "Send again");
+      again.type = "button";
+      again.addEventListener("click", () => resend(again, role, item.body));
+      meta.append(again);
+    }
+  }
+  li.append(meta);
+  if (item.status === "failed" && item.error) {
+    const detail = el("details", "detail");
+    detail.append(el("summary", null, "Presenter detail"), el("p", null, item.error));
+    li.append(detail);
+  }
+  return li;
+}
+
+async function resend(button, role, text) {
+  button.disabled = true;
+  try {
+    await sendText(role, text, crypto.randomUUID());
+    refresh();
+  } catch (error) {
+    showAlert(error.message);
+    button.disabled = false;
+  }
+}
+
+function nearBottom(node) {
+  return node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+}
+
+// Rebuild only the items whose content changed, so focus and typing survive polls.
+function sync(list, items, key, signature, build) {
+  const stick = nearBottom(list);
+  const existing = new Map([...list.children].filter((n) => n.dataset.key).map((n) => [n.dataset.key, n]));
+  const wanted = new Set();
+  let previous = null;
+  for (const item of items) {
+    const id = String(key(item));
+    wanted.add(id);
+    let node = existing.get(id);
+    const sig = signature(item);
+    if (!node || node.dataset.sig !== sig) {
+      const fresh = build(item);
+      fresh.dataset.key = id;
+      fresh.dataset.sig = sig;
+      if (node) {
+        fresh.style.animation = "none";
+        node.replaceWith(fresh);
+      }
+      node = fresh;
+    }
+    const after = previous ? previous.nextSibling : list.firstChild;
+    if (node !== after) list.insertBefore(node, after);
+    previous = node;
+  }
+  for (const [id, node] of existing) if (!wanted.has(id)) node.remove();
+  for (const node of [...list.children]) if (!node.dataset.key) node.remove();
+  if (stick) list.scrollTop = list.scrollHeight;
+}
+
+function emptyPatient(list) {
+  if (list.children.length) return;
+  const li = el("li", "empty", "Ask a health question, describe a symptom, or send a photo of a prescription.");
+  const examples = el("div", "examples");
+  for (const text of EXAMPLES) {
+    const button = el("button", null, text);
+    button.type = "button";
+    button.addEventListener("click", () => {
+      const box = document.getElementById("patient-text");
+      box.value = text;
+      box.dispatchEvent(new Event("input"));
+      box.focus();
+    });
+    examples.append(button);
+  }
+  li.append(examples);
+  list.append(li);
+}
+
+function caseRow(item, ashaMessages) {
+  const li = el("li", "case");
+  li.dataset.status = item.status;
+  li.dataset.cause = item.cause;
+  li.append(el("span", "case-no", item.number));
+  const body = el("div");
+  const title = item.cause.charAt(0).toUpperCase() + item.cause.slice(1);
+  body.append(el("h3", null, title));
+  body.append(el("p", "state", item.status === "open" ? "Waiting for the ASHA" : "Answered"));
+  const photo = ashaMessages.find((m) => m.kind === "image" && m.photo && m.body.startsWith(`Case ${item.number}:`));
+  if (photo) {
+    const img = el("img", "photo");
+    img.src = photo.photo;
+    img.alt = `Prescription photo for case ${item.number}`;
+    body.append(img);
+  }
+  body.append(el("p", "details", item.details));
+  if (item.status === "answered") {
+    body.append(el("p", "reply", `ASHA replied: ${item.asha_reply}`));
+  } else {
+    body.append(replyForm(item));
+  }
+  li.append(body);
+  return li;
+}
+
+function replyForm(item) {
+  const form = el("form");
+  form.noValidate = true;
+  const id = `reply-${item.number}`;
+  const label = el("label", "visually-hidden", `Reply to case ${item.number}`);
+  label.htmlFor = id;
+  const box = el("textarea");
+  box.id = id;
+  box.name = "text";
+  box.rows = 2;
+  box.maxLength = 4000;
+  box.placeholder = item.cause === "prescription to confirm"
+    ? "Or type the full corrected list" : "Your answer for the patient";
+  const actions = el("div", "actions");
+  const send = el("button", "primary", "Send reply");
+  send.type = "submit";
+  actions.append(send);
+  if (item.cause === "prescription to confirm") {
+    const ok = el("button", "secondary", "List matches photo");
+    ok.type = "button";
+    ok.addEventListener("click", () => submit(form, "asha", "ok", `${item.number} `));
+    actions.append(ok);
+  }
+  const hint = el("p", "hint");
+  hint.setAttribute("aria-live", "polite");
+  form.append(label, box, actions, hint);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submit(form, "asha", box.value, `${item.number} `);
+  });
+  enterSends(box, form);
+  return form;
+}
+
+function hint(form, text, tone) {
+  const node = form.querySelector(".hint");
+  node.textContent = text;
+  node.dataset.tone = tone || "";
+}
+
+// One client id per draft: a repeated or retried submit is stored once.
+async function submit(form, role, raw, prefix = "") {
+  const text = raw.trim();
+  if (!text) {
+    hint(form, "Type a message first.", "error");
+    form.querySelector("textarea").focus();
+    return;
+  }
+  if (form.dataset.sending) return;
+  form.dataset.sending = "1";
+  form.dataset.clientId ||= crypto.randomUUID();
+  const buttons = form.querySelectorAll("button");
+  buttons.forEach((b) => { b.disabled = true; });
+  hint(form, "Sending");
+  try {
+    await sendText(role, prefix + text, form.dataset.clientId);
+    form.querySelector("textarea").value = "";
+    delete form.dataset.clientId;
+    hint(form, "");
+    refresh();
+  } catch (error) {
+    hint(form, error.message, "error");
+  } finally {
+    delete form.dataset.sending;
+    buttons.forEach((b) => { b.disabled = false; });
+  }
+}
+
+function enterSends(box, form) {
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  // An edited draft is a new message, not a retry of the old one.
+  box.addEventListener("input", () => { delete form.dataset.clientId; });
+}
+
+function render(state) {
+  running(state.assistant_running ? "running" : "stopped",
+    state.assistant_running ? "Assistant running" : "Assistant stopped. Restart the demo server.");
+  const sig = (m) => [m.status, m.error, m.photo, m.body].join("\u0000");
+  const patient = document.getElementById("patient-thread");
+  sync(patient, state.patient, (m) => m.id, sig, (m) => message(m, "patient"));
+  emptyPatient(patient);
+  sync(document.getElementById("asha-thread"), state.asha, (m) => m.id, sig, (m) => message(m, "asha"));
+  const register = document.getElementById("register");
+  const photos = (n) => state.asha.filter((m) => m.kind === "image" && m.body.startsWith(`Case ${n}:`)).map((m) => m.photo).join();
+  const ordered = [...state.cases].sort((a, b) => (a.status === b.status ? b.number - a.number : a.status === "open" ? -1 : 1));
+  sync(register, ordered, (c) => c.number, (c) => [c.status, c.asha_reply, photos(c.number)].join("\u0000"), (c) => caseRow(c, state.asha));
+  if (!register.children.length) {
+    register.append(el("li", "empty", "No cases yet. A case appears here when Chhaaya hands a message to the ASHA."));
+  }
+  const open = state.cases.filter((c) => c.status === "open").length;
+  document.getElementById("tab-asha").textContent = open ? `ASHA (${open} open)` : "ASHA";
+  const wroteToday = state.asha.some((m) => m.direction === "inbound" && Date.now() - Date.parse(m.sent_at) < 864e5);
+  const ashaForm = document.getElementById("asha-form");
+  if (!wroteToday && !ashaForm.dataset.sending && !ashaForm.querySelector(".hint").dataset.tone) {
+    hint(ashaForm, "Until the ASHA writes today, alerts reach her as short notices and her first reply on a prescription only shows her the photo.");
+  } else if (wroteToday && ashaForm.querySelector(".hint").textContent.startsWith("Until")) {
+    hint(ashaForm, "");
+  }
+}
+
+function busy(state) {
+  return [...state.patient, ...state.asha].some((m) => m.status === "pending" || m.status === "processing");
+}
+
+async function refresh() {
+  clearTimeout(timer);
+  try {
+    const response = await fetch("/api/state", { cache: "no-store" });
+    if (!response.ok) throw new Error(await problem(response));
+    latest = await response.json();
+    showAlert("");
+    render(latest);
+  } catch (error) {
+    running("offline", "Not connected");
+    showAlert(error instanceof TypeError ? "Lost contact with the demo server. Retrying." : error.message);
+  }
+  timer = setTimeout(refresh, latest && busy(latest) ? 1000 : 2500);
+}
+
+const patientForm = document.getElementById("patient-form");
+patientForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submit(patientForm, "patient", document.getElementById("patient-text").value);
+});
+enterSends(document.getElementById("patient-text"), patientForm);
+const ashaForm = document.getElementById("asha-form");
+ashaForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submit(ashaForm, "asha", document.getElementById("asha-text").value);
+});
+enterSends(document.getElementById("asha-text"), ashaForm);
+
+document.getElementById("photo").addEventListener("change", async (event) => {
+  const input = event.target;
+  const [file] = input.files;
+  input.value = "";
+  if (!file) return;
+  if (!["image/jpeg", "image/png"].includes(file.type)) {
+    hint(patientForm, "Send a JPEG or PNG photo.", "error");
+    return;
+  }
+  if (file.size > PHOTO_LIMIT) {
+    hint(patientForm, "The photo is larger than 5 MB.", "error");
+    return;
+  }
+  if (patientForm.dataset.sending) return;
+  patientForm.dataset.sending = "1";
+  hint(patientForm, "Sending photo");
+  try {
+    await post(`/api/photos?client_id=${crypto.randomUUID()}`, file);
+    hint(patientForm, "");
+    refresh();
+  } catch (error) {
+    hint(patientForm, error.message, "error");
+  } finally {
+    delete patientForm.dataset.sending;
+  }
+});
+
+for (const tab of document.querySelectorAll(".tabs button")) {
+  tab.addEventListener("click", () => {
+    const view = tab.getAttribute("aria-controls");
+    document.getElementById("stage").dataset.view = view;
+    for (const other of document.querySelectorAll(".tabs button")) {
+      other.setAttribute("aria-selected", String(other === tab));
+    }
+  });
+}
+
+refresh();
+</script>
+</body>
+</html>

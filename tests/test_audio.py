@@ -8,6 +8,8 @@ import pytest
 
 from chhaaya.audio import to_ogg_opus
 
+pytestmark = pytest.mark.speech
+
 
 def tone(seconds: float = 1.0, rate: int = 22050) -> bytes:
     """A mono 16-bit WAV like the ones Sarvam returns."""

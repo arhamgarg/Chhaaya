@@ -26,7 +26,7 @@ from chhaaya.worker import Inbound, Worker
 class World:
     """Meta and the AI providers answer from here, and agents record calls."""
 
-    def __init__(self, engine: Engine, provider="claude", speech_enabled=True):
+    def __init__(self, engine: Engine, provider="claude", speech_enabled=False):
         self.engine = engine
         self.sent: list[tuple[str, str]] = []
         self.templates: list[tuple[str, str, list[str]]] = []
@@ -328,8 +328,8 @@ class World:
 
 
 @pytest.fixture
-def world(engine: Engine) -> World:
-    return World(engine)
+def world(engine: Engine, request: pytest.FixtureRequest) -> World:
+    return World(engine, speech_enabled=bool(request.node.get_closest_marker("speech")))
 
 
 def test_two_workers_never_take_the_same_message(world: World):
@@ -513,6 +513,7 @@ def test_a_message_stranded_by_a_dead_worker_is_failed_with_a_reason(world: Worl
     assert world.sent == []
 
 
+@pytest.mark.speech
 def test_a_voice_note_is_transcribed_and_then_handled_like_typed_text(world: World):
     world.transcript = "bukhar mein kya khana chahiye"
     patient = world.add_user("911111111111")
@@ -525,6 +526,7 @@ def test_a_voice_note_is_transcribed_and_then_handled_like_typed_text(world: Wor
     assert world.agent_calls == [("qa", message)]
 
 
+@pytest.mark.speech
 def test_a_dangerous_voice_note_gets_the_urgent_reply_as_text_and_a_voice_note(
     world: World,
 ):
@@ -542,6 +544,7 @@ def test_a_dangerous_voice_note_gets_the_urgent_reply_as_text_and_a_voice_note(
     assert world.message(message).status == "done"
 
 
+@pytest.mark.speech
 def test_a_voice_note_that_cannot_be_read_gets_a_text_reply_not_silence(world: World):
     world.transcript = None  # speech-to-text is down
     patient = world.add_user("911111111111")
@@ -556,6 +559,7 @@ def test_a_voice_note_that_cannot_be_read_gets_a_text_reply_not_silence(world: W
     assert world.agent_calls == []
 
 
+@pytest.mark.speech
 def test_a_dangerous_voice_note_in_another_language_still_opens_a_case(world: World):
     # A transcript labelled as Marathi must still be screened for danger signs.
     world.transcript = "pregnancy mein khoon aa raha hai"
@@ -575,6 +579,7 @@ def test_a_dangerous_voice_note_in_another_language_still_opens_a_case(world: Wo
 @pytest.mark.parametrize(
     ("transcript", "language"), [("vanakkam", "ta-IN"), ("", "hi-IN")]
 )
+@pytest.mark.speech
 def test_a_voice_note_in_another_language_or_silent_asks_the_patient_to_type(
     world: World, transcript: str, language: str
 ):

@@ -114,7 +114,7 @@ docker compose exec db psql -U chhaaya -c "SELECT wa_message_id, kind, status FR
 
 ## Worker
 
-The worker turns stored messages into replies. It claims the oldest pending message with `SELECT ... FOR UPDATE SKIP LOCKED`, so two workers never take the same one, and marks it `processing`. Messages from a registered ASHA go straight to the escalation agent. For a patient, the danger-sign check runs first: a match sends the urgent reply in the patient's language and opens a case for their ASHA, without calling the text provider, so a provider outage cannot delay it. Otherwise typed text goes through the selected provider's language identification, which stores the language and script on the user, and then to an agent: photos to the document agent, reminder messages to the reminder agent, and other text to the Q&A agent. Between messages the worker also sends due reminders. A message that raises is marked `failed` with the error kept in `messages.error`; it is never retried. A message still `processing` 10 minutes after its claim lost its worker, and the next claim marks it `failed` with the error "worker stopped before finishing it". Voice notes are transcribed first (see Voice below), and a message fails if its agent is not registered. The agents register in `main()` in `src/chhaaya/worker.py`. `ANTHROPIC_API_KEY` in `.env` is required by default; see provider configuration above.
+The worker turns stored messages into replies. It claims the oldest pending message with `SELECT ... FOR UPDATE SKIP LOCKED`, so two workers never take the same one, and marks it `processing`. Messages from a registered ASHA go straight to the escalation agent. For a patient, the danger-sign check runs first: a match sends the urgent reply in the patient's language and opens a case for their ASHA, without calling the text provider, so a provider outage cannot delay it. Otherwise typed text goes through the selected provider's language identification, which stores the language and script on the user, and then to an agent: photos to the document agent, reminder messages to the reminder agent, and other text to the Q&A agent. Between messages the worker also sends due reminders. A message that raises is marked `failed` with the error kept in `messages.error`; it is never retried. A message still `processing` 10 minutes after its claim lost its worker, and the next claim marks it `failed` with the error "worker stopped before finishing it". Voice notes are transcribed first (see Voice below), and a message fails if its agent is not registered. The agents register in `build()` in `src/chhaaya/worker.py`. `ANTHROPIC_API_KEY` in `.env` is required by default; see provider configuration above.
 
 ```bash
 docker compose up --build worker
@@ -180,6 +180,22 @@ docker compose run --rm worker python -m chhaaya.review approve 12    # make ans
 docker compose run --rm worker python -m chhaaya.review reject 12     # delete answer 12
 uv run pytest tests/test_review.py
 ```
+
+## Browser demo
+
+`python -m chhaaya.demo` runs Chhaaya without WhatsApp, for a local demonstration with one synthetic patient and one synthetic ASHA. It serves a page on `127.0.0.1` only. The patient side sends typed English, Hindi or Hinglish messages and JPEG or PNG photos up to 5 MB, and shows each reply with its sources, urgent replies and any message that failed, with the error. The ASHA side lists her cases and answers them as she would on WhatsApp ("12 ok"). Messages are queued as the webhook queues them, and the same worker and agents run in a thread of the demo process with the same provider settings, danger-sign check, citation checks and ASHA confirmation of prescriptions. `BrowserWhatsApp` in `src/chhaaya/demo.py` stores every reply in the database instead of sending it and never contacts Meta, so the demo needs no working WhatsApp credentials. The demo requires a database name different from `DATABASE_URL`, even on another host or port, so aliases and port forwards cannot share the WhatsApp queue. Known service fields in the shared `.env` are accepted; misspelled demo fields fail at startup. Photos are held only in process memory, never on disk or in the database. Access expires after 30 minutes; expired bytes are removed on the next photo access or upload, or when the process ends. Speech is always off. The page opens only through the link the demo prints at start, which sets a session cookie; a new start prints a new link. Until the ASHA has written in the last 24 hours, her alerts arrive as template notices, so send any message as the ASHA before a prescription. The demo database needs the migrations and the knowledge base. A prescription photo also needs `data/lexicon.csv` (see Medicine lexicon). The first question loads BGE-M3. This is a demonstration with synthetic people, not a clinical service.
+
+```bash
+docker run -d --name chhaaya-demo-db -e POSTGRES_USER=chhaaya -e POSTGRES_PASSWORD=demo \
+  -e POSTGRES_DB=chhaaya_demo -p 127.0.0.1:5433:5432 pgvector/pgvector:pg16
+export DEMO_DATABASE_URL=postgresql://chhaaya:demo@127.0.0.1:5433/chhaaya_demo
+DATABASE_URL=$DEMO_DATABASE_URL uv run alembic upgrade head
+DATABASE_URL=$DEMO_DATABASE_URL uv run python -m chhaaya.retrieval   # embed data/chunks.jsonl
+HF_HUB_OFFLINE=1 uv run python -m chhaaya.demo                     # open the printed link
+uv run pytest tests/test_demo.py
+```
+
+On phones, Patient and ASHA use separate tabs. The message field fills the width, touch targets are at least 44 pixels, and the layout reserves the screen's safe areas. Short touch screens also use tabs in landscape.
 
 ## Intent dataset
 

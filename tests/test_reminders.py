@@ -12,8 +12,8 @@ PATIENT = "911111111111"
 
 
 class ReminderWorld(World):
-    def __init__(self, engine: Engine, provider="claude"):
-        super().__init__(engine, provider=provider)
+    def __init__(self, engine: Engine, provider="claude", speech_enabled=False):
+        super().__init__(engine, provider=provider, speech_enabled=speech_enabled)
         worker = self.worker
         self.reminders = Reminders(engine, worker.whatsapp, worker.ai, self.cases_)
         self.agents["reminder"] = self.reminders.handle
@@ -21,8 +21,10 @@ class ReminderWorld(World):
 
 
 @pytest.fixture
-def world(engine: Engine) -> ReminderWorld:
-    return ReminderWorld(engine)
+def world(engine: Engine, request: pytest.FixtureRequest) -> ReminderWorld:
+    return ReminderWorld(
+        engine, speech_enabled=bool(request.node.get_closest_marker("speech"))
+    )
 
 
 def setup(world: ReminderWorld) -> tuple[int, int]:
@@ -96,7 +98,9 @@ def saved_reminder(
     return reminders(world)[-1].id
 
 
-@pytest.mark.parametrize("kind", ["text", "audio"])
+@pytest.mark.parametrize(
+    "kind", ["text", pytest.param("audio", marks=pytest.mark.speech)]
+)
 def test_a_reminder_is_read_back_and_saved_only_after_a_yes(
     world: ReminderWorld, kind: str
 ):

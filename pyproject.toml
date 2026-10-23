@@ -43,8 +43,13 @@ select = ["E", "F", "I", "B", "UP"]
 testpaths = ["tests"]
 # The retrieval check needs the BGE-M3 model and a built corpus: `pytest -m retrieval`.
 # The lexicon check downloads NLEM 2022 and CDCI: `pytest -m lexicon`.
-addopts = "-m 'not retrieval and not lexicon'"
+# Default checks match the speech-disabled app and need no ffmpeg or image build.
+# Optional speech and Compose: `uv run pytest -m "speech or compose"`.
+# All offline checks: `uv run pytest -m "not retrieval and not lexicon"`.
+addopts = "-m 'not retrieval and not lexicon and not speech and not compose'"
 markers = [
+    "speech: enabled speech integration and ffmpeg conversion",
+    "compose: builds Docker images and verifies the Compose stack",
     "retrieval: embeds data/chunks.jsonl with the real BGE-M3 model",
     "lexicon: builds data/lexicon.csv from the downloaded NLEM 2022 and CDCI",
 ]

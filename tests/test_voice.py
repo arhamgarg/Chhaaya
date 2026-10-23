@@ -48,6 +48,7 @@ def clients(speech_works: bool):
     return WhatsAppClient("token", "123", http), AIClient(settings, http), requests
 
 
+@pytest.mark.speech
 def test_a_reply_goes_out_as_text_then_as_an_opus_voice_note():
     whatsapp, ai, requests = clients(speech_works=True)
 

@@ -6,6 +6,10 @@ import subprocess
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
+
+pytestmark = pytest.mark.compose
+
 
 def test_compose_migrates_with_reserved_password_and_generates_on_host(tmp_path: Path):
     root = Path(__file__).parents[1]
