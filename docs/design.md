@@ -58,7 +58,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 1. **Receive.** The webhook checks Meta's `X-Hub-Signature-256` signature, stores the message keyed by its WhatsApp message id (so retried deliveries are ignored), and returns `200` immediately. WhatsApp retries any webhook that responds slowly.
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
 3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, the selected provider's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
-4. **Screen for danger signs** before anything else (section 6).
+4. **Screen for danger signs.** Check the original message before provider calls. For patient text or transcribed voice, also rewrite it into an English search query and screen that query before intent routing or pending-reminder replies (section 6).
 5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
 6. **Reply** in the patient's language, as text plus a voice note when speech is enabled. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
@@ -87,7 +87,7 @@ An "agent" here is a module with one job and a fixed set of tools. None of them 
 
 ### 5.1 Q&A agent
 
-1. The LLM rewrites the message into a short English search query, turning lay terms into clinical ones ("sugar" becomes diabetes, "loose motion" becomes diarrhoea).
+1. Reuse the worker’s screened English search query, turning lay terms into clinical ones ("sugar" becomes diabetes, "loose motion" becomes diarrhoea). Standalone Q&A callers rewrite and screen the query themselves.
 2. That query retrieves the top 5 chunks from the knowledge base by cosine similarity.
 3. **Weak evidence.** If the best score is below the threshold τ, the agent does not answer. It tells the patient their ASHA will reply and opens an escalation. τ is tuned on the evaluation set (section 9), not guessed.
 4. **Generation.** Otherwise the LLM answers using only the retrieved chunks, citing chunk ids.

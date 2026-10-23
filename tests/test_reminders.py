@@ -12,8 +12,8 @@ PATIENT = "911111111111"
 
 
 class ReminderWorld(World):
-    def __init__(self, engine: Engine):
-        super().__init__(engine)
+    def __init__(self, engine: Engine, provider="claude"):
+        super().__init__(engine, provider=provider)
         worker = self.worker
         self.reminders = Reminders(engine, worker.whatsapp, worker.ai, self.cases_)
         self.agents["reminder"] = self.reminders.handle
@@ -302,7 +302,7 @@ def test_a_confirmed_prescription_becomes_reminders_the_same_way(world: Reminder
         ),
     )
     # The LLM sees the medicines the ASHA confirmed, to name them.
-    assert "Amlodipine 5: 0-0-1" in world.chat_requests[0]["system"]
+    assert "Amlodipine 5: 0-0-1" in world.chat_requests[-1]["system"]
     say(world, patient, "yes")
 
     assert [r.medicine for r in reminders(world)] == ["Dolo 650", "Amlodipine 5"]

@@ -97,7 +97,11 @@ class QaAgent:
     def answer(self, message: "Inbound") -> None:
         question = message.body or ""
         key = language_key(message)
-        query = self.ai.chat(REWRITE, question).strip()
+        query = (
+            message.query
+            if message.query is not None
+            else self.ai.chat(REWRITE, question).strip()
+        )
         if signs := danger_signs.detect(query):
             return self.escalate(message, signs)
         hits = self.kb.search(query)

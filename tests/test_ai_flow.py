@@ -135,7 +135,8 @@ def test_cited_honey_advice_goes_to_the_asha_instead_of_the_patient(
     patient = setup(world)
     chunk = add_chunk(world, "For a child's fever and cough, try honey.")
     world.language = (language, script)
-    world.chat_replies = ["fever cough", f"{answer} [{chunk}]"]
+    world.rewrite_replies = ["fever cough"]
+    world.chat_replies = [f"{answer} [{chunk}]"]
     payload = delivery(
         {
             "from": PATIENT,
@@ -239,7 +240,8 @@ def test_dose_advice_is_withheld_but_vaccine_timing_can_reach_the_patient(
     patient = setup(world)
     chunk = add_chunk(world, "BCG vaccine is given at birth, 0.05 ml before one month.")
     world.language = (language, script)
-    world.chat_replies = ["BCG vaccine", f"{answer} [{chunk}]"]
+    world.rewrite_replies = ["BCG vaccine"]
+    world.chat_replies = [f"{answer} [{chunk}]"]
     payload = delivery(
         {
             "from": PATIENT,
@@ -292,7 +294,8 @@ def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
     chunk = add_chunk(world, "ORS replaces water and salts lost during diarrhoea")
     answer = "ORS helps replace lost water and salts"
     world.language = ("en-IN", "Latn")
-    world.chat_replies = ["ORS diarrhoea", answer + (f" [{chunk}]." if cited else ".")]
+    world.rewrite_replies = ["ORS diarrhoea"]
+    world.chat_replies = [answer + (f" [{chunk}]." if cited else ".")]
     if provider == "sarvam":
         world.chat_reasoning_tokens = [0, 2048]
     world.transcript = "What is ORS used for?"
@@ -417,7 +420,8 @@ def test_a_text_question_works_without_speech_and_duplicate_delivery_is_ignored(
     setup(world)
     chunk = add_chunk(world, "ORS replaces water and salts lost during diarrhoea")
     world.language = ("en-IN", "Latn")
-    world.chat_replies = ["ORS diarrhoea", f"ORS replaces water and salts [{chunk}]."]
+    world.rewrite_replies = ["ORS diarrhoea"]
+    world.chat_replies = [f"ORS replaces water and salts [{chunk}]."]
     payload = delivery(
         {
             "from": PATIENT,

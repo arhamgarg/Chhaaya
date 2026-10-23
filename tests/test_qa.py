@@ -50,7 +50,8 @@ def setup(world: World) -> int:
     return patient
 
 
-def ask(world: World, patient: int, body: str, *replies: str) -> int:
+def ask(world: World, patient: int, body: str, query: str, *replies: str) -> int:
+    world.rewrite_replies = [query]
     world.chat_replies = list(replies)
     message = world.receive(patient, body=body)
     world.worker.work_one()

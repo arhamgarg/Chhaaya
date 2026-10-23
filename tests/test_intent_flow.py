@@ -6,12 +6,14 @@ from pathlib import Path
 import pytest
 import torch
 from test_qa import PATIENT, add_chunk, setup
+from test_reminders import ReminderWorld, make_due, saved_reminder
 from test_retrieval import fake_embed
 from test_webhook import client as client
 from test_webhook import delivery, post
 from test_worker import World
 from transformers import BertConfig, BertForSequenceClassification, BertTokenizer
 
+from chhaaya import danger_signs
 from chhaaya.intent import Classifier
 from chhaaya.qa import QaAgent
 from chhaaya.reminders import Reminders
@@ -81,10 +83,11 @@ def test_saved_model_routes_messages_and_uncertainty_stays_a_question(
         world.cases_,
         worker.escalate,
     ).answer
+    world.rewrite_replies = ["How ORS works"]
     world.chat_replies = (
         ['{"reminders":[{"medicine":"Metformin","times":["20:00"],"days":null}]}']
         if route == "reminder"
-        else ["How ORS works", f"ORS replaces lost water and salts [{guideline}]."]
+        else [f"ORS replaces lost water and salts [{guideline}]."]
     )
     payload = delivery(
         {
@@ -111,6 +114,64 @@ def test_saved_model_routes_messages_and_uncertainty_stays_a_question(
         assert "ORS replaces lost water and salts" in reply
         assert "Source: Intensified Diarrhoea Control Fortnight" in reply
         assert reminders == []
+
     else:
         assert "health question" in reply and "ASHA" in reply
         assert reminders == []
+
+
+@pytest.mark.parametrize("provider", ["claude", "sarvam"])
+@pytest.mark.parametrize(
+    ("label", "body", "query", "pending"),
+    [
+        (
+            "smalltalk",
+            "Namaste, meri maa uth nahi rahi",
+            "unconscious mother",
+            False,
+        ),
+        (
+            "reminder_reply",
+            "I took my tablet but now I cannot catch my breath",
+            "difficulty breathing after taking tablet",
+            True,
+        ),
+    ],
+)
+def test_query_only_danger_reaches_urgent_reply(
+    client, engine, tmp_path, provider, label, body, query, pending
+):
+    world = ReminderWorld(engine, provider=provider)
+    world.worker.ai.speech_enabled = False
+    world.language = ("en-IN", "Latn") if pending else ("hi-IN", "Latn")
+    patient = setup(world)
+    if pending:
+        reminder = saved_reminder(world, patient)
+        make_due(world, reminder)
+        world.reminders.send_due()
+        world.sent.clear()
+    world.worker.classify = saved_classifier(tmp_path / "classifier", label, 8.0)
+    world.rewrite_replies = [query]
+    assert not danger_signs.detect(body)
+    assert danger_signs.detect(query)
+    payload = delivery(
+        {
+            "from": PATIENT,
+            "id": "wamid.query-only-danger",
+            "type": "text",
+            "text": {"body": body},
+        }
+    )
+    assert post(client, payload).status_code == 200
+    assert world.worker.work_one()
+    assert any("108" in reply for reply in world.texts_to(PATIENT))
+    assert [case.cause for case in world.cases()] == ["danger_sign"]
+    assert len(world.texts_to("919999999999")) == 1
+    with engine.connect() as conn:
+        assert (
+            conn.exec_driver_sql(
+                "SELECT status FROM messages "
+                "WHERE wa_message_id='wamid.query-only-danger'"
+            ).scalar_one()
+            == "done"
+        )

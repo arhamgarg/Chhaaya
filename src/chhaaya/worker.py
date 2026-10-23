@@ -16,7 +16,7 @@ from chhaaya.cases import Cases, in_language
 from chhaaya.db import sqlalchemy_url
 from chhaaya.document import DocumentAgent
 from chhaaya.lexicon import Lexicon
-from chhaaya.qa import QaAgent
+from chhaaya.qa import REWRITE, QaAgent
 from chhaaya.reminders import Reminders
 from chhaaya.retrieval import KnowledgeBase, bge_m3
 from chhaaya.settings import Settings
@@ -72,6 +72,7 @@ class Inbound:
     asha_id: int | None
     language: str | None
     script: str | None
+    query: str | None = None
 
 
 @dataclass
@@ -127,6 +128,10 @@ class Worker:
             return self.route("document", message)
         if message.kind == "text":
             message = self.store_language(message)
+        query = self.ai.chat(REWRITE, message.body or "").strip()
+        message = replace(message, query=query)
+        if signs := danger_signs.detect(query):
+            return self.escalate(message, signs)
         # A confirmation belongs to the pending conversation, not a new intent.
         if reminders.is_pending_reply(self.engine, message):
             return self.route("reminder", message)
