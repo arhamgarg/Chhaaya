@@ -42,7 +42,6 @@ textarea::placeholder { color: var(--muted); opacity: 1; }
 }
 .mark { font: 600 1.5rem/1 var(--serif); }
 .mark span { color: var(--muted); font-weight: 400; margin-left: 0.4rem; }
-.notice { color: var(--muted); font-size: 0.9rem; max-width: 62ch; }
 .running { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
 .running[data-state="stopped"], .running[data-state="offline"] { color: var(--sindoor); }
 .nav { font-size: 0.85rem; color: var(--muted); }
@@ -116,7 +115,7 @@ textarea::placeholder { color: var(--muted); opacity: 1; }
 .photo { display: block; max-width: 100%; max-height: 20rem; border-radius: 8px; margin-bottom: 0.3rem; }
 
 .composer {
-  display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: end;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: end;
   padding: 0.75rem var(--gap) 1rem; border-top: 1px solid var(--line);
 }
 .composer textarea, .case textarea {
@@ -125,6 +124,7 @@ textarea::placeholder { color: var(--muted); opacity: 1; }
   background: var(--shade);
 }
 .pane + .pane .composer textarea, .case textarea { background: var(--leaf); }
+.composer textarea, .composer .primary, .composer .secondary { height: 3rem; }
 .actions { display: flex; gap: 0.5rem; align-items: center; }
 .primary, .secondary {
   border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer; font-weight: 600;
@@ -135,6 +135,7 @@ textarea::placeholder { color: var(--muted); opacity: 1; }
 .secondary:hover { border-color: var(--muted); }
 button:disabled { opacity: 0.55; cursor: progress; }
 .hint { grid-column: 1 / -1; font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+.hint:empty { display: none; }
 .hint[data-tone="error"] { color: var(--sindoor); }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -196,17 +197,14 @@ label.secondary { display: inline-flex; align-items: center; }
   .running { margin-left: 0; }
   .band { padding-top: max(0.6rem, env(safe-area-inset-top)); padding-bottom: 0.6rem; }
   .mark { font-size: 1.25rem; }
-  .notice { font-size: 0.8rem; line-height: 1.35; }
   .pane-head p { display: none; }
-  .composer { grid-template-columns: 1fr; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-  .composer .actions { justify-content: flex-end; }
+  .composer { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 }
 </style>
 </head>
 <body>
 <header class="band">
   <h1 class="mark">छाया<span>Chhaaya</span></h1>
-  <p class="notice">Local demonstration with a synthetic patient and ASHA. Not a clinical service. Nothing is sent to WhatsApp or a phone.</p>
   <p class="running" id="running" data-state="starting" role="status">Connecting</p>
   <a class="nav" href="/models">Models</a>
 </header>
@@ -224,7 +222,7 @@ label.secondary { display: inline-flex; align-items: center; }
     <ol class="thread" id="patient-thread" aria-live="polite" aria-label="Patient conversation"></ol>
     <form class="composer" id="patient-form" data-role="patient" novalidate>
       <label class="visually-hidden" for="patient-text">Message from the patient</label>
-      <textarea id="patient-text" name="text" rows="2" maxlength="4096" placeholder="Type a message"></textarea>
+      <textarea id="patient-text" name="text" rows="1" maxlength="4096" placeholder="Type a message"></textarea>
       <div class="actions">
         <input type="file" id="photo" accept="image/jpeg,image/png">
         <label for="photo" class="secondary">Photo</label>
@@ -247,7 +245,7 @@ label.secondary { display: inline-flex; align-items: center; }
     </div>
     <form class="composer" id="asha-form" data-role="asha" novalidate>
       <label class="visually-hidden" for="asha-text">Message from the ASHA</label>
-      <textarea id="asha-text" name="text" rows="2" maxlength="4096" placeholder="Message as the ASHA, for example: 12 ok"></textarea>
+      <textarea id="asha-text" name="text" rows="1" maxlength="4096" placeholder="Message as the ASHA, for example: 12 ok"></textarea>
       <div class="actions"><button class="primary" type="submit">Send</button></div>
       <p class="hint" aria-live="polite"></p>
     </form>
@@ -567,13 +565,6 @@ function render(state) {
   }
   const open = state.cases.filter((c) => c.status === "open").length;
   document.getElementById("tab-asha").textContent = open ? `ASHA (${open} open)` : "ASHA";
-  const wroteToday = state.asha.some((m) => m.direction === "inbound" && Date.now() - Date.parse(m.sent_at) < 864e5);
-  const ashaForm = document.getElementById("asha-form");
-  if (!wroteToday && !ashaForm.dataset.sending && !ashaForm.querySelector(".hint").dataset.tone) {
-    hint(ashaForm, "Until the ASHA writes today, alerts reach her as short notices and her first reply on a prescription only shows her the photo.");
-  } else if (wroteToday && ashaForm.querySelector(".hint").textContent.startsWith("Until")) {
-    hint(ashaForm, "");
-  }
 }
 
 function busy(state) {
