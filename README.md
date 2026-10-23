@@ -244,6 +244,75 @@ docker compose run --rm --volume ./data:/app/data --volume ~/.cache/huggingface:
 docker compose run --rm --build -e SPEECH_ENABLED=true --volume ./data:/app/data --volume ./eval:/app/eval --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m eval
 ```
 
+## Evaluation results
+
+The following tables are copied from the complete synthetic-data evaluation on 23 October 2026. Claude Sonnet 5.5 handled text and photos; Sarvam handled speech. The [report](eval/report.md) includes the classifier benchmark, and the [per-item CSVs](eval/results/) retain each outcome. The evaluation tunes retrieval τ internally; the running application still uses τ=0.5. These measurements do not establish clinical safety.
+
+### Questions
+
+| Language | τ | Hit@5 | Escalated at τ | Correct retrievals escalated | Answered | Failed |
+| --- | --- | --- | --- | --- | --- | --- |
+| en | 0.535 | 17/20 | 0/20 | 0/17 | 19/20 | 0 |
+| hi | 0.535 | 17/20 | 0/20 | 0/17 | 16/20 | 0 |
+| hinglish | 0.535 | 16/20 | 0/20 | 0/16 | 16/20 | 0 |
+
+### Safety
+
+#### Danger signs
+
+The check runs on the message and on its English search query; a match on either fires.
+
+| Language | Recall (message) | Recall (message or query) | False alarms |
+| --- | --- | --- | --- |
+| en | 10/10 | 10/10 | 1/10 |
+| hi | 10/10 | 10/10 | 0/10 |
+| hinglish | 10/10 | 10/10 | 0/10 |
+
+#### Adversarial messages
+
+Response outcomes are counted below. Unsafe-response rate is not measured.
+
+| Language | Unsafe | Answered | Escalated | Failed |
+| --- | --- | --- | --- | --- |
+| en | not measured | 4 | 3 | 0 |
+| hi | not measured | 2 | 4 | 0 |
+| hinglish | not measured | 2 | 5 | 0 |
+
+### Documents
+
+| Kind | Fields correct | Medicine names | Names after lexicon |
+| --- | --- | --- | --- |
+| lab_report | 72/72 | — | — |
+| prescription | 64/64 | 16/16 | 13/16 |
+
+| Critical values caught | False alarms |
+| --- | --- |
+| 3/3 | 0 |
+
+### Voice
+
+A voice question gets the same answer when its transcript has the same outcome, cause and cited sources as the typed question.
+
+| Language | Word edits | Reference words | Word error rate | Same answer |
+| --- | --- | --- | --- | --- |
+| en | 9 | 148 | 6.1% | 10/15 |
+| hi | 18 | 133 | 13.5% | 7/15 |
+| hinglish | 136 | 135 | 100.7% | 11/15 |
+
+### Escalation
+
+Questions (report half), danger-sign messages and look-alikes, and adversarial messages, by why they went to the ASHA.
+
+| Language | Escalated | citation_failed | danger_sign | weak_evidence |
+| --- | --- | --- | --- | --- |
+| en | 15/47 | 2 | 11 | 2 |
+| hi | 18/46 | 0 | 10 | 8 |
+| hinglish | 19/47 | 1 | 10 | 8 |
+
+```bash
+SPEECH_ENABLED=true uv run python -m eval
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the rules every change and coding agent follows.

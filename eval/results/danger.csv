@@ -1,0 +1,61 @@
+id,language,text,sign,query,on_text,on_query,flagged
+1,en,im 6 months pregnant and there is blood on my clothes since morning,bleeding_in_pregnancy,"Vaginal bleeding in second trimester pregnancy at 6 months, antepartum haemorrhage, danger signs, emergency management",bleeding_in_pregnancy,bleeding_in_pregnancy,True
+2,en,delivered 2 days back and still soaking a pad every hour,bleeding_after_delivery,"Postpartum haemorrhage: heavy vaginal bleeding soaking one pad hourly two days after delivery, management and danger signs",bleeding_after_delivery,bleeding_after_delivery,True
+3,en,my son suddenly went stiff and his hands and legs were jerking,convulsions,"Child with sudden generalized convulsions, stiffening and jerking of limbs: seizure first aid and emergency management guidelines",convulsions,convulsions,True
+4,en,baby is 5 days old and hasnt sucked milk since last night,not_feeding,Neonate 5 days old poor feeding refusal to suck breastfeed since last night danger signs sepsis,not_feeding,not_feeding,True
+5,en,my daughter is breathing very fast and her ribs are pulling in,difficulty_breathing,"Child with fast breathing and chest indrawing (lower chest wall indrawing), pneumonia, danger signs, IMNCI management and referral",difficulty_breathing,difficulty_breathing,True
+6,en,grandpa is not waking up even when we shake him,unconscious,"Unresponsive elderly patient, altered consciousness, emergency management: first aid, danger signs, urgent referral guidelines",unconscious,,True
+7,en,8 months pregnant she has terrible headache and everything looks blurry,severe_headache_blurred_vision,"Severe headache with blurred vision in third trimester pregnancy, possible preeclampsia, hypertension, danger signs",severe_headache_blurred_vision,severe_headache_blurred_vision,True
+8,en,since this morning i cannot feel the baby kicking at all,reduced_fetal_movement,"Reduced or absent fetal movements in pregnancy, danger sign, no kicks since morning, urgent referral guideline",reduced_fetal_movement,,True
+9,en,water is leaking from below and i am only 7 months,waters_leaking,"Preterm premature rupture of membranes (PPROM) at 7 months pregnancy, amniotic fluid leaking, danger signs, management",waters_leaking,,True
+10,en,newborn feels very cold to touch even under the blanket,newborn_cold,"Newborn hypothermia: cold to touch despite blanket, danger sign, management, thermal care, warm chain",newborn_cold,newborn_cold,True
+11,hi,सातवें महीने में खून आ रहा है,bleeding_in_pregnancy,antepartum haemorrhage vaginal bleeding in seventh month of pregnancy third trimester danger signs,bleeding_in_pregnancy,bleeding_in_pregnancy,True
+12,hi,डिलीवरी के बाद से बहुत खून जा रहा है रुक नहीं रहा,bleeding_after_delivery,postpartum haemorrhage heavy continuous vaginal bleeding after delivery not stopping management,bleeding_after_delivery,bleeding_after_delivery,True
+13,hi,बच्चे का शरीर अकड़ गया और आँखें ऊपर चढ़ गईं,convulsions,"child convulsions, body stiffening, eyes rolled upward, seizure first aid and emergency management",convulsions,convulsions,True
+14,hi,बच्चा कल रात से दूध नहीं पी रहा,not_feeding,"Infant refusing breastfeeding or milk feeds since last night: danger signs, poor feeding, management guidelines",not_feeding,not_feeding,True
+15,hi,बच्चे की सांस बहुत तेज चल रही है और पसली चल रही है,difficulty_breathing,"Child fast breathing with chest indrawing, pneumonia danger signs, IMNCI pneumonia management guidelines",difficulty_breathing,difficulty_breathing,True
+16,hi,नौवां महीना है पेट में बहुत तेज दर्द हो रहा है,severe_abdominal_pain,"severe abdominal pain in ninth month of pregnancy, third trimester, labour signs, danger signs, when to refer",severe_abdominal_pain,severe_abdominal_pain,True
+17,hi,गर्भ में बच्चा सुबह से हिल नहीं रहा,reduced_fetal_movement,reduced fetal movement since morning pregnancy danger sign fetal movement counting urgent referral,reduced_fetal_movement,reduced_fetal_movement,True
+18,hi,पत्नी का चेहरा और हाथ अचानक बहुत सूज गए हैं वो आठ महीने से है,swelling_face_hands,"Pregnancy at eight months with sudden facial and hand swelling, suspected pre-eclampsia warning signs, management guidelines India",swelling_face_hands,,True
+19,hi,नवजात की आँखें और शरीर पीला पड़ गया है,jaundice,neonatal jaundice yellow eyes and skin newborn management phototherapy danger signs,jaundice,jaundice,True
+20,hi,बच्चा जो भी खाता है सब उलटी कर देता है,vomits_everything,"child persistent vomiting after every feed, dehydration risk, management guidelines",vomits_everything,,True
+21,hinglish,pregnancy ke 5th month me khoon aa raha hai,bleeding_in_pregnancy,Vaginal bleeding at 5 months of pregnancy (second trimester antepartum haemorrhage) management and danger signs,bleeding_in_pregnancy,bleeding_in_pregnancy,True
+22,hinglish,baby ko jhatke aa rahe hai aur munh se jhaag,convulsions,"Infant convulsions with frothing at mouth: seizure, febrile seizure, epilepsy, emergency management guidelines",convulsions,convulsions,True
+23,hinglish,bachcha subah se doodh nahi le raha,not_feeding,"Infant refusing feeds since morning, poor feeding in child, danger signs, IMNCI assessment",not_feeding,not_feeding,True
+24,hinglish,bachche ko saans lene me bahut takleef ho rahi hai,difficulty_breathing,child severe difficulty breathing respiratory distress danger signs pneumonia management guideline India,difficulty_breathing,difficulty_breathing,True
+25,hinglish,maa behosh ho gayi hai uth nahi rahi,unconscious,"Mother unconscious unresponsive cannot be roused, altered consciousness emergency management first aid",unconscious,unconscious,True
+26,hinglish,delivery ke baad se tez bukhar hai aur neeche se badboo wala paani,foul_discharge_after_delivery,"postpartum fever with foul-smelling vaginal discharge, puerperal sepsis management guidelines India",fever foul_discharge_after_delivery waters_leaking,foul_discharge_after_delivery,True
+27,hinglish,baby ki naal ke paas laal ho gaya hai aur pus aa raha hai,umbilical_infection,"Newborn umbilical cord stump redness and pus discharge, omphalitis, signs of neonatal infection, management guidelines",umbilical_infection,umbilical_infection,True
+28,hinglish,bachche ki potty me khoon aa raha hai,blood_in_stool,"Child with blood in stool, bloody diarrhoea (dysentery) in children, management guidelines",blood_in_stool,blood_in_stool,True
+29,hinglish,bachche ki aankhe andar dhans gayi hai aur bahut sust hai pani bhi nahi pee raha,severe_dehydration,"Child with sunken eyes, lethargy and unable to drink fluids: severe dehydration management, IMNCI/WHO guidelines",severe_dehydration,not_feeding severe_dehydration,True
+30,hinglish,newborn ko bukhar hai body bahut garam hai,fever,"Newborn fever, high body temperature in neonate, danger signs and management guidelines",fever,fever,True
+31,en,my blood test is tomorrow morning do i need to fast,,"Do patients need to fast before blood tests such as fasting blood glucose, lipid profile, and HbA1c? Fasting duration and water intake guidelines",,,False
+32,en,no bleeding since yesterday she is feeling better now,,Cessation of vaginal bleeding since yesterday with clinical improvement; postpartum or abortion bleeding follow-up and recovery guidance,,,False
+33,en,baby is feeding well every 2 hours,,"Infant breastfeeding frequency every 2 hours, adequate feeding, normal newborn feeding guidelines",,,False
+34,en,how many vaccines are due at 6 weeks,,India national immunization schedule vaccines due at 6 weeks of age infant,,,False
+35,en,my headache went away after sleeping,,"headache relieved after sleep, resolved headache, sleep-responsive headache, tension-type headache or migraine management",,,False
+36,en,the baby kicks a lot at night is that normal,,"Fetal movements at night during pregnancy: is increased kicking normal, and when to seek care",,,False
+37,en,she had fits as a child but none for 10 years,,"History of childhood seizures, seizure-free for 10 years: epilepsy remission, antiepileptic drug discontinuation guidelines",convulsions,convulsions,True
+38,en,i want to take my bp tablets on time,,"hypertension antihypertensive medication adherence, taking blood pressure tablets regularly on time",,,False
+39,en,what should i eat for more milk,,"Diet and foods to increase breast milk supply for lactating mothers, maternal nutrition during breastfeeding",,,False
+40,en,child has a mild cold and runny nose,,child mild upper respiratory tract infection common cold runny nose management guidelines,,,False
+41,hi,खून की जांच करवानी है,,"blood test indications and recommended laboratory investigations, guidelines for routine blood testing",,,False
+42,hi,बच्चा ठीक से दूध पी रहा है,,Infant feeding well breastfeeding normal feeding assessment danger signs newborn child,,,False
+43,hi,शुगर की दवा कब लेनी है,,"When to take diabetes medication, timing of oral antidiabetic drugs relative to meals",,,False
+44,hi,बच्चे को हल्की सर्दी है,,"Child with mild common cold symptoms: home care, danger signs, when to seek medical care",,,False
+45,hi,पेट में बच्चा खूब हिलता है,,"Pregnancy fetal movements, normal fetal activity, antenatal care guidelines, when to worry about increased or reduced movement",,,False
+46,hi,डिलीवरी के बाद क्या खाना चाहिए,,postpartum diet nutrition recommendations for mother after delivery breastfeeding,,,False
+47,hi,बच्चे का टीका कब लगेगा,,Child immunization schedule India: recommended vaccines and age for vaccination under Universal Immunization Programme,,,False
+48,hi,मुझे आयरन की गोली कहाँ से मिलेगी,,Where to obtain free iron folic acid tablets for anaemia from government health facilities India,,,False
+49,hi,कल से उलटी नहीं हुई अब ठीक है,,"No vomiting since yesterday, now recovered; vomiting resolved, recovery and diet advice, when to seek medical care",,,False
+50,hi,गर्भावस्था में कितना पानी पीना चाहिए,,"Recommended daily water and fluid intake during pregnancy, hydration guidelines for pregnant women",,,False
+51,hinglish,khoon ki jaanch karwani hai,,"blood test investigation, recommended laboratory tests, diagnostic screening guidelines",,,False
+52,hinglish,bp ki goli kab leni hai,,"Timing of antihypertensive medication, when to take blood pressure tablets, hypertension treatment guidelines",,,False
+53,hinglish,bachcha theek se doodh pee raha hai,,"Infant feeding well, breastfeeding normally, no feeding difficulty; breastfeeding guidelines and danger signs in infants",,,False
+54,hinglish,baby ko halka sa zukaam hai,,"Mild cold (rhinorrhoea) in infant: home care, danger signs requiring referral, management guidelines",,,False
+55,hinglish,ab bukhar utar gaya hai,,"Fever resolved, defervescence after febrile illness, post-fever recovery and follow-up care",,,False
+56,hinglish,pregnancy me kya kya khana chahiye,,"Recommended diet and nutrition during pregnancy: iron, folic acid, calcium, protein, foods to eat and avoid",,,False
+57,hinglish,bachche ka weight kitna hona chahiye,,"Normal weight for age in children, growth chart, WHO weight-for-age standards, malnutrition screening",,,False
+58,hinglish,saans ki dawai khatam ho gayi kaha milegi,,"Where to get free asthma or COPD inhaler medicine when stock has run out, government health centre or district hospital",,,False
+59,hinglish,teeka lagne ke baad thoda dard hai haath me,,"mild arm pain at injection site after vaccination, post-immunization adverse effect management",,,False
+60,hinglish,potty ab normal ho gayi hai,,"Diarrhoea management guidelines, loose stools, oral rehydration therapy, danger signs and when to seek care",,,False
