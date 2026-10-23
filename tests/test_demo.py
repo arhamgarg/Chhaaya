@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import Engine
 from test_document import LEXICON, RX, RX_MEDICINES, extracted
+from test_intent_flow import saved_classifier
 from test_qa import add_chunk
 from test_retrieval import fake_embed
 from test_worker import World
@@ -29,8 +30,15 @@ def world(engine: Engine) -> World:
     return world
 
 
-def demo(world: World) -> TestClient:
-    app = create_app(world.engine, world.worker.ai, fake_embed, lambda: LEXICON, KEY)
+def demo(world: World, classify: Callable[[str], str] | None = None) -> TestClient:
+    app = create_app(
+        world.engine,
+        world.worker.ai,
+        fake_embed,
+        lambda: LEXICON,
+        KEY,
+        classify if classify is not None else world.worker.classify,
+    )
     return TestClient(app, base_url="http://127.0.0.1")
 
 
@@ -91,8 +99,8 @@ def test_the_browser_demo_runs_the_pipeline_and_keeps_every_reply(world: World):
                 json={"role": "patient", "text": blank, "client_id": "blank-0001"},
             )
             assert response.status_code == 422
+        world.rewrite_replies = ["ORS for diarrhoea"]
         world.chat_replies = [
-            "ORS for diarrhoea",
             f"Har dast ke baad ORS dein [{guideline}].",
         ]
         first = send(client, "patient", "bachche ko loose motion hai", "question-1")
@@ -203,3 +211,30 @@ def test_shared_service_settings_are_known_but_misspelled_demo_settings_fail(
     env_file.write_text(values + "AI_PROVDER=sarvam\n")
     with pytest.raises(ValidationError, match="ai_provder"):
         DemoSettings()
+
+
+def test_browser_classifier_cannot_hide_a_rewritten_emergency(world: World, tmp_path):
+    world.language = ("en-IN", "Latn")
+    classify = saved_classifier(tmp_path / "classifier", "smalltalk", 8.0)
+    with demo(world, classify) as client:
+        sign_in(client)
+        send(client, "patient", "Good evening and thank you", "greeting-1")
+        current = until(client, settled)
+        assert "health question" in outbound(current["patient"])[-1]["body"]
+        world.rewrite_replies = ["unconscious mother"]
+        sent = send(client, "patient", "Namaste, meri maa uth nahi rahi", "danger-1")
+        current = until(client, settled)
+        assert "108" in outbound(current["patient"])[-1]["body"]
+        assert [(c["cause"], c["status"]) for c in current["cases"]] == [
+            ("danger sign", "open")
+        ]
+        inbound = next(m for m in current["patient"] if m["id"] == sent["id"])
+        assert inbound["status"] == "done"
+        assert (
+            "Namaste, meri maa uth nahi rahi" in outbound(current["asha"])[-1]["body"]
+        )
+    with demo(world, classify) as client:
+        sign_in(client)
+        persisted = state(client)
+        assert persisted["cases"] == current["cases"]
+        assert persisted["patient"] == current["patient"]

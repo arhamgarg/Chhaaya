@@ -75,6 +75,7 @@ class DemoSettings(BaseSettings):
     ai_provider: Literal["claude", "sarvam"] = "claude"
     anthropic_api_key: str = ""
     sarvam_api_key: str = ""
+    intent_model_path: Path = Path("data/intent/model")
 
     @model_validator(mode="before")
     @classmethod
@@ -261,11 +262,12 @@ def create_app(
     embed: Embed,
     lexicon: Callable[[], Lexicon],
     key: str,
+    classify: Callable[[str], str],
 ) -> FastAPI:
     """The demo page and its API, with the worker running in a thread."""
     photos = Photos()
     work, due = worker.build(
-        engine, BrowserWhatsApp(engine, photos), ai, embed, lexicon
+        engine, BrowserWhatsApp(engine, photos), ai, embed, lexicon, classify
     )
     users = demo_users(engine)
     stop = threading.Event()
@@ -423,12 +425,16 @@ def main() -> None:
     settings = DemoSettings()
     engine = create_engine(sqlalchemy_url(settings.demo_database_url))
     key = secrets.token_urlsafe(24)
+    from chhaaya.intent import Classifier
+
+    classifier = functools.cache(lambda: Classifier(settings.intent_model_path))
     app = create_app(
         engine,
         AIClient(settings),
         worker.lazy_bge_m3(),
         functools.cache(Lexicon.load),
         key,
+        lambda body: classifier()(body),
     )
     print(f"Chhaaya browser demo: http://127.0.0.1:{port}/?key={key}", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=port)
