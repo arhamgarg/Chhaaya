@@ -13,8 +13,10 @@ PATIENT = "911111111111"
 
 
 @pytest.fixture
-def world(engine: Engine) -> World:
-    world = World(engine)
+def world(engine: Engine, request: pytest.FixtureRequest) -> World:
+    world = World(
+        engine, speech_enabled=bool(request.node.get_closest_marker("speech"))
+    )
     worker = world.worker
     kb = KnowledgeBase(engine, fake_embed)
     qa = QaAgent(kb, worker.ai, worker.whatsapp, world.cases_, worker.escalate)
@@ -58,7 +60,12 @@ def ask(world: World, patient: int, body: str, query: str, *replies: str) -> int
     return message
 
 
-def test_a_hinglish_question_gets_a_cited_answer_in_text_and_voice(world: World):
+@pytest.mark.parametrize(
+    "speech_enabled", [False, pytest.param(True, marks=pytest.mark.speech)]
+)
+def test_a_hinglish_question_gets_a_cited_answer_in_text_and_voice(
+    world: World, speech_enabled: bool
+):
     patient = setup(world)
     guideline = add_chunk(world, "Give ORS after every loose stool")
     asha_answer = add_chunk(
@@ -84,7 +91,7 @@ def test_a_hinglish_question_gets_a_cited_answer_in_text_and_voice(world: World)
         "Source: Intensified Diarrhoea Control Fortnight (IDCF) Toolkit, MoHFW\n"
         "Source: pehle ek health worker ne bataya"
     ]
-    assert world.voice_notes == [PATIENT]
+    assert world.voice_notes == ([PATIENT] if speech_enabled else [])
     assert world.cases() == []
     assert world.message(message).status == "done"
     # The answer is written from the retrieved passages, never from the query alone.

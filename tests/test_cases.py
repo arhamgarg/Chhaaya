@@ -9,8 +9,10 @@ PATIENT = "911111111111"
 
 
 @pytest.fixture
-def world(engine: Engine) -> World:
-    world = World(engine)
+def world(engine: Engine, request: pytest.FixtureRequest) -> World:
+    world = World(
+        engine, speech_enabled=bool(request.node.get_closest_marker("speech"))
+    )
     world.agents["escalation"] = world.cases_.answer
     return world
 
@@ -43,8 +45,12 @@ def chunks(world: World):
         return conn.execute(text("SELECT text, source_type FROM kb_chunks")).all()
 
 
+@pytest.mark.parametrize(
+    "speech_enabled", [False, pytest.param(True, marks=pytest.mark.speech)]
+)
 def test_a_question_case_alerts_the_asha_tells_the_patient_and_relays_the_answer(
     world: World,
+    speech_enabled: bool,
 ):
     asha, patient = setup(world)
     world.receive(asha, body="namaste")  # the ASHA is inside the 24-hour window
@@ -67,7 +73,10 @@ def test_a_question_case_alerts_the_asha_tells_the_patient_and_relays_the_answer
 
     [relayed] = world.texts_to(PATIENT)
     assert "Haan, dast mein ORS roz dein" in relayed
-    assert world.voice_notes[-1] == PATIENT
+    if speech_enabled:
+        assert world.voice_notes[-1] == PATIENT
+    else:
+        assert world.voice_notes == []
     assert case(world, number) == ("answered", "Haan, dast mein ORS roz dein")
     assert world.message(reply).status == "done"
     # Only the answer is shared with later patients, never this patient's words.

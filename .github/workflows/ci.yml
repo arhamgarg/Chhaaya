@@ -5,9 +5,14 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,7 +21,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: git diff --check origin/${{ github.base_ref }}...HEAD
       - uses: astral-sh/setup-uv@v6
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        with:
+          enable-cache: true
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .

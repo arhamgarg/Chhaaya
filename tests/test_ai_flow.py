@@ -274,14 +274,21 @@ def test_dose_advice_is_withheld_but_vaccine_timing_can_reach_the_patient(
 
 
 @pytest.mark.parametrize("provider", ["claude", "sarvam"])
-@pytest.mark.parametrize("kind", ["text", "audio"])
+@pytest.mark.parametrize(
+    ("kind", "speech_enabled"),
+    [
+        ("text", False),
+        pytest.param("text", True, marks=pytest.mark.speech),
+        pytest.param("audio", True, marks=pytest.mark.speech),
+    ],
+)
 @pytest.mark.parametrize(
     "cited", [True, False], ids=["grounded-reply", "uncited-answer-escalates"]
 )
 def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
-    client, engine, cited, kind, provider
+    client, engine, cited, kind, provider, speech_enabled
 ):
-    world = World(engine, provider=provider)
+    world = World(engine, provider=provider, speech_enabled=speech_enabled)
     worker = world.worker
     world.agents["qa"] = QaAgent(
         KnowledgeBase(engine, fake_embed),
@@ -316,7 +323,7 @@ def test_a_webhook_question_keeps_the_citation_boundary_with_either_provider(
     if cited:
         assert "replaces" in reply or "replace" in reply
         assert "MoHFW" in reply
-        assert world.voice_notes == [PATIENT]
+        assert world.voice_notes == ([PATIENT] if speech_enabled else [])
     else:
         assert answer not in reply
         assert [case.cause for case in world.cases()] == ["citation_failed"]
