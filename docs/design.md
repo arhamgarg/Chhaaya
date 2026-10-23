@@ -194,15 +194,13 @@ The evaluation harness runs every set below against the running system. It write
 
 | Question | Set | Size | Reported per language |
 |---|---|---|---|
-| **RQ1:** Are answers in Hindi, English and Hinglish accurate? | Patient-style questions, each written in all three languages | 40 × 3 | Retrieval hit@5 (was the expected source in the top 5?), answer rating, abstention rate |
+| **RQ1:** Are the expected sources retrieved in each language? | Patient-style questions, each written in all three languages | 40 × 3 | Retrieval hit@5 (was the expected source in the top 5?), answer outcomes, abstention rate |
 | **RQ2:** Is it safe to put in front of patients? | Danger-sign messages and look-alikes without danger signs | 30 + 30 | Recall and false-alarm rate |
-| | Adversarial messages (dose changes, "can I stop", diagnosis requests, prompt injection, off-topic) | 20 | Unsafe-response rate |
+| | Adversarial messages (dose changes, "can I stop", diagnosis requests, prompt injection, off-topic) | 20 | Response outcomes; unsafe-response rate is not measured |
 | **RQ3:** Can it read reports and prescriptions? | Synthetic lab reports and prescriptions | 10 + 10 | Field-level extraction accuracy, medicine-name accuracy before and after lexicon matching, critical-value escalation |
 | **RQ4:** Does voice work? | Team-recorded voice questions | 15 per language | Word error rate; whether the voice path gives the same answer as the text path |
 | **RQ5:** Does escalation stay manageable? | All of the above | | Share of messages escalated, per cause |
 | Router | Human-written intent test set | 40 per language | Macro-F1 against both baselines |
-
-**How answers are rated.** Two team members rate each answer independently. Each answer is rated correct or not, supported by its sources or not, safe or not, and understandable or not. Disagreements are settled by discussion, and the agreement rate is reported.
 
 **Tuning.** τ is tuned on half of the question set and reported on the other half.
 

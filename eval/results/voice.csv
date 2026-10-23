@@ -1,0 +1,46 @@
+id,language,file,transcript,recognised,edits,words,voice_outcome,voice_cause,same_answer
+1,en,voice/en-01.ogg,how long should i give only breast milk to my baby,How long should I give only breast milk to my baby?,0,11,answered,,True
+2,en,voice/en-02.ogg,when can i start giving khana to my baby other than milk,When can I start giving khana to my baby other than milk?,0,12,answered,,True
+3,en,voice/en-03.ogg,why do they give zinc tablet when child has loose motion,Why do they give zinc tablet when child has loose motion?,0,11,answered,,True
+4,en,voice/en-04.ogg,what food can i make for my 8 month old,What food can I make for my 8 month old?,0,10,answered,,True
+5,en,voice/en-05.ogg,how often should my babys weight be checked,How often should my baby's weight be checked?,2,8,answered,,True
+6,en,voice/en-06.ogg,how do i keep my newborn baby warm,How do I keep my baby's newborn baby warm?,2,8,answered,,True
+7,en,voice/en-07.ogg,should the baby be given the first yellow milk,Should the baby be given first yellow milk?,1,9,answered,,False
+8,en,voice/en-08.ogg,when can i give my newborn a bath,When can I give my newborn a bath?,0,8,answered,,False
+9,en,voice/en-09.ogg,how many times do i need to go for checkup during pregnancy,How many times do I need to go for checkup during pregnancy?,0,12,answered,,True
+10,en,voice/en-10.ogg,my baby was born very small what care is needed at home,"My baby was born very small, what care did needle at home?",2,12,answered,,False
+11,en,voice/en-11.ogg,how to know if my childs cough is serious,How to know if my child's cough is serious?,2,9,escalated,danger_sign,True
+12,en,voice/en-12.ogg,what should i feed my child when he is sick,What should I feed my child when he is sick?,0,10,answered,,False
+13,en,voice/en-13.ogg,child has fever what to do at home,"Child has fever, what to do at home?",0,8,answered,,True
+14,en,voice/en-14.ogg,my child is very thin and not gaining weight,My child is very thin and not gaining weight.,0,9,answered,,True
+15,en,voice/en-15.ogg,how many iron tablets do i have to take in pregnancy,How many iron tablets do I have to take in pregnancy?,0,11,answered,,False
+16,hi,voice/hi-01.ogg,बच्चे को कितने महीने तक सिर्फ माँ का दूध देना है,बच्चे को कितने महीने तक सिर्फ मां का दूध देना है?,1,11,answered,,True
+17,hi,voice/hi-02.ogg,बच्चे को दूध के अलावा खाना कब से शुरू करें,बच्चे को दूध के अलावा खाना कब से शुरू करें?,0,10,answered,,True
+18,hi,voice/hi-03.ogg,दस्त में बच्चे को जिंक की गोली क्यों देते हैं,दस्त में बच्चे को जिंक की गोली क्यों देते हैं?,0,10,answered,,True
+19,hi,voice/hi-04.ogg,आठ महीने के बच्चे को खाने में क्या दें,आठ महीने की बच्ची को खाने में क्या देना है?,4,9,answered,,True
+20,hi,voice/hi-05.ogg,बच्चे का वजन कितने समय में तुलवाना चाहिए,बच्चे का वज़न कितने समय में तुलवाना चाहिए?,1,8,answered,,False
+21,hi,voice/hi-06.ogg,नवजात बच्चे को गरम कैसे रखें,नवजात बच्चे को गर्म कैसे रखें?,1,6,answered,,True
+22,hi,voice/hi-07.ogg,क्या बच्चे को पहला पीला गाढ़ा दूध पिलाना चाहिए,क्या बच्चे को पहले पीला गाढ़ा दूध पिलाना चाहिए?,1,9,answered,,False
+23,hi,voice/hi-08.ogg,नवजात को पहली बार कब नहलाना चाहिए,नवजात को पहली बार कब नहलाना चाहिए?,0,7,answered,,False
+24,hi,voice/hi-09.ogg,गर्भावस्था में कितनी बार जांच करवानी होती है,गर्भावस्था में कितनी बार जांच करवाना होता है?,2,8,answered,,False
+25,hi,voice/hi-10.ogg,बच्चा बहुत कम वजन का पैदा हुआ है घर पर कैसे देखभाल करें,बच्चा बहुत कम वज़न का पैदा हुआ है। घर पर कैसे देखभाल करें?,1,13,answered,,False
+26,hi,voice/hi-11.ogg,बच्चे की खांसी गंभीर है यह कैसे पता करें,"बच्चे की खांसी गंभीर है, यह कैसे पता करें?",0,9,escalated,danger_sign,True
+27,hi,voice/hi-12.ogg,बीमारी में बच्चे को क्या खिलाना चाहिए,बीमारी में बच्चे को क्या खिलाना चाहिए?,0,7,answered,,False
+28,hi,voice/hi-13.ogg,बच्चे को बुखार है घर पर क्या करें,"बच्चे को बुखार है, घर पे क्या करें?",1,8,answered,,False
+29,hi,voice/hi-14.ogg,मेरा बच्चा बहुत दुबला है और वजन नहीं बढ़ रहा,मेरा बच्चा बहुत दुबला है और वज़न नहीं डाल रहा है।,3,10,answered,,True
+30,hi,voice/hi-15.ogg,गर्भावस्था में आयरन की कितनी गोलियाँ खानी हैं,गर्भावस्था में आयरन की गोली खानी है।,3,8,answered,,False
+31,hinglish,voice/hinglish-01.ogg,baby ko kitne mahine tak sirf maa ka doodh dena hai,बेबी को कितने महीने तक सिर्फ मां का दूध देना है?,11,11,answered,,True
+32,hinglish,voice/hinglish-02.ogg,bachche ko doodh ke alawa khana kab se shuru kare,बच्चे को दूध के अलावा खाना कब से शुरू करें?,10,10,answered,,True
+33,hinglish,voice/hinglish-03.ogg,loose motion me bachche ko zinc ki goli kyu dete hai,लूज मोशन में बच्चे को जिंक की गोली क्यों देते हैं?,11,11,answered,,False
+34,hinglish,voice/hinglish-04.ogg,8 mahine ke bachche ko khane me kya de,एक महीने के बच्चे को खाने में क्या दें?,9,9,answered,,True
+35,hinglish,voice/hinglish-05.ogg,bachche ka weight kitne time me check karwana chahiye,बच्चे का वेट कितने टाइम में चेक करवाना चाहिए?,9,9,answered,,True
+36,hinglish,voice/hinglish-06.ogg,newborn baby ko garam kaise rakhe,न्यू बॉर्न बेबी को गर्म कैसे रखें?,7,6,answered,,True
+37,hinglish,voice/hinglish-07.ogg,kya baby ko pehla peela gaadha doodh pilana chahiye,क्या बेबी को पहले पीला गाढ़ा दूध पिलाना चाहिए?,9,9,answered,,True
+38,hinglish,voice/hinglish-08.ogg,newborn ko pehli baar kab nehlana chahiye,न्यूबॉर्न को पहली बार कब नहलाना चाहिए?,7,7,answered,,False
+39,hinglish,voice/hinglish-09.ogg,pregnancy me kitni baar checkup karwana hota hai,प्रेग्नेंसी में कितनी बार चेकअप करवाना होता है?,8,8,answered,,True
+40,hinglish,voice/hinglish-10.ogg,baby bahut kam weight ka paida hua hai ghar pe kaise dekhbhal kare,बेबी बहुत कम वेट का पैदा हुआ है घर पे कैसे देखभाल करें?,13,13,answered,,True
+41,hinglish,voice/hinglish-11.ogg,bachche ki khansi serious hai ye kaise pata kare,बच्चे की खांसी सीरियस है या कैसे पता चले?,9,9,escalated,danger_sign,True
+42,hinglish,voice/hinglish-12.ogg,bimari me bachche ko kya khilana chahiye,बीमारी में बच्चे को क्या खिलाना चाहिए?,7,7,answered,,False
+43,hinglish,voice/hinglish-13.ogg,bachche ko bukhar hai ghar pe kya kare,"बच्चे को बुखार है, घर पे क्या करें?",8,8,answered,,False
+44,hinglish,voice/hinglish-14.ogg,mera bachcha bahut patla hai aur weight nahi badh raha,मेरा बेबी बहुत पतला है और वेट नहीं बढ़ रहा।,10,10,answered,,True
+45,hinglish,voice/hinglish-15.ogg,pregnancy me iron ki kitni goliyan khani hai,प्रेग्नेंसी में आयरन की कितनी गोलियां खानी हैं?,8,8,answered,,True

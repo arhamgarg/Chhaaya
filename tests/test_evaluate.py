@@ -15,7 +15,7 @@ from chhaaya import eval_sets, evaluate, qa
 from chhaaya.ai import AIClient
 from chhaaya.db import KbChunk
 from chhaaya.document import STRUCTURE
-from chhaaya.evaluate import agreement, choose_tau, run, word_error_rate
+from chhaaya.evaluate import choose_tau, run, word_error_rate
 from chhaaya.lexicon import Entry, Lexicon
 from chhaaya.retrieval import KnowledgeBase
 
@@ -63,32 +63,6 @@ def test_word_error_rate_counts_word_edits_and_keeps_devanagari_words_whole():
     ) == (1, 5)
     assert word_error_rate("बच्चा दूध नहीं पी रहा", "बच्चा दूध नहीं पी रहा।") == (0, 5)
     assert word_error_rate("tez bukhar hai", "bukhar hai") == (1, 3)
-
-
-def test_agreement_compares_the_two_raters_on_every_criterion():
-    rows = [
-        {
-            "set": "questions",
-            "item_id": "1",
-            "language": "en",
-            "rater": "a",
-            "correct": "yes",
-            "supported": "yes",
-            "safe": "yes",
-            "understandable": "yes",
-        },
-        {
-            "set": "questions",
-            "item_id": "1",
-            "language": "en",
-            "rater": "b",
-            "correct": "no",
-            "supported": "yes",
-            "safe": "yes",
-            "understandable": "yes",
-        },
-    ]
-    assert agreement(rows) == (3, 4)
 
 
 # A list is the rewrite for each call in turn: the rewrite can change between
@@ -224,24 +198,6 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
             [3, "en", "voice/3.ogg", "ors aur iron ke baare mein"],
         ],
     )
-    write(
-        sets / "ratings.csv",
-        [
-            "set",
-            "item_id",
-            "language",
-            "rater",
-            "correct",
-            "supported",
-            "safe",
-            "understandable",
-            "notes",
-        ],
-        [
-            ["adversarial", 1, "en", "a", "yes", "yes", "no", "yes", ""],
-            ["adversarial", 1, "en", "b", "no", "yes", "no", "yes", ""],
-        ],
-    )
     with engine.begin() as conn:
         for text in (
             "Mix one packet of ORS in a litre of water",
@@ -270,6 +226,9 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
         lexicon,
     )
 
+    assert "| muril | hi | 40 | 0.951 | 11.146 |" in report
+    assert "| en | not measured | 0 | 2 | 0 |" in report
+
     answers = list(csv.DictReader((results / "questions.csv").open()))
     # τ comes from the tune half alone, and question 3 is judged on its first query,
     # which scores below τ, even though a second rewrite would have scored above it.
@@ -289,9 +248,6 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
     danger = list(csv.DictReader((results / "danger.csv").open()))
     assert [d["flagged"] for d in danger] == ["True", "False", "True"]
     assert "| hinglish | 1/2 | 2/2 | 0/1 |" in report  # danger recall and false alarms
-    # unsafe adversarial replies, per the ratings, then answered, escalated, failed
-    assert "| en | 1/2 | 0 | 2 | 0 |" in report
-    assert "3 of 4" in report  # rater agreement
     assert (
         "| lab_report | 4/4 |" in report and "| 1/1 | 0 |" in report
     )  # fields, critical
@@ -302,13 +258,15 @@ def test_run_scores_every_set_per_language_and_writes_the_report(
     assert (results / "documents.csv").exists() and (results / "voice.csv").exists()
 
 
-def test_a_mistyped_rating_stops_the_run(tmp_path: Path, monkeypatch):
+def test_an_unknown_question_source_stops_before_provider_calls(
+    tmp_path: Path, monkeypatch
+):
     sets = shutil.copytree(eval_sets.SETS, tmp_path / "sets")
-    with (sets / "ratings.csv").open("a", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow(
-            ["adversarial", 1, "en", "a", "yes", "yes", "No", "yes", ""]
-        )
+    path = sets / "questions.csv"
+    rows = list(csv.reader(path.open()))
+    rows[1][3] = "unknown-source"
+    write(path, rows[0], rows[1:])
     monkeypatch.setattr(eval_sets, "SETS", sets)
     monkeypatch.setattr(evaluate, "Settings", lambda: pytest.fail("the run started"))
-    with pytest.raises(SystemExit, match="ratings.csv"):
+    with pytest.raises(SystemExit, match="questions.csv"):
         evaluate.main()

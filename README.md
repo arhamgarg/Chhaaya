@@ -227,7 +227,7 @@ The completed benchmark used 120 held-out messages, 40 per language, with three 
 
 ## Evaluation sets
 
-The sets that the evaluation harness runs against the system live in `eval/sets/`: 40 patient questions written in Hindi, English and Hinglish with the source document that answers each, split into a half that tunes τ and a half that reports it; 30 danger-sign messages and 30 look-alikes; 20 adversarial messages; 10 synthetic lab reports and 10 prescriptions with their expected fields; 15 recorded voice questions per language with transcripts; and the sheet where two people rate answers. The question, danger-sign, adversarial and document sets were drafted with an LLM, and a person read and approved every row. People recorded the voice questions and rate the answers. None of the sets is used for training. [docs/evaluation-sets.md](docs/evaluation-sets.md) explains how to write each one, and the command below checks every file and lists what is still missing.
+The sets that the evaluation harness runs against the system live in `eval/sets/`: 40 patient questions written in Hindi, English and Hinglish with the source document that answers each, split into a half that tunes τ and a half that reports it; 30 danger-sign messages and 30 look-alikes; 20 adversarial messages; 10 synthetic lab reports and 10 prescriptions with their expected fields; 15 recorded voice questions per language with transcripts. The question, danger-sign, adversarial and document sets were drafted with an LLM, and a person read and approved every row. People recorded the voice questions. None of the sets is used for training. [docs/evaluation-sets.md](docs/evaluation-sets.md) explains how to write each one, and the command below checks every file and lists what is still missing.
 
 ```bash
 uv run python -m chhaaya.eval_sets
@@ -235,13 +235,82 @@ uv run python -m chhaaya.eval_sets
 
 ## Evaluation harness
 
-`python -m eval` runs every evaluation set against the system and writes `eval/report.md` plus one CSV per set in `eval/results/`, every metric per language (design section 9). It refuses to start while a set fails its check, including a ratings sheet with a value other than `yes` or `no`. Each question is rewritten and retrieved once. τ is tuned on the `tune` half, one τ per language when a single τ escalates 20 points more of one language's correct retrievals than another's, and the `report` half is answered at that τ from the same query. The report covers hit@5 and escalation at τ, danger-sign recall on the message and on the message or its query, false alarms, unsafe replies to the adversarial messages as rated, field and medicine-name accuracy before and after the lexicon, critical values caught, word error rate, whether a voice question gets the typed question's outcome and sources, escalation by cause, and rater agreement. The selected AI provider and the knowledge base are live. The voice set also needs `SPEECH_ENABLED=true` and a Sarvam key. Nothing is sent on WhatsApp, no case is opened and no answer is spoken: the harness records what would have gone out. A run makes several hundred paid provider calls, so it needs the selected provider's key in `.env` and the corpus loaded into Postgres; the `WHATSAPP_*` settings need any non-blank value.
+`python -m eval` runs every evaluation set against the system and writes `eval/report.md` plus one CSV per set in `eval/results/`, every metric per language (design section 9). It refuses to start while a set fails its check. Each question is rewritten and retrieved once. τ is tuned on the `tune` half, one τ per language when a single τ escalates 20 points more of one language's correct retrievals than another's, and the `report` half is answered at that τ from the same query. The report covers hit@5 and escalation at τ, danger-sign recall on the message and on the message or its query, false alarms, adversarial response outcomes, field and medicine-name accuracy before and after the lexicon, critical values caught, word error rate, whether a voice question gets the typed question's outcome and sources, escalation by cause, and the recorded classifier benchmark. Unsafe-response rate is not measured. The selected AI provider and the knowledge base are live. The voice set also needs `SPEECH_ENABLED=true` and a Sarvam key. Nothing is sent on WhatsApp, no case is opened and no answer is spoken: the harness records what would have gone out. A run makes several hundred paid provider calls, so it needs the selected provider's key in `.env` and the corpus loaded into Postgres; the `WHATSAPP_*` settings need any non-blank value.
 
 ```bash
 docker compose up -d db migrate
 uv run python -m chhaaya.corpus && uv run python -m chhaaya.lexicon
 docker compose run --rm --volume ./data:/app/data --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m chhaaya.retrieval
 docker compose run --rm --build -e SPEECH_ENABLED=true --volume ./data:/app/data --volume ./eval:/app/eval --volume ~/.cache/huggingface:/root/.cache/huggingface worker python -m eval
+```
+
+## Evaluation results
+
+The following tables are copied from the complete synthetic-data evaluation on 23 October 2026. Claude Sonnet 5.5 handled text and photos; Sarvam handled speech. The [report](eval/report.md) includes the classifier benchmark, and the [per-item CSVs](eval/results/) retain each outcome. The evaluation tunes retrieval τ internally; the running application still uses τ=0.5. These measurements do not establish clinical safety.
+
+### Questions
+
+| Language | τ | Hit@5 | Escalated at τ | Correct retrievals escalated | Answered | Failed |
+| --- | --- | --- | --- | --- | --- | --- |
+| en | 0.535 | 17/20 | 0/20 | 0/17 | 19/20 | 0 |
+| hi | 0.535 | 17/20 | 0/20 | 0/17 | 16/20 | 0 |
+| hinglish | 0.535 | 16/20 | 0/20 | 0/16 | 16/20 | 0 |
+
+### Safety
+
+#### Danger signs
+
+The check runs on the message and on its English search query; a match on either fires.
+
+| Language | Recall (message) | Recall (message or query) | False alarms |
+| --- | --- | --- | --- |
+| en | 10/10 | 10/10 | 1/10 |
+| hi | 10/10 | 10/10 | 0/10 |
+| hinglish | 10/10 | 10/10 | 0/10 |
+
+#### Adversarial messages
+
+Response outcomes are counted below. Unsafe-response rate is not measured.
+
+| Language | Unsafe | Answered | Escalated | Failed |
+| --- | --- | --- | --- | --- |
+| en | not measured | 4 | 3 | 0 |
+| hi | not measured | 2 | 4 | 0 |
+| hinglish | not measured | 2 | 5 | 0 |
+
+### Documents
+
+| Kind | Fields correct | Medicine names | Names after lexicon |
+| --- | --- | --- | --- |
+| lab_report | 72/72 | — | — |
+| prescription | 64/64 | 16/16 | 13/16 |
+
+| Critical values caught | False alarms |
+| --- | --- |
+| 3/3 | 0 |
+
+### Voice
+
+A voice question gets the same answer when its transcript has the same outcome, cause and cited sources as the typed question.
+
+| Language | Word edits | Reference words | Word error rate | Same answer |
+| --- | --- | --- | --- | --- |
+| en | 9 | 148 | 6.1% | 10/15 |
+| hi | 18 | 133 | 13.5% | 7/15 |
+| hinglish | 136 | 135 | 100.7% | 11/15 |
+
+### Escalation
+
+Questions (report half), danger-sign messages and look-alikes, and adversarial messages, by why they went to the ASHA.
+
+| Language | Escalated | citation_failed | danger_sign | weak_evidence |
+| --- | --- | --- | --- | --- |
+| en | 15/47 | 2 | 11 | 2 |
+| hi | 18/46 | 0 | 10 | 8 |
+| hinglish | 19/47 | 1 | 10 | 8 |
+
+```bash
+SPEECH_ENABLED=true uv run python -m eval
 ```
 
 ## Contributing

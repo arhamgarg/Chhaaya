@@ -47,7 +47,6 @@ SCRIPTS = {"en": ("en", "Latn"), "hi": ("hi", "Deva"), "hinglish": ("hi", "Latn"
 # A single τ is replaced by one per language when, on the tune half, it escalates
 # this much larger a share of one language's correct retrievals than another's.
 TAU_SPREAD = 0.2
-CRITERIA = ("correct", "supported", "safe", "understandable")
 MIME = {
     ".ogg": "audio/ogg",
     ".opus": "audio/ogg",
@@ -360,20 +359,6 @@ def run_voice(
     return rows
 
 
-def agreement(ratings: list[dict]) -> tuple[int, int]:
-    """Criteria on which the two raters of an item agree, of those both rated."""
-    pairs = defaultdict(list)
-    for r in ratings:
-        pairs[r["set"], r["item_id"], r["language"]].append(r)
-    agreed = total = 0
-    for pair in pairs.values():
-        if len(pair) == 2:
-            for criterion in CRITERIA:
-                agreed += pair[0][criterion] == pair[1][criterion]
-                total += 1
-    return agreed, total
-
-
 def fraction(part: int, whole: int) -> str:
     return f"{part}/{whole}"
 
@@ -387,6 +372,24 @@ def table(header: list[str], rows: list[list]) -> str:
     return "\n".join("| " + " | ".join(str(c) for c in line) + " |" for line in lines)
 
 
+def classifier_table() -> str:
+    """Include the recorded benchmark without repeating its paid provider calls."""
+    benchmark = json.loads((eval_sets.ROOT / "data/intent/results.json").read_text())
+    return table(
+        ["Model", "Language", "Messages", "Macro-F1", "Median ms"],
+        [
+            [
+                r["model"],
+                r["language"],
+                r["n"],
+                f"{r['macro_f1']:.3f}",
+                f"{r['median_ms']:.3f}",
+            ]
+            for r in benchmark["results"]
+        ],
+    )
+
+
 def report(
     questions: list[dict],
     taus: dict[str, float],
@@ -394,7 +397,7 @@ def report(
     adversarial: list[dict],
     documents: list[dict],
     voice: list[dict],
-    ratings: list[dict],
+    classifier: str,
 ) -> str:
     out = [
         "# Evaluation report",
@@ -478,27 +481,11 @@ def report(
         )
     )
 
-    unsafe = {
-        (r["item_id"], r["language"])
-        for r in ratings
-        if r["set"] == "adversarial" and r["safe"] == "no"
-    }
-    raters = Counter(
-        (r["item_id"], r["language"]) for r in ratings if r["set"] == "adversarial"
-    )
-    answered = [x for x in adversarial if x["outcome"] == "answered"]
-    unrated = sum(raters[x["id"], x["language"]] < 2 for x in answered)
     out += [
         "",
         "### Adversarial messages",
         "",
-        "Unsafe means at least one rater marked the reply unsafe."
-        + (
-            f" **Not fully rated:** {unrated} of {len(answered)} answered replies "
-            "lack two ratings in `eval/sets/ratings.csv`."
-            if unrated
-            else ""
-        ),
+        "Response outcomes are counted below. Unsafe-response rate is not measured.",
         "",
     ]
     rows = []
@@ -507,7 +494,7 @@ def report(
         rows.append(
             [
                 language,
-                fraction(sum((x["id"], language) in unsafe for x in xs), len(xs)),
+                "not measured",
                 outcomes["answered"],
                 outcomes["escalated"],
                 outcomes["failed"],
@@ -609,46 +596,16 @@ def report(
         )
     out.append(table(["Language", "Escalated", *causes], rows))
 
-    out += ["", "## Answer ratings", ""]
-    if ratings:
-        agreed, total = agreement(ratings)
-        out += [
-            f"The two raters agree on {agreed} of {total} criteria "
-            f"({agreed / total:.0%})."
-            if total
-            else "No item has two ratings yet.",
-            "",
-        ]
-        by_set = defaultdict(list)
-        for r in ratings:
-            by_set[r["set"], r["language"]].append(r)
-        rows = []
-        for (s, language), rs in sorted(by_set.items()):
-            rows.append(
-                [
-                    s,
-                    language,
-                    *(
-                        fraction(sum(r[c] == "yes" for r in rs), len(rs))
-                        for c in CRITERIA
-                    ),
-                ]
-            )
-        out.append(table(["Set", "Language", *CRITERIA], rows))
-    else:
-        out.append(
-            "**Not rated yet:** two people rate the answers in `eval/results/` "
-            "into `eval/sets/ratings.csv` (see docs/evaluation-sets.md)."
-        )
-
     out += [
         "",
         "## Intent classifier",
         "",
-        "The separate `python -m chhaaya.intent evaluate --sarvam` benchmark "
-        "writes per-language macro-F1 and latency to `data/intent/results.json` "
-        "and every prediction to `data/intent/results.csv`. This health-content "
-        "evaluation does not rerun that paid benchmark.",
+        "Recorded benchmark from `data/intent/results.json`: 40 held-out messages "
+        "per language, three passes. Latency is the median of per-pass medians. "
+        "Local CPU inference and Sarvam network round trips have different costs. "
+        "The health evaluation does not repeat the paid classifier benchmark.",
+        "",
+        classifier,
     ]
     return "\n".join(out) + "\n"
 
@@ -673,6 +630,7 @@ def run(
     logging.getLogger("chhaaya.voice").setLevel(
         logging.CRITICAL
     )  # answers are unspoken
+    classifier = classifier_table()
     results.mkdir(parents=True, exist_ok=True)
     # Each set's CSV is written as soon as it is scored, so a failure later in the
     # run keeps the paid results before it.
@@ -687,8 +645,7 @@ def run(
     write_csv(results / "documents.csv", documents)
     voice = run_voice(read_csv(sets / "voice.csv"), sets, kb, ai, questions)
     write_csv(results / "voice.csv", voice)
-    ratings = read_csv(sets / "ratings.csv")
-    return report(questions, taus, danger, adversarial, documents, voice, ratings)
+    return report(questions, taus, danger, adversarial, documents, voice, classifier)
 
 
 def main() -> None:

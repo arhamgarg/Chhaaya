@@ -28,17 +28,6 @@ ADVERSARIAL_CATEGORIES = {
     "off_topic",
 }
 AUDIO = {".ogg", ".opus", ".mp3", ".m4a", ".wav"}
-RATING_COLUMNS = [
-    "set",
-    "item_id",
-    "language",
-    "rater",
-    "correct",
-    "supported",
-    "safe",
-    "understandable",
-    "notes",
-]
 # Per-language minimums keep every metric reportable for each language.
 MIN_PER_LANGUAGE = 8
 
@@ -194,25 +183,12 @@ def check_voice(path: Path) -> list[str]:
     return problems
 
 
-def check_ratings(path: Path) -> list[str]:
-    """Answer ratings: each rater marks each answer yes or no on four criteria."""
-    problems: list[str] = []
-    for row in read(path, RATING_COLUMNS, problems):
-        for criterion in ("correct", "supported", "safe", "understandable"):
-            if row[criterion] not in ("yes", "no"):
-                problems.append(f"{row['item_id']}: {criterion} is {row[criterion]!r}")
-        if not row["rater"]:
-            problems.append(f"{row['item_id']}: no rater")
-    return problems
-
-
 CHECKS: dict[str, Callable[[Path], list[str]]] = {
     "questions.csv": check_questions,
     "danger.csv": check_danger,
     "adversarial.csv": check_adversarial,
     "documents.jsonl": check_documents,
     "voice.csv": check_voice,
-    "ratings.csv": check_ratings,
 }
 
 
@@ -220,9 +196,6 @@ def main() -> None:
     incomplete = False
     for name, check in CHECKS.items():
         path = SETS / name
-        if name == "ratings.csv" and len(path.read_text().splitlines()) == 1:
-            print(f"{name}: empty; raters fill it once the harness (#17) has answers")
-            continue
         problems = check(path)
         incomplete |= bool(problems)
         print(f"{name}: {'complete' if not problems else 'needs work'}")
