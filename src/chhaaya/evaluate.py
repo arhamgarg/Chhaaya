@@ -645,7 +645,10 @@ def report(
         "",
         "## Intent classifier",
         "",
-        "**Not available:** the classifier and its baselines come with issue #8.",
+        "The separate `python -m chhaaya.intent evaluate --sarvam` benchmark "
+        "writes per-language macro-F1 and latency to `data/intent/results.json` "
+        "and every prediction to `data/intent/results.csv`. This health-content "
+        "evaluation does not rerun that paid benchmark.",
     ]
     return "\n".join(out) + "\n"
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     sarvam_api_key: str = ""
     speech_enabled: bool = False
+    intent_model_path: Path = Path("data/intent/model")
     # Read by Compose for the optional `tunnel` profile, not by the service.
     cloudflare_tunnel_token: str | None = None
 

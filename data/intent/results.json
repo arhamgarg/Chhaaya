@@ -1,0 +1,142 @@
+{
+  "runs": 3,
+  "f1_pass": 1,
+  "latency": "median of per-pass medians, warm CPU, no result cache",
+  "latency_scope": "local tokenizer and CPU model versus sequential Sarvam network round trips; provider-side caching is not controlled",
+  "sarvam_start_interval_seconds": 2.0,
+  "test_sha256": "d9dc39995d33f684b91b8afba53f4944e39d4f2be9bf25f59c8b8b33edf3659e",
+  "model_training": {
+    "base_model": "google/muril-base-cased",
+    "revision": "afd9f36c7923d54e97903922ff1b260d091d202f",
+    "seed": 42,
+    "epochs": 5,
+    "batch_size": 8,
+    "max_length": 64,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "gradient_clip": 1.0,
+    "training_rows": 900,
+    "train_sha256": "dfd9de09a4931e4e91ca735814c4bed8bcb93e7f1558ff8e9c4936eed5b094dd",
+    "device": "mps",
+    "torch": "2.14.1",
+    "losses": [
+      1.3260269684261745,
+      1.0454210954242282,
+      0.7256343899832831,
+      0.4409775193532308,
+      0.22460699134402806
+    ],
+    "seconds": 286.155721542018,
+    "test_used_for_training_or_threshold": false
+  },
+  "results": [
+    {
+      "model": "keywords",
+      "language": "hi",
+      "n": 40,
+      "macro_f1": 0.3896279871889628,
+      "median_ms": 0.001354506821371615,
+      "run_medians_ms": [
+        0.0015420082490891218,
+        0.001354506821371615,
+        0.0013125099940225482
+      ]
+    },
+    {
+      "model": "keywords",
+      "language": "en",
+      "n": 40,
+      "macro_f1": 0.3412698412698413,
+      "median_ms": 0.0013749959180131555,
+      "run_medians_ms": [
+        0.0015415134839713573,
+        0.0013749959180131555,
+        0.0012085074558854103
+      ]
+    },
+    {
+      "model": "keywords",
+      "language": "hinglish",
+      "n": 40,
+      "macro_f1": 0.4072966507177033,
+      "median_ms": 0.0012499949662014842,
+      "run_medians_ms": [
+        0.0014160032151266932,
+        0.0012499949662014842,
+        0.0012080126907676458
+      ]
+    },
+    {
+      "model": "muril",
+      "language": "hi",
+      "n": 40,
+      "macro_f1": 0.950956937799043,
+      "median_ms": 11.145666503580287,
+      "run_medians_ms": [
+        11.145666503580287,
+        11.110645500593819,
+        11.288624504231848
+      ]
+    },
+    {
+      "model": "muril",
+      "language": "en",
+      "n": 40,
+      "macro_f1": 0.8972431077694235,
+      "median_ms": 11.29172949003987,
+      "run_medians_ms": [
+        11.314791496261023,
+        11.29172949003987,
+        11.193833983270451
+      ]
+    },
+    {
+      "model": "muril",
+      "language": "hinglish",
+      "n": 40,
+      "macro_f1": 0.8721532091097308,
+      "median_ms": 11.271167008089833,
+      "run_medians_ms": [
+        11.284187494311482,
+        11.187666488694958,
+        11.271167008089833
+      ]
+    },
+    {
+      "model": "sarvam-105b",
+      "language": "hi",
+      "n": 40,
+      "macro_f1": 0.974937343358396,
+      "median_ms": 188.35929200577084,
+      "run_medians_ms": [
+        210.0682290038094,
+        170.62018800061196,
+        188.35929200577084
+      ]
+    },
+    {
+      "model": "sarvam-105b",
+      "language": "en",
+      "n": 40,
+      "macro_f1": 0.949937343358396,
+      "median_ms": 167.17141700792126,
+      "run_medians_ms": [
+        206.24256250448525,
+        164.74224999547005,
+        167.17141700792126
+      ]
+    },
+    {
+      "model": "sarvam-105b",
+      "language": "hinglish",
+      "n": 40,
+      "macro_f1": 0.974937343358396,
+      "median_ms": 169.92772900266573,
+      "run_medians_ms": [
+        186.5451454941649,
+        169.92772900266573,
+        162.86137500719633
+      ]
+    }
+  ]
+}

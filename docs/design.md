@@ -58,7 +58,7 @@ WhatsApp ──> webhook ──> messages table ──> worker
 1. **Receive.** The webhook checks Meta's `X-Hub-Signature-256` signature, stores the message keyed by its WhatsApp message id (so retried deliveries are ignored), and returns `200` immediately. WhatsApp retries any webhook that responds slowly.
 2. **Work.** A single worker process polls Postgres for pending work using `SELECT ... FOR UPDATE SKIP LOCKED`. Pending work means inbound messages and due reminders. There is no Redis or Celery; one queue in the database we already run is enough at this scale.
 3. **Normalise.** Voice notes go through speech-to-text, which also returns the language. For typed text, the selected provider's language identification gives the language and script. Messages from a registered ASHA number go straight to the escalation agent.
-4. **Screen for danger signs** before anything else (section 6).
+4. **Screen for danger signs.** Check the original message before provider calls. For patient text or transcribed voice, also rewrite it into an English search query and screen that query before intent routing or pending-reminder replies (section 6).
 5. **Route.** Photos go to the document agent. Text goes through the intent classifier (section 7) and then to the matching agent. If the classifier is unsure, the message is treated as a question: the Q&A agent is the safest default because it abstains when it has no evidence.
 6. **Reply** in the patient's language, as text plus a voice note when speech is enabled. Voice replies are short (about 60 words) because a long voice note is hard to follow.
 
@@ -87,7 +87,7 @@ An "agent" here is a module with one job and a fixed set of tools. None of them 
 
 ### 5.1 Q&A agent
 
-1. The LLM rewrites the message into a short English search query, turning lay terms into clinical ones ("sugar" becomes diabetes, "loose motion" becomes diarrhoea).
+1. Reuse the worker’s screened English search query, turning lay terms into clinical ones ("sugar" becomes diabetes, "loose motion" becomes diarrhoea). Standalone Q&A callers rewrite and screen the query themselves.
 2. That query retrieves the top 5 chunks from the knowledge base by cosine similarity.
 3. **Weak evidence.** If the best score is below the threshold τ, the agent does not answer. It tells the patient their ASHA will reply and opens an escalation. τ is tuned on the evaluation set (section 9), not guessed.
 4. **Generation.** Otherwise the LLM answers using only the retrieved chunks, citing chunk ids.
@@ -116,7 +116,7 @@ Reminders are set by the patient saying something like "subah 8 baje aur raat 8 
 
 At each due time, the worker sends the reminder. The patient replies (for example "le li" or "taken") to mark the dose as taken. A dose not marked taken by the time the next one is due counts as missed. After three missed doses in a row, the ASHA is told, once per run of misses. Reminder times are India times of day; due times are stored in UTC.
 
-Until the intent classifier is trained (section 7), keyword rules route reminder messages: a message naming a reminder ("yaad", "remind", "याद"), a yes or no while a read-back waits, or a message saying only that a dose was taken while one is pending. Everything else is a question.
+The local classifier routes new reminder requests (section 7). Exact yes/no replies to a pending read-back, and an exact taken reply while a dose is pending, belong to that existing conversation and keep their deterministic state checks.
 
 WhatsApp only allows free-form messages within 24 hours of the patient's last message. Outside that window, reminders must go out as a pre-approved message template (`medicine_reminder`). The ASHA's case alerts (`asha_case_alert`) and relayed replies (`case_update`) work the same way.
 
@@ -163,9 +163,11 @@ Photos never reach it.
 **Evaluation.** We report macro-F1 (the F1 score averaged equally over the four labels) per language. We compare against two baselines:
 
 - a keyword rule baseline;
-- zero-shot classification by the selected text provider (Claude by default).
+- zero-shot classification by Sarvam-105B, explicitly enabled for the benchmark even when Claude handles patient messages.
 
 The classifier earns its place only if it beats the keyword rules and comes close to the LLM at a fraction of the latency and cost. If it does not, we report that honestly.
+
+`python -m chhaaya.intent train` fine-tunes the pinned MuRIL revision on the training CSV with seed 42, five epochs, batch size eight, learning rate 0.00002, weight decay 0.01 and 64-token inputs. The checkpoint records these settings and the training-data checksum. Training uses MPS when available or CPU; inference always uses CPU. The test set never chooses weights or thresholds. New messages with confidence below the fixed 0.8 threshold become questions. A predicted reminder reply also becomes a question when there is no pending reminder. A missing or invalid checkpoint fails explicitly; it never silently restores keyword routing. The worker loads the checkpoint lazily after the original-text danger screen. Small talk receives a canned response in the patient's language and script.
 
 ## 8. Data
 

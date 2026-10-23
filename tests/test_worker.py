@@ -13,9 +13,11 @@ import pytest
 from sqlalchemy import Engine, text
 from test_audio import tone
 
+from chhaaya import reminders
 from chhaaya.ai import AIClient
 from chhaaya.cases import Cases
 from chhaaya.claude import LANGUAGE_PROMPT
+from chhaaya.qa import REWRITE
 from chhaaya.settings import Settings
 from chhaaya.whatsapp import WhatsAppClient
 from chhaaya.worker import Inbound, Worker
@@ -35,6 +37,7 @@ class World:
         self.ai_calls: list[str] = []
         # The provider answers each chat request with the next of these, in order.
         self.chat_replies: list[str] = []
+        self.rewrite_replies: list[str] = []
         self.chat_reasoning_tokens: list[int] = []
         self.chat_requests: list[dict] = []
         # The Markdown read off a photo; None means OCR fails.
@@ -69,7 +72,17 @@ class World:
         )
         self.embedded: list[str] = []
         self.cases_ = Cases(engine, whatsapp, ai, self.embed)
-        self.worker = Worker(engine, whatsapp, ai, self.cases_, self.agents)
+        # Most tests mock the classifier boundary; test_intent_flow loads a real one.
+        self.worker = Worker(
+            engine,
+            whatsapp,
+            ai,
+            self.cases_,
+            self.agents,
+            lambda body: (
+                "reminder_setup" if reminders.ASKS.search(body) else "question"
+            ),
+        )
 
     def embed(self, texts):
         """A stand-in for BGE-M3: one fixed 1024-dimensional vector per text."""
@@ -78,6 +91,12 @@ class World:
 
     def agent(self, name: str) -> Callable[[Inbound], None]:
         return lambda message: self.agent_calls.append((name, message.id))
+
+    def chat_reply(self, system: str, user: str) -> str:
+        # Unconfigured rewrites echo the input; generation remains explicit.
+        if system == REWRITE:
+            return self.rewrite_replies.pop(0) if self.rewrite_replies else user
+        return self.chat_replies.pop(0)
 
     def handle(self, request: httpx2.Request) -> httpx2.Response:
         path = request.url.path
@@ -185,7 +204,9 @@ class World:
                     "user": body["messages"][1]["content"],
                 }
             )
-            reply = self.chat_replies.pop(0)
+            reply = self.chat_reply(
+                body["messages"][0]["content"], body["messages"][1]["content"]
+            )
             reasoning = (
                 self.chat_reasoning_tokens.pop(0) if self.chat_reasoning_tokens else 0
             )
@@ -241,7 +262,9 @@ class World:
                     "user": body["messages"][0]["content"][0]["text"],
                 }
             )
-            answer = self.chat_replies.pop(0)
+            answer = self.chat_reply(
+                body["system"], body["messages"][0]["content"][0]["text"]
+            )
         return httpx2.Response(
             200,
             json={

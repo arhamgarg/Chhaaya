@@ -44,6 +44,8 @@ services:
     command: ["python", "-m", "chhaaya.worker"]
     # A database error outside a message stops the process; start it again.
     restart: unless-stopped
+    volumes:
+      - ./data/intent/model:/app/data/intent/model:ro
     env_file: .env
     environment:
       DATABASE_URL: postgresql://chhaaya@db:5432/chhaaya

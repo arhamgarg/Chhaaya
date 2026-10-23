@@ -2,7 +2,7 @@
 
 Chhaaya is a WhatsApp health assistant for rural patients in India. You send it a voice note, a message or a photo, in Hindi, English or Hinglish. It answers from Indian public-health guidelines, explains your lab report in plain words, reminds you to take your medicines, and passes anything urgent or uncertain to your ASHA worker. It does not diagnose.
 
-The project is at an early stage: the service skeleton runs, the features do not exist yet. [docs/design.md](docs/design.md) is the specification, and the open issues are the work plan.
+Train the local intent router and configure the providers before starting the worker. [docs/design.md](docs/design.md) is the specification, and the evaluation reports the measured limitations.
 
 ## How it works
 
@@ -20,6 +20,7 @@ Questions are answered by retrieving passages from MoHFW, ICMR and NHM documents
 
 ```bash
 cp .env.example .env   # then set POSTGRES_PASSWORD, WHATSAPP_* and ANTHROPIC_API_KEY
+uv run python -m chhaaya.intent train  # download MuRIL and train the local router
 docker compose up --build
 curl localhost:8000/health
 ```
@@ -50,7 +51,7 @@ uv run pytest tests/test_migrations.py tests/test_compose.py
 
 ## Danger-sign detection
 
-Every message is screened for danger signs by rules rather than a model, so anyone can read why a message was flagged. `data/danger_signs.yaml` lists each sign (for example bleeding in pregnancy, convulsions, a baby not feeding, difficulty breathing, unconsciousness) with the page of the MCP card, IMNCI or ASHA module it comes from, its phrasings in Hindi, English and Hinglish, and the urgent reply (go to the nearest health centre or call 108) in all three. `chhaaya.danger_signs.detect(text)` folds case, Unicode forms and common Hinglish spellings ("nhi", "dudh", "rha"), then looks for each phrasing in order with up to six other words between its words, so "pet mein bahut tez dard" still matches "pet tez dard". A negated mention such as "no bleeding" or "pregnancy mein khoon nahi aaya" does not fire, but because a missed sign is far worse than a false alarm, negation only suppresses a match in those narrow patterns: "pregnancy mein bleeding nahi ruk rahi" (the bleeding won't stop) fires. The worker checks the original message before provider calls and checks the English search query again before retrieval. Indirect feeding and postpartum-bleeding phrases are included. Newborn jaundice mentions escalate conservatively because chat cannot establish the infant's age or clinical severity.
+Every message is screened for danger signs by rules rather than a model, so anyone can read why a message was flagged. `data/danger_signs.yaml` lists each sign (for example bleeding in pregnancy, convulsions, a baby not feeding, difficulty breathing, unconsciousness) with the page of the MCP card, IMNCI or ASHA module it comes from, its phrasings in Hindi, English and Hinglish, and the urgent reply (go to the nearest health centre or call 108) in all three. `chhaaya.danger_signs.detect(text)` folds case, Unicode forms and common Hinglish spellings ("nhi", "dudh", "rha"), then looks for each phrasing in order with up to six other words between its words, so "pet mein bahut tez dard" still matches "pet tez dard". A negated mention such as "no bleeding" or "pregnancy mein khoon nahi aaya" does not fire, but because a missed sign is far worse than a false alarm, negation only suppresses a match in those narrow patterns: "pregnancy mein bleeding nahi ruk rahi" (the bleeding won't stop) fires. The worker checks the original message before provider calls and checks the English search query before intent routing or pending-reminder replies. The Q&A agent reuses that screened query for retrieval. Indirect feeding and postpartum-bleeding phrases are included. Newborn jaundice mentions escalate conservatively because chat cannot establish the infant's age or clinical severity.
 
 ```bash
 uv run python -c 'from chhaaya.danger_signs import detect; print(detect("bachcha doodh nahi pee raha"))'
@@ -146,7 +147,7 @@ uv run pytest tests/test_document.py tests/test_claude.py tests/test_ai_flow.py
 
 ## Medication reminders
 
-Patients set medicine reminders by text or voice ("subah 8 baje aur raat 8 baje metformin yaad dilana, ek mahine tak"). Claude reads the request into JSON (medicine, times of day in India time, number of days), which Pydantic validates, using the patient's last confirmed prescription to name the medicines when they refer to it. The agent reads the reminders back ("Metformin: 8:00 am, 8:00 pm, 30 din tak roz") and saves them unconfirmed. Only a yes ("haan ji", "ok") in the next 24 hours schedules them, and a no discards them; a reply without words ("👍") does neither. A course starts on the first day with a time still ahead, so "5 days" asked for at 9 pm with an 8 am time means five reminded days from tomorrow. A request without both a medicine and a time gets an example of what to send. Until the intent classifier routes messages, keyword rules pick out reminder messages in `src/chhaaya/reminders.py`: a message with "yaad", "remind" or "याद", a yes or no while a read-back waits, or a message saying only that a dose was taken ("le li", "maine dawai kha li", "taken") while one is pending. Everything else still goes to the Q&A agent. Between messages, the worker sends the most overdue reminder, records a dose and schedules the next time. Times are kept as India times of day and due times as UTC timestamps. A stopped worker sends one late reminder, not a burst. Inside the patient's 24-hour window the reminder is a text, plus a voice note when speech is enabled; outside it, it is the `medicine_reminder` template. The reminder is sent after its dose is saved, so it is never sent twice, and a failed send is logged and counts as a missed dose. A dose still pending when the next is due is marked missed. When three in a row are missed, the patient's ASHA gets a `missed_doses` case, once per run of misses, and the patient is not sent a notice. Reminders cannot be stopped from WhatsApp: a course without a number of days runs until its row is deleted.
+Patients set medicine reminders by text or voice ("subah 8 baje aur raat 8 baje metformin yaad dilana, ek mahine tak"). Claude reads the request into JSON (medicine, times of day in India time, number of days), which Pydantic validates, using the patient's last confirmed prescription to name the medicines when they refer to it. The agent reads the reminders back ("Metformin: 8:00 am, 8:00 pm, 30 din tak roz") and saves them unconfirmed. Only a yes ("haan ji", "ok") in the next 24 hours schedules them, and a no discards them; a reply without words ("👍") does neither. A course starts on the first day with a time still ahead, so "5 days" asked for at 9 pm with an 8 am time means five reminded days from tomorrow. A request without both a medicine and a time gets an example of what to send. The local intent classifier routes new reminder requests. Exact yes/no replies while a read-back waits and exact taken replies while a dose is pending keep their existing state checks in `src/chhaaya/reminders.py`. A predicted reminder reply without a pending reminder goes to the Q&A agent. Between messages, the worker sends the most overdue reminder, records a dose and schedules the next time. Times are kept as India times of day and due times as UTC timestamps. A stopped worker sends one late reminder, not a burst. Inside the patient's 24-hour window the reminder is a text, plus a voice note when speech is enabled; outside it, it is the `medicine_reminder` template. The reminder is sent after its dose is saved, so it is never sent twice, and a failed send is logged and counts as a missed dose. A dose still pending when the next is due is marked missed. When three in a row are missed, the patient's ASHA gets a `missed_doses` case, once per run of misses, and the patient is not sent a notice. Reminders cannot be stopped from WhatsApp: a course without a number of days runs until its row is deleted.
 
 ```bash
 uv run pytest tests/test_reminders.py
@@ -187,6 +188,26 @@ The router that sends each message to the Q&A or reminder agent is trained on la
 ```bash
 uv run python -m chhaaya.intent_data data/intent/agreement/Ananya.csv data/intent/agreement/Arham.csv
 ```
+
+## Intent classifier
+
+The worker routes new text messages with a fine-tuned [MuRIL](https://huggingface.co/google/muril-base-cased) model on CPU. `python -m chhaaya.intent train` trains every parameter on the 900 training rows with seed 42 and fixed hyperparameters, records them with the dataset checksum in `training.json`, and saves a local checkpoint in `data/intent/model`. It uses MPS for training when available, otherwise CPU. The test set is never used for training or choosing the fixed 0.8 confidence threshold. Lower confidence becomes `question`. Exact replies to a pending reminder retain their state checks, and a predicted reminder reply without a pending reminder becomes a question. Photos and original-text emergencies run before classification. Every other patient message is also rewritten and screened for English-query danger signs before classification or pending-reminder handling. Q&A reuses that query rather than rewriting it again. Small talk gets a canned reply in the patient's language and script. A missing or invalid checkpoint fails explicitly. `INTENT_MODEL_PATH` changes the native worker's checkpoint path; Compose mounts the default directory read-only. The benchmark requests Sarvam structured JSON and validates the four-label schema. The explicit benchmark compares all four labels against keyword rules and zero-shot Sarvam-105B, even when Claude handles patient messages. Sarvam requests start at least two seconds apart, below the documented [Starter rate limit](https://docs.sarvam.ai/api/getting-started/ratelimits); measured latency excludes that pacing. It records macro-F1 from the first pass, three passes of per-message timings, per-language median timings and their spread, and every prediction in a CSV. Completed predictions remain available if a later provider call fails; a failed run has no summary JSON. Use a new output path for another run.
+
+```bash
+uv run python -m chhaaya.intent train
+uv run python -m chhaaya.intent evaluate --sarvam   # paid baseline; needs SARVAM_API_KEY
+uv run pytest tests/test_intent_flow.py
+```
+
+The completed benchmark used 120 held-out messages, 40 per language, with three passes for each model (1,080 predictions). Macro-F1 uses the first pass after applying the router's confidence rule. MuRIL beats these keyword rules in every language but trails Sarvam-105B. Latency is the median of three per-pass medians; brackets show their minimum and maximum. These are warm CPU measurements on an Apple M5 with 24 GiB RAM and four Torch threads, versus sequential remote Sarvam requests. They exclude checkpoint loading and request pacing. Provider-side caching is uncontrolled. MuRIL's local CPU inference and Sarvam's network round trips measure different costs.
+
+| Language | Keyword macro-F1 | MuRIL macro-F1 | Sarvam-105B macro-F1 | Keyword ms [range] | MuRIL ms [range] | Sarvam-105B ms [range] |
+|---|---:|---:|---:|---:|---:|---:|
+| Hindi | 0.390 | 0.951 | 0.975 | 0.0014 [0.0013, 0.0015] | 11.15 [11.11, 11.29] | 188.36 [170.62, 210.07] |
+| English | 0.341 | 0.897 | 0.950 | 0.0014 [0.0012, 0.0015] | 11.29 [11.19, 11.31] | 167.17 [164.74, 206.24] |
+| Hinglish | 0.407 | 0.872 | 0.975 | 0.0012 [0.0012, 0.0014] | 11.27 [11.19, 11.28] | 169.93 [162.86, 186.55] |
+
+[The summary](data/intent/results.json) records the training parameters, dataset checksums and unrounded measurements. [The prediction CSV](data/intent/results.csv) records every trial. Five training epochs took 286.16 seconds on MPS, excluding download and checkpoint loading. Training and test messages have no exact overlap after whitespace and case normalization. This small development benchmark does not establish clinical safety.
 
 ## Evaluation sets
 
