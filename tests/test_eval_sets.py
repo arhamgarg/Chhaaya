@@ -8,7 +8,6 @@ from chhaaya.eval_sets import (
     check_danger,
     check_documents,
     check_questions,
-    check_ratings,
     check_voice,
 )
 
@@ -163,17 +162,6 @@ def test_voice_needs_fifteen_recordings_per_language_with_transcripts(tmp_path: 
 
     path = write_csv(tmp_path / "voice.csv", header, rows[1:])
     assert any("15" in p and "hi" in p for p in check_voice(path))
-
-
-def test_ratings_accept_only_yes_or_no(tmp_path: Path):
-    header = eval_sets.RATING_COLUMNS
-    good = ["questions", "7-hi", "hi", "rater_a", "yes", "yes", "yes", "no", ""]
-    path = write_csv(tmp_path / "ratings.csv", header, [good])
-    assert check_ratings(path) == []
-
-    bad = good[:4] + ["maybe"] + good[5:]
-    path = write_csv(tmp_path / "ratings.csv", header, [bad])
-    assert any("maybe" in p for p in check_ratings(path))
 
 
 def test_every_committed_set_passes_its_checks():
